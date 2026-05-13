@@ -21,7 +21,9 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "sonar": "sonar-scanner",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check \"{src,test}/**/*.ts\"",
+    "lint:check": "eslint \"{src,test}/**/*.ts\" --max-warnings=0"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -119,5 +121,6 @@
     },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "packageManager": "pnpm@11.1.1"
 }

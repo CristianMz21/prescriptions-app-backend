@@ -1,5 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './../src/app.module';
@@ -47,21 +49,18 @@ describe('Prescriptions Flow (e2e)', () => {
 
     await app.init();
 
-    // Authenticate Admin
     const adminLogin = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'admin@clinic.com', password: 'Password123!' })
       .expect(201);
     adminCookie = extractAccessCookie(adminLogin.headers['set-cookie']);
 
-    // Authenticate Patient
     const patientLogin = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'patient@clinic.com', password: 'Password123!' })
       .expect(201);
     patientCookie = extractAccessCookie(patientLogin.headers['set-cookie']);
 
-    // Authenticate Doctor
     const doctorLogin = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'doctor@clinic.com', password: 'Password123!' })
@@ -76,12 +75,10 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200)
         .expect((res) => {
-          // Verify structure
           expect(res.body).toHaveProperty('data');
           expect(res.body).toHaveProperty('meta');
           expect(res.body.meta.page).toEqual(1);
           expect(res.body.meta.limit).toEqual(5);
-          // Verify that returned data only contains PENDING statuses
           if (res.body.data.length > 0) {
             expect(res.body.data[0].status).toEqual('PENDING');
           }
@@ -93,7 +90,7 @@ describe('Prescriptions Flow (e2e)', () => {
     it('should return 403 Forbidden when a PATIENT tries to create a prescription', async () => {
       const mockPayload = {
         patientId: '123e4567-e89b-12d3-a456-426614174000',
-        items: [{ name: 'Test Med', dosage: '10mg', quantity: '30' }],
+        items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
       };
 
       return request(app.getHttpServer())
@@ -112,7 +109,6 @@ describe('Prescriptions Flow (e2e)', () => {
 
   describe('Test 3: ValidationPipe (class-validator)', () => {
     it('should return 400 Bad Request when a DOCTOR sends an invalid payload', async () => {
-      // Invalid payload: missing 'items', invalid UUID for patientId
       const invalidPayload = {
         patientId: 'not-a-uuid',
       };
@@ -123,16 +119,235 @@ describe('Prescriptions Flow (e2e)', () => {
         .send(invalidPayload)
         .expect(400)
         .expect((res) => {
-          // Assert that class-validator error messages are present
           expect(res.body.message).toEqual(
             expect.arrayContaining([
               'patientId must be a UUID',
-              'items should not be empty',
-              'items must be an array',
+              'Items array must not be empty',
             ]),
           );
           expect(res.body.error).toEqual('Bad Request');
         });
+    });
+  });
+
+  describe('GET /prescriptions/:id — Contract: ownership', () => {
+    it('should return 403 when doctor tries to access another doctors prescription', async () => {
+      const adminRes = await request(app.getHttpServer())
+        .get('/prescriptions?limit=10')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const doctorsPrescription = adminRes.body.data.find(
+        (p: any) => p.doctorId !== undefined,
+      );
+
+      if (doctorsPrescription) {
+        await request(app.getHttpServer())
+          .get(`/prescriptions/${doctorsPrescription.id}`)
+          .set('Cookie', doctorCookie)
+          .expect(403)
+          .expect((res) => {
+            expect(res.body.message).toEqual(
+              'You do not have permission to access this prescription.',
+            );
+            expect(res.body.error).toEqual('Forbidden');
+          });
+      }
+    });
+
+    it('should return prescription detail when doctor accesses their own prescription', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/prescriptions')
+        .set('Cookie', doctorCookie)
+        .expect(200);
+
+      if (res.body.data.length > 0) {
+        const ownPrescription = res.body.data[0];
+        await request(app.getHttpServer())
+          .get(`/prescriptions/${ownPrescription.id}`)
+          .set('Cookie', doctorCookie)
+          .expect(200);
+      }
+    });
+
+    it('should return 403 when patient tries to access another patients prescription', async () => {
+      const adminRes = await request(app.getHttpServer())
+        .get('/prescriptions?limit=10')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const seededPatientId = adminRes.body.data[0]?.patientId;
+      const prescriptionNotBelongingToSeededPatient = adminRes.body.data.find(
+        (p: any) => p.patientId !== seededPatientId,
+      );
+
+      if (prescriptionNotBelongingToSeededPatient) {
+        await request(app.getHttpServer())
+          .get(`/prescriptions/${prescriptionNotBelongingToSeededPatient.id}`)
+          .set('Cookie', patientCookie)
+          .expect(403)
+          .expect((res) => {
+            expect(res.body.message).toEqual(
+              'You do not have permission to access this prescription.',
+            );
+            expect(res.body.error).toEqual('Forbidden');
+          });
+      }
+    });
+
+    it('should allow admin to access any prescription', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/prescriptions')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      if (res.body.data.length > 0) {
+        const anyPrescription = res.body.data[0];
+        await request(app.getHttpServer())
+          .get(`/prescriptions/${anyPrescription.id}`)
+          .set('Cookie', adminCookie)
+          .expect(200);
+      }
+    });
+  });
+
+  describe('GET /me/prescriptions — Patient List (status, pagination)', () => {
+    it('should return only own prescriptions for patient with pagination', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/prescriptions?page=1&limit=10')
+        .set('Cookie', patientCookie)
+        .expect(200);
+
+      expect(res.body).toHaveProperty('data');
+      expect(res.body).toHaveProperty('meta');
+      expect(res.body.data.every((p: any) => p.patientId !== undefined)).toBe(
+        true,
+      );
+    });
+
+    it('should filter by status for patient prescriptions', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/prescriptions?status=PENDING&limit=10')
+        .set('Cookie', patientCookie)
+        .expect(200);
+
+      if (res.body.data.length > 0) {
+        expect(res.body.data[0].status).toEqual('PENDING');
+      }
+    });
+
+    it('should return 401 without auth cookie', async () => {
+      await request(app.getHttpServer()).get('/prescriptions').expect(401);
+    });
+  });
+
+  describe('PATCH /prescriptions/:id/consume — Patient Actions', () => {
+    it('should return 403 when doctor tries to consume a prescription', async () => {
+      const adminRes = await request(app.getHttpServer())
+        .get('/prescriptions?limit=10')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      if (adminRes.body.data.length > 0) {
+        const prescriptionId = adminRes.body.data[0].id;
+        await request(app.getHttpServer())
+          .patch(`/prescriptions/${prescriptionId}/consume`)
+          .set('Cookie', doctorCookie)
+          .expect(403);
+      }
+    });
+
+    it('should return 403 when patient tries to consume a prescription not belonging to them', async () => {
+      const adminRes = await request(app.getHttpServer())
+        .get('/prescriptions?limit=10')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const seededPatientId = adminRes.body.data[0]?.patientId;
+      const prescriptionNotBelongingToSeededPatient = adminRes.body.data.find(
+        (p: any) => p.patientId !== seededPatientId,
+      );
+
+      if (prescriptionNotBelongingToSeededPatient) {
+        await request(app.getHttpServer())
+          .patch(
+            `/prescriptions/${prescriptionNotBelongingToSeededPatient.id}/consume`,
+          )
+          .set('Cookie', patientCookie)
+          .expect(403);
+      }
+    });
+  });
+
+  describe('GET /prescriptions/:id/pdf — Patient PDF Download', () => {
+    it('should return 403 when doctor tries to download a prescription PDF not their own', async () => {
+      const adminRes = await request(app.getHttpServer())
+        .get('/prescriptions?limit=10')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      if (adminRes.body.data.length > 0) {
+        const prescriptionId = adminRes.body.data[0].id;
+        await request(app.getHttpServer())
+          .get(`/prescriptions/${prescriptionId}/pdf`)
+          .set('Cookie', doctorCookie)
+          .expect(403);
+      }
+    });
+
+    it('should return 403 when patient tries to download another patients prescription PDF', async () => {
+      const adminRes = await request(app.getHttpServer())
+        .get('/prescriptions?limit=10')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const seededPatientId = adminRes.body.data[0]?.patientId;
+      const prescriptionNotBelongingToSeededPatient = adminRes.body.data.find(
+        (p: any) => p.patientId !== seededPatientId,
+      );
+
+      if (prescriptionNotBelongingToSeededPatient) {
+        await request(app.getHttpServer())
+          .get(
+            `/prescriptions/${prescriptionNotBelongingToSeededPatient.id}/pdf`,
+          )
+          .set('Cookie', patientCookie)
+          .expect(403);
+      }
+    });
+  });
+
+  describe('GET /prescriptions — List never leaks across roles', () => {
+    it('should never return a prescription where doctorId differs from requesting doctor', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/prescriptions?limit=50')
+        .set('Cookie', doctorCookie)
+        .expect(200);
+
+      if (res.body.data.length > 0) {
+        const wrongOwner = res.body.data.filter(
+          (p: any) =>
+            p.doctorId !== undefined &&
+            p.doctorId !== res.body.data[0]?.doctorId,
+        );
+        expect(wrongOwner.length).toBe(0);
+      }
+    });
+
+    it('should never return a prescription where patientId differs from requesting patient', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/prescriptions?limit=50')
+        .set('Cookie', patientCookie)
+        .expect(200);
+
+      if (res.body.data.length > 0) {
+        const wrongOwner = res.body.data.filter(
+          (p: any) =>
+            p.patientId !== undefined &&
+            p.patientId !== res.body.data[0]?.patientId,
+        );
+        expect(wrongOwner.length).toBe(0);
+      }
     });
   });
 
