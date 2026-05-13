@@ -5,6 +5,7 @@ import {
   IsString,
   IsUUID,
   ValidateNested,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -51,6 +52,7 @@ export class CreatePrescriptionDto {
     description: 'List of medications in the prescription',
   })
   @IsArray()
+  @ArrayMinSize(1, { message: 'Items array must not be empty' })
   @ValidateNested({ each: true })
   @Type(() => PrescriptionItemDto)
   @IsNotEmpty()

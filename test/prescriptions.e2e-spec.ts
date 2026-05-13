@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
@@ -6,6 +7,7 @@ import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './../src/app.module';
 import { Role } from '@prisma/client';
+import { TEST_PASSWORD } from './test-credentials';
 
 const extractAccessCookie = (
   setCookieHeader: string | string[] | undefined,
@@ -153,13 +155,13 @@ describe('Prescriptions Flow (e2e)', () => {
 
     const adminLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@clinic.com', password: 'Password123!' })
+      .send({ email: 'admin@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     adminCookie = extractAccessCookie(adminLogin.headers['set-cookie']);
 
     const patientLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'patient@clinic.com', password: 'Password123!' })
+      .send({ email: 'patient@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     patientCookie = extractAccessCookie(patientLogin.headers['set-cookie']);
     seededPatientId = (patientLogin.body.user?.id ??
@@ -171,7 +173,7 @@ describe('Prescriptions Flow (e2e)', () => {
 
     const doctorLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'doctor@clinic.com', password: 'Password123!' })
+      .send({ email: 'doctor@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     doctorCookie = extractAccessCookie(doctorLogin.headers['set-cookie']);
     seededDoctorId = (doctorLogin.body.user?.id ??
@@ -187,7 +189,7 @@ describe('Prescriptions Flow (e2e)', () => {
     const secondDoctorResult = await getOrCreateUser(
       app,
       `e2e-doctor2-${runId}@clinic.com`,
-      'Password123!',
+      TEST_PASSWORD,
       Role.DOCTOR,
       adminCookie,
     );
@@ -197,7 +199,7 @@ describe('Prescriptions Flow (e2e)', () => {
     const secondPatientResult = await getOrCreateUser(
       app,
       `e2e-patient2-${runId}@clinic.com`,
-      'Password123!',
+      TEST_PASSWORD,
       Role.PATIENT,
       adminCookie,
     );
@@ -236,7 +238,7 @@ describe('Prescriptions Flow (e2e)', () => {
   describe('Test 2: Strict RBAC', () => {
     it('should return 403 Forbidden when a PATIENT tries to create a prescription', async () => {
       const mockPayload = {
-        patientId: '123e4567-e89b-12d3-a456-426614174000',
+        patientId: randomUUID(),
         items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
       };
 
@@ -399,18 +401,26 @@ describe('Prescriptions Flow (e2e)', () => {
 
   describe('PATCH /prescriptions/:id/consume — Patient Actions', () => {
     it('should return 403 when doctor tries to consume a prescription', async () => {
-      const adminRes = await request(app.getHttpServer())
-        .get('/prescriptions?limit=10')
+      const prescriptionRes = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', secondDoctorCookie)
+        .send({
+          patientId: secondPatientId,
+          items: [{ name: 'Test Med', dosage: '10mg', quantity: '30' }],
+        })
+        .expect(201);
+
+      const prescriptionId = prescriptionRes.body.id;
+
+      await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}`)
         .set('Cookie', adminCookie)
         .expect(200);
 
-      if (adminRes.body.data.length > 0) {
-        const prescriptionId = adminRes.body.data[0].id;
-        await request(app.getHttpServer())
-          .patch(`/prescriptions/${prescriptionId}/consume`)
-          .set('Cookie', doctorCookie)
-          .expect(403);
-      }
+      await request(app.getHttpServer())
+        .patch(`/prescriptions/${prescriptionId}/consume`)
+        .set('Cookie', doctorCookie)
+        .expect(403);
     });
 
     it('should return 403 when patient tries to consume a prescription not belonging to them', async () => {

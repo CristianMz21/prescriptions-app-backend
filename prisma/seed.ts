@@ -7,7 +7,8 @@ async function main() {
   console.log('🌱 Starting database seeding...');
 
   const saltRounds = 10;
-  const defaultPassword = 'Password123!';
+  const defaultPassword =
+    process.env.SEED_DEFAULT_PASSWORD ?? '<DEV_SEED_PASSWORD>';
   const hashedPassword = await bcrypt.hash(defaultPassword, saltRounds);
 
   // ---------------------------------------------------------
@@ -38,7 +39,17 @@ async function main() {
   });
   console.log(`✅ Upserted DOCTOR user: ${doctor.email}`);
 
-  // Seed Patient
+  const doctor2 = await prisma.user.upsert({
+    where: { email: 'doctor2@clinic.com' },
+    update: {},
+    create: {
+      email: 'doctor2@clinic.com',
+      passwordHash: hashedPassword,
+      role: Role.DOCTOR,
+    },
+  });
+  console.log(`✅ Upserted DOCTOR user: ${doctor2.email}`);
+
   const patient = await prisma.user.upsert({
     where: { email: 'patient@clinic.com' },
     update: {},
@@ -64,7 +75,11 @@ async function main() {
       {
         status: PrescriptionStatus.PENDING,
         items: [
-          { name: 'Amoxicillin', dosage: '500mg', instructions: 'Take 1 pill every 8 hours for 7 days' },
+          {
+            name: 'Amoxicillin',
+            dosage: '500mg',
+            instructions: 'Take 1 pill every 8 hours for 7 days',
+          },
         ],
         notes: 'Take with food to avoid stomach upset.',
         doctorId: doctor.id,
@@ -73,7 +88,11 @@ async function main() {
       {
         status: PrescriptionStatus.CONSUMED,
         items: [
-          { name: 'Ibuprofen', dosage: '400mg', instructions: 'Take 1 pill every 6 hours as needed for pain' },
+          {
+            name: 'Ibuprofen',
+            dosage: '400mg',
+            instructions: 'Take 1 pill every 6 hours as needed for pain',
+          },
         ],
         notes: null,
         doctorId: doctor.id,
@@ -82,8 +101,16 @@ async function main() {
       {
         status: PrescriptionStatus.PENDING,
         items: [
-          { name: 'Lisinopril', dosage: '10mg', instructions: 'Take 1 pill daily in the morning' },
-          { name: 'Atorvastatin', dosage: '20mg', instructions: 'Take 1 pill daily at bedtime' },
+          {
+            name: 'Lisinopril',
+            dosage: '10mg',
+            instructions: 'Take 1 pill daily in the morning',
+          },
+          {
+            name: 'Atorvastatin',
+            dosage: '20mg',
+            instructions: 'Take 1 pill daily at bedtime',
+          },
         ],
         notes: 'Follow up in 3 months for blood work.',
         doctorId: doctor.id,
@@ -92,7 +119,11 @@ async function main() {
       {
         status: PrescriptionStatus.CONSUMED,
         items: [
-          { name: 'Azithromycin', dosage: '250mg', instructions: 'Take 2 pills on day 1, then 1 pill daily for 4 days' },
+          {
+            name: 'Azithromycin',
+            dosage: '250mg',
+            instructions: 'Take 2 pills on day 1, then 1 pill daily for 4 days',
+          },
         ],
         notes: 'Finish the entire course even if feeling better.',
         doctorId: doctor.id,
@@ -101,7 +132,11 @@ async function main() {
       {
         status: PrescriptionStatus.PENDING,
         items: [
-          { name: 'Metformin', dosage: '500mg', instructions: 'Take 1 pill twice daily with meals' },
+          {
+            name: 'Metformin',
+            dosage: '500mg',
+            instructions: 'Take 1 pill twice daily with meals',
+          },
         ],
         notes: 'Monitor blood sugar levels closely.',
         doctorId: doctor.id,
@@ -109,17 +144,23 @@ async function main() {
       },
     ];
 
-    console.log(`⏳ Seeding ${dummyPrescriptions.length} dummy prescriptions...`);
-    
+    console.log(
+      `⏳ Seeding ${dummyPrescriptions.length} dummy prescriptions...`,
+    );
+
     for (const prescriptionData of dummyPrescriptions) {
       await prisma.prescription.create({
         data: prescriptionData,
       });
     }
-    
-    console.log(`✅ Successfully created ${dummyPrescriptions.length} dummy prescriptions.`);
+
+    console.log(
+      `✅ Successfully created ${dummyPrescriptions.length} dummy prescriptions.`,
+    );
   } else {
-    console.log('⚠️  Prescriptions already exist for the seeded patient. Skipping prescription seeding.');
+    console.log(
+      '⚠️  Prescriptions already exist for the seeded patient. Skipping prescription seeding.',
+    );
   }
 
   console.log('🎉 Seeding finished successfully.');

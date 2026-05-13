@@ -18,6 +18,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiCookieAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -68,12 +69,20 @@ export class PrescriptionsController {
   findAll(
     @CurrentUser() user: JwtPayload,
     @Query() filterDto: PaginationFilterDto,
-  ): Promise<{ data: Prescription[]; meta: unknown }> {
+  ): Promise<{
+    data: Prescription[];
+    meta: { total: number; page: number; limit: number; totalPages: number };
+  }> {
     return this.prescriptionsService.findAll(user, filterDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get prescription detail by ID' })
+  @ApiParam({
+    name: 'id',
+    format: 'uuid',
+    description: 'Prescription ID (UUID v4).',
+  })
   @ApiResponse({ status: 200, description: 'Returns the prescription detail.' })
   @ApiResponse({
     status: 404,
@@ -90,6 +99,11 @@ export class PrescriptionsController {
   @Patch(':id/consume')
   @Roles(Role.PATIENT)
   @ApiOperation({ summary: 'Mark prescription as consumed (Patient Only)' })
+  @ApiParam({
+    name: 'id',
+    format: 'uuid',
+    description: 'Prescription ID (UUID v4).',
+  })
   @ApiResponse({
     status: 200,
     description: 'The prescription status has been updated to CONSUMED.',
@@ -112,7 +126,20 @@ export class PrescriptionsController {
 
   @Get(':id/pdf')
   @ApiOperation({ summary: 'Download prescription PDF' })
-  @ApiResponse({ status: 200, description: 'Streams the generated PDF file.' })
+  @ApiParam({
+    name: 'id',
+    format: 'uuid',
+    description: 'Prescription ID (UUID v4).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Streams the generated PDF file.',
+    content: {
+      'application/pdf': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
   @ApiResponse({
     status: 404,
     description: 'Not Found - Not authorized to download this prescription.',

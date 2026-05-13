@@ -84,7 +84,10 @@ describe('PrescriptionsController', () => {
         email: 'patient@clinic.com',
         role: Role.PATIENT,
       };
-      const expectedResult = { data: [mockPrescription], meta: { total: 1 } };
+      const expectedResult = {
+        data: [mockPrescription],
+        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+      };
       prescriptionsService.findAll.mockResolvedValue(expectedResult);
 
       const result = await controller.findAll(user, filterDto);

@@ -20,13 +20,14 @@ env:
   PNPM_VERSION: '11.1.1'
   DATABASE_URL: postgresql://cats:cats@localhost:5433/test_db?schema=public
   REDIS_URL: redis://localhost:6379
-  JWT_ACCESS_SECRET: test-only-minimum-32-char-secret-key-!!
-  JWT_REFRESH_SECRET: test-only-refresh-secret-32-chars-min!!
+  JWT_ACCESS_SECRET: test-jwt-access-secret-000-do-not-use-in-prod
+  JWT_REFRESH_SECRET: test-jwt-refresh-secret-000-do-not-use-in-prod
   JWT_ACCESS_TTL: 15m
   JWT_REFRESH_TTL: 7d
   FRONTEND_URL: http://localhost:3000
   NODE_ENV: test
   PORT: 3000
+  SEED_DEFAULT_PASSWORD: test-seed-password-000-do-not-use-in-prod
 
 jobs:
   quality-gates:
@@ -99,7 +100,7 @@ jobs:
       - name: Run unit tests
         run: pnpm exec jest --json --outputFile=reports/unit-test-results.json
       - name: Run coverage
-        run: pnpm exec jest --coverage --coverageProvider=v8 --json --outputFile=reports/unit-coverage-results.json
+        run: pnpm exec jest --coverage --coverageProvider=v8 --coverageReporters=lcov --coverageReporters=text-summary --coverageReporters=json-summary
       - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -292,7 +293,9 @@ jobs:
       - name: Run Gitleaks
         run: |
           docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest detect \
-            --source=/repo --no-git --report-format json --report-path /repo/gitleaks-report.json --redact
+            --source=/repo --no-git --config=/repo/.gitleaks.toml \
+            --report-format json --report-path /repo/gitleaks-report.json --redact \
+            --exit-code 1
       - name: Upload Gitleaks report
         if: always()
         uses: actions/upload-artifact@v4
