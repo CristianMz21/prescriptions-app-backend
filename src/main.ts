@@ -43,7 +43,9 @@ async function bootstrap() {
   // OpenAPI / Swagger Setup
   const config = new DocumentBuilder()
     .setTitle('Prescription Management API')
-    .setDescription('API documentation for the MVP Prescription Management System.')
+    .setDescription(
+      'API documentation for the MVP Prescription Management System.',
+    )
     .setVersion('1.0')
     .addCookieAuth('accessToken', {
       type: 'apiKey',
@@ -61,7 +63,7 @@ async function bootstrap() {
 
   // Use the validated port variable or fallback securely
   const port = configService.get<number>('PORT') || 3000;
-  await app.listen(port as number);
+  await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
-bootstrap();
+void bootstrap();

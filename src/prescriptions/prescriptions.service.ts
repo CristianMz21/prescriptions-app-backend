@@ -4,17 +4,16 @@ import { Role, PrescriptionStatus, Prescription, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { PaginationFilterDto } from './dto/pagination-filter.dto';
-
-interface RequestUser {
-  id: string;
-  role: Role;
-}
+import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class PrescriptionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(doctorId: string, createPrescriptionDto: CreatePrescriptionDto): Promise<Prescription> {
+  async create(
+    doctorId: string,
+    createPrescriptionDto: CreatePrescriptionDto,
+  ): Promise<Prescription> {
     return this.prisma.prescription.create({
       data: {
         doctorId, // Hardcoded to the authenticated doctor's ID from JWT
@@ -26,7 +25,10 @@ export class PrescriptionsService {
     });
   }
 
-  async findAll(user: RequestUser, filterDto: PaginationFilterDto): Promise<{ data: Prescription[]; meta: unknown }> {
+  async findAll(
+    user: JwtPayload,
+    filterDto: PaginationFilterDto,
+  ): Promise<{ data: Prescription[]; meta: unknown }> {
     const { page = 1, limit = 10, status, fromDate, toDate } = filterDto;
     const skip = (page - 1) * limit;
 
@@ -46,8 +48,10 @@ export class PrescriptionsService {
 
     if (fromDate || toDate) {
       where.createdAt = {};
-      if (fromDate) (where.createdAt as Prisma.DateTimeFilter).gte = new Date(fromDate);
-      if (toDate) (where.createdAt as Prisma.DateTimeFilter).lte = new Date(toDate);
+      if (fromDate)
+        (where.createdAt as Prisma.DateTimeFilter).gte = new Date(fromDate);
+      if (toDate)
+        (where.createdAt as Prisma.DateTimeFilter).lte = new Date(toDate);
     }
 
     const [data, total] = await Promise.all([
@@ -71,7 +75,7 @@ export class PrescriptionsService {
     };
   }
 
-  async findOneById(id: string, user: RequestUser): Promise<Prescription> {
+  async findOneById(id: string, user: JwtPayload): Promise<Prescription> {
     const where: Prisma.PrescriptionWhereInput = { id };
 
     // Enforce IDOR boundaries directly in the database query
@@ -86,18 +90,23 @@ export class PrescriptionsService {
       where,
       include: {
         doctor: { select: { id: true, email: true, role: true } },
-        patient: { select: { id: true, email: true, role: true } }
-      }
+        patient: { select: { id: true, email: true, role: true } },
+      },
     });
 
     if (!prescription) {
-      throw new NotFoundException('Prescription not found or you do not have permission to access it.');
+      throw new NotFoundException(
+        'Prescription not found or you do not have permission to access it.',
+      );
     }
 
     return prescription;
   }
 
-  async markAsConsumed(patientId: string, prescriptionId: string): Promise<Prescription> {
+  async markAsConsumed(
+    patientId: string,
+    prescriptionId: string,
+  ): Promise<Prescription> {
     // Enforce ownership directly in the Prisma query using a compound where clause
     // Do NOT fetch the record first and check the ID in memory.
     const prescription = await this.prisma.prescription.findFirst({
@@ -108,7 +117,9 @@ export class PrescriptionsService {
     });
 
     if (!prescription) {
-      throw new NotFoundException('Prescription not found or does not belong to you.');
+      throw new NotFoundException(
+        'Prescription not found or does not belong to you.',
+      );
     }
 
     return this.prisma.prescription.update({

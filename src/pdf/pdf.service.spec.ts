@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PdfService } from './pdf.service';
+import { PdfPrescriptionData, PdfService } from './pdf.service';
+import { launch } from 'puppeteer';
 
 jest.mock('puppeteer', () => ({
   launch: jest.fn().mockResolvedValue({
@@ -33,10 +34,17 @@ describe('PdfService', () => {
         createdAt: new Date(),
         status: 'PENDING',
         notes: 'Notes',
-        items: [{ name: 'Meds', dosage: '10mg', quantity: '1', instructions: 'Take 1' }],
-        doctor: { id: 'd1', email: 'doc@c.com', role: 'DOCTOR' },
-        patient: { id: 'p1', email: 'pat@c.com', role: 'PATIENT' },
-      } as any;
+        items: [
+          {
+            name: 'Meds',
+            dosage: '10mg',
+            quantity: '1',
+            instructions: 'Take 1',
+          },
+        ],
+        doctor: { email: 'doc@c.com' },
+        patient: { email: 'pat@c.com' },
+      } satisfies PdfPrescriptionData;
 
       const result = await service.generatePrescriptionPdf(mockPrescription);
       expect(result).toBeInstanceOf(Buffer);
@@ -45,14 +53,15 @@ describe('PdfService', () => {
 
     it('should throw InternalServerErrorException on error', async () => {
       const mockPrescription = {
-        items: 'invalid-items-that-will-cause-handlebars-to-fail-or-puppeteer'
-      } as any;
+        items: 'invalid-items-that-will-cause-handlebars-to-fail-or-puppeteer',
+      } as unknown as PdfPrescriptionData;
 
       // Mock puppeteer to throw
-      const puppeteer = require('puppeteer');
-      puppeteer.launch.mockRejectedValueOnce(new Error('Browser failed'));
+      jest.mocked(launch).mockRejectedValueOnce(new Error('Browser failed'));
 
-      await expect(service.generatePrescriptionPdf(mockPrescription)).rejects.toThrow('Failed to generate PDF prescription');
+      await expect(
+        service.generatePrescriptionPdf(mockPrescription),
+      ).rejects.toThrow('Failed to generate PDF prescription');
     });
   });
 });

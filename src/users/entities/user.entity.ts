@@ -7,8 +7,8 @@ import { Role } from '@prisma/client';
  * to prevent sensitive data leakage in HTTP responses.
  */
 export class UserEntity {
-  id: string;
-  email: string;
+  id!: string;
+  email!: string;
 
   /**
    * CRITICAL SECURITY REQUIREMENT:
@@ -17,11 +17,11 @@ export class UserEntity {
    * This prevents accidental exposure of the password hash.
    */
   @Exclude()
-  passwordHash: string;
+  passwordHash!: string;
 
-  role: Role;
-  createdAt: Date;
-  updatedAt: Date;
+  role!: Role;
+  createdAt!: Date;
+  updatedAt!: Date;
 
   /**
    * Constructor required to instantiate the object from raw Prisma data

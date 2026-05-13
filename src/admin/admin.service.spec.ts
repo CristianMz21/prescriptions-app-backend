@@ -5,13 +5,15 @@ import { Role, PrescriptionStatus } from '@prisma/client';
 
 describe('AdminService', () => {
   let service: AdminService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: {
+    user: { count: jest.Mock };
+    prescription: { count: jest.Mock; findMany: jest.Mock };
+    $queryRaw: jest.Mock;
+  };
 
   beforeEach(async () => {
     const mockPrismaService = {
-      user: {
-        count: jest.fn(),
-      },
+      user: { count: jest.fn() },
       prescription: {
         count: jest.fn(),
         findMany: jest.fn(),
@@ -27,7 +29,7 @@ describe('AdminService', () => {
     }).compile();
 
     service = module.get<AdminService>(AdminService);
-    prismaService = module.get(PrismaService) as any;
+    prismaService = module.get(PrismaService);
   });
 
   afterEach(() => {

@@ -15,9 +15,12 @@ export class UsersService {
   async create(createUserDto: CreateUserDto): Promise<UserEntity> {
     // 1. Enforce minimum of 10 salt rounds for bcrypt
     const saltRounds = 10;
-    
+
     // 2. Hash the plain-text password before it ever touches the database
-    const hashedPassword = await bcrypt.hash(createUserDto.password, saltRounds);
+    const hashedPassword = await bcrypt.hash(
+      createUserDto.password,
+      saltRounds,
+    );
 
     const user = await this.prisma.user.create({
       data: {
@@ -65,7 +68,7 @@ export class UsersService {
     const users = await this.prisma.user.findMany({
       where: { role },
     });
-    
-    return users.map(user => new UserEntity(user));
+
+    return users.map((user) => new UserEntity(user));
   }
 }

@@ -63,7 +63,10 @@ describe('AuthService', () => {
       usersService.findByEmail.mockResolvedValue(mockUser as any);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const result = await authService.validateUser('test@clinic.com', 'password123');
+      const result = await authService.validateUser(
+        'test@clinic.com',
+        'password123',
+      );
 
       expect(result).toEqual({
         id: mockUser.id,
@@ -71,14 +74,20 @@ describe('AuthService', () => {
         role: mockUser.role,
       });
       expect(usersService.findByEmail).toHaveBeenCalledWith('test@clinic.com');
-      expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed-password');
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'password123',
+        'hashed-password',
+      );
     });
 
     it('should return null if password does not match', async () => {
       usersService.findByEmail.mockResolvedValue(mockUser as any);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      const result = await authService.validateUser('test@clinic.com', 'wrong-password');
+      const result = await authService.validateUser(
+        'test@clinic.com',
+        'wrong-password',
+      );
 
       expect(result).toBeNull();
     });
@@ -86,7 +95,10 @@ describe('AuthService', () => {
     it('should return null if user does not exist', async () => {
       usersService.findByEmail.mockResolvedValue(null);
 
-      const result = await authService.validateUser('notfound@clinic.com', 'password123');
+      const result = await authService.validateUser(
+        'notfound@clinic.com',
+        'password123',
+      );
 
       expect(result).toBeNull();
       expect(bcrypt.compare).not.toHaveBeenCalled();
@@ -99,7 +111,11 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('mock-access-token')
         .mockResolvedValueOnce('mock-refresh-token');
 
-      const user = { id: 'user-1', email: 'test@clinic.com', role: Role.PATIENT };
+      const user = {
+        id: 'user-1',
+        email: 'test@clinic.com',
+        role: Role.PATIENT,
+      };
       const result = await authService.login(user);
 
       expect(result).toEqual({
@@ -125,18 +141,21 @@ describe('AuthService', () => {
       const result = await authService.refresh('valid-refresh-token');
 
       expect(result).toEqual({ accessToken: 'new-access-token' });
-      expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-refresh-token', {
-        secret: 'mock-JWT_REFRESH_SECRET',
-      });
+      expect(jwtService.verifyAsync).toHaveBeenCalledWith(
+        'valid-refresh-token',
+        {
+          secret: 'mock-JWT_REFRESH_SECRET',
+        },
+      );
       expect(usersService.findById).toHaveBeenCalledWith('user-1');
     });
 
     it('should throw UnauthorizedException if token verification fails', async () => {
       jwtService.verifyAsync.mockRejectedValue(new Error('Invalid token'));
 
-      await expect(authService.refresh('invalid-refresh-token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        authService.refresh('invalid-refresh-token'),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if user is not found', async () => {

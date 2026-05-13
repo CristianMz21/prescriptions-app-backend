@@ -13,9 +13,7 @@ describe('AdminController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdminController],
-      providers: [
-        { provide: AdminService, useValue: mockAdminService },
-      ],
+      providers: [{ provide: AdminService, useValue: mockAdminService }],
     }).compile();
 
     controller = module.get<AdminController>(AdminController);
