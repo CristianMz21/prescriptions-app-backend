@@ -7,7 +7,10 @@ export class LoginDto {
   @IsNotEmpty()
   email!: string;
 
-  @ApiProperty({ example: '***REDACTED-DEV-PASSWORD***', description: 'User password' })
+  @ApiProperty({
+    example: '***REDACTED-DEV-PASSWORD***',
+    description: 'User password',
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(6)
