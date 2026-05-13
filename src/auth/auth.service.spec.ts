@@ -36,7 +36,11 @@ describe('AuthService', () => {
       verifyAsync: jest.fn(),
     };
     const mockConfigService = {
-      getOrThrow: jest.fn((key: string) => `mock-${key}`),
+      getOrThrow: jest.fn((key: string) => {
+        if (key === 'JWT_ACCESS_TTL') return '15m';
+        if (key === 'JWT_REFRESH_TTL') return '7d';
+        return `mock-${key}`;
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

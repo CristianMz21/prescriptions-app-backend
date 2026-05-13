@@ -6,7 +6,6 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { JsonWebTokenError } from 'jsonwebtoken';
 
 type ExceptionResponse = string | { message?: string | string[] };
 
@@ -15,6 +14,20 @@ const hasMessage = (
 ): response is { message: string | string[] } => {
   return (
     typeof response === 'object' && response !== null && 'message' in response
+  );
+};
+
+const isJwtException = (
+  exception: unknown,
+): exception is { name: string; message: string } => {
+  return (
+    typeof exception === 'object' &&
+    exception !== null &&
+    'name' in exception &&
+    'message' in exception &&
+    typeof (exception as { name: unknown }).name === 'string' &&
+    typeof (exception as { message: unknown }).message === 'string' &&
+    (exception as { name: string }).name.includes('JsonWebToken')
   );
 };
 
@@ -38,7 +51,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    if (exception instanceof JsonWebTokenError) {
+    if (isJwtException(exception)) {
       response.status(HttpStatus.UNAUTHORIZED).json({
         statusCode: HttpStatus.UNAUTHORIZED,
         timestamp: new Date().toISOString(),
