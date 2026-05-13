@@ -47,9 +47,18 @@ class EnvironmentVariables {
 }
 
 export function validate(config: Record<string, unknown>) {
-  const validatedConfig = plainToInstance(EnvironmentVariables, config, {
-    enableImplicitConversion: true,
-  });
+  const stringToNumberConfig: Record<string, unknown> = { ...config };
+  if (stringToNumberConfig['PORT'] !== undefined) {
+    stringToNumberConfig['PORT'] = Number(stringToNumberConfig['PORT']);
+  }
+
+  const validatedConfig = plainToInstance(
+    EnvironmentVariables,
+    stringToNumberConfig,
+    {
+      enableImplicitConversion: true,
+    },
+  );
 
   const errors = validateSync(validatedConfig, {
     skipMissingProperties: false,
