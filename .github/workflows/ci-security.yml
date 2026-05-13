@@ -97,9 +97,9 @@ jobs:
       - name: Prepare report directories
         run: mkdir -p reports coverage
       - name: Run unit tests
-        run: pnpm run test -- --json --outputFile=reports/unit-test-results.json
+        run: pnpm exec jest --json --outputFile=reports/unit-test-results.json
       - name: Run coverage
-        run: pnpm run test:cov -- --json --outputFile=reports/unit-coverage-results.json
+        run: pnpm exec jest --coverage --json --outputFile=reports/unit-coverage-results.json
       - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -154,7 +154,7 @@ jobs:
       - name: Prepare report directories
         run: mkdir -p reports
       - name: Run integration tests
-        run: pnpm run test:integration -- --json --outputFile=reports/integration-test-results.json
+        run: pnpm exec jest --config ./test/jest-e2e.json --testPathPatterns=prescriptions.e2e-spec.ts --json --outputFile=reports/integration-test-results.json
       - name: Upload integration test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -203,7 +203,7 @@ jobs:
       - name: Prepare report directories
         run: mkdir -p reports
       - name: Run E2E tests
-        run: pnpm run test:e2e -- --json --outputFile=reports/e2e-test-results.json
+        run: pnpm exec jest --config ./test/jest-e2e.json --json --outputFile=reports/e2e-test-results.json
       - name: Upload E2E test reports
         if: always()
         uses: actions/upload-artifact@v4
