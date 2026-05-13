@@ -26,9 +26,15 @@ const extractAccessCookie = (
   return accessCookie;
 };
 
+interface PersistedUser {
+  id: string;
+  email: string;
+  role: Role;
+}
+
 interface GetOrCreateUserResult {
   cookie: string;
-  userId: string;
+  user: PersistedUser;
 }
 
 async function getOrCreateUser(
@@ -38,38 +44,82 @@ async function getOrCreateUser(
   role: Role,
   adminCookie: string,
 ): Promise<GetOrCreateUserResult> {
-  let cookie: string;
-  let userId: string;
-
   const loginRes = await request(app.getHttpServer())
     .post('/auth/login')
     .send({ email, password });
 
   if (loginRes.status === 201) {
-    cookie = extractAccessCookie(loginRes.headers['set-cookie']);
+    const loginBody = loginRes.body as { user?: PersistedUser; id?: string };
+    const user: PersistedUser = {
+      id: loginBody.user?.id ?? loginBody.id ?? '',
+      email,
+      role,
+    };
+    if (!user.id || user.id.trim() === '') {
+      throw new Error(
+        `getOrCreateUser: login succeeded but user.id is empty for ${email}. Response body: ${JSON.stringify(loginRes.body)}`,
+      );
+    }
+    return {
+      cookie: extractAccessCookie(loginRes.headers['set-cookie']),
+      user,
+    };
+  }
+
+  const createRes = await request(app.getHttpServer())
+    .post('/users')
+    .set('Cookie', adminCookie)
+    .send({ email, password, role });
+
+  if (createRes.status === 409) {
     const usersRes = await request(app.getHttpServer())
       .get('/users')
       .set('Cookie', adminCookie)
       .expect(200);
     const foundUser = usersRes.body.find(
-      (u: { email: string; id: string }) => u.email === email,
+      (u: PersistedUser) => u.email === email,
     );
-    userId = foundUser?.id ?? '';
-  } else {
-    const createRes = await request(app.getHttpServer())
-      .post('/users')
-      .set('Cookie', adminCookie)
-      .send({ email, password, role })
-      .expect(201);
-    userId = createRes.body.id;
+    if (!foundUser?.id) {
+      throw new Error(
+        `getOrCreateUser: 409 conflict but could not find user ${email} via admin /users`,
+      );
+    }
     const retryLoginRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email, password })
       .expect(201);
-    cookie = extractAccessCookie(retryLoginRes.headers['set-cookie']);
+    return {
+      cookie: extractAccessCookie(retryLoginRes.headers['set-cookie']),
+      user: { id: foundUser.id, email, role },
+    };
   }
 
-  return { cookie, userId };
+  if (createRes.status !== 201) {
+    throw new Error(
+      `getOrCreateUser: failed to create user ${email}, got status ${createRes.status}: ${JSON.stringify(createRes.body)}`,
+    );
+  }
+
+  const createdUser: PersistedUser = {
+    id: createRes.body.id ?? '',
+    email,
+    role,
+  };
+  if (!createdUser.id || createdUser.id.trim() === '') {
+    throw new Error(
+      `getOrCreateUser: user creation returned 201 but id is empty for ${email}. Response body: ${JSON.stringify(createRes.body)}`,
+    );
+  }
+
+  const retryLoginRes = await request(app.getHttpServer())
+    .post('/auth/login')
+    .send({ email, password })
+    .expect(201);
+
+  return {
+    cookie: extractAccessCookie(retryLoginRes.headers['set-cookie']),
+    user: createdUser,
+  };
 }
 
 describe('Prescriptions Flow (e2e)', () => {
@@ -78,7 +128,10 @@ describe('Prescriptions Flow (e2e)', () => {
   let adminCookie: string;
   let patientCookie: string;
   let doctorCookie: string;
+  let seededDoctorId: string;
+  let seededPatientId: string;
   let secondDoctorCookie: string;
+  let secondDoctorId: string;
   let secondPatientId: string;
 
   beforeAll(async () => {
@@ -109,30 +162,57 @@ describe('Prescriptions Flow (e2e)', () => {
       .send({ email: 'patient@clinic.com', password: 'Password123!' })
       .expect(201);
     patientCookie = extractAccessCookie(patientLogin.headers['set-cookie']);
+    seededPatientId = (patientLogin.body.user?.id ??
+      patientLogin.body.id ??
+      '') as string;
+    if (!seededPatientId.trim()) {
+      throw new Error('seededPatientId is empty');
+    }
 
     const doctorLogin = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'doctor@clinic.com', password: 'Password123!' })
       .expect(201);
     doctorCookie = extractAccessCookie(doctorLogin.headers['set-cookie']);
+    seededDoctorId = (doctorLogin.body.user?.id ??
+      doctorLogin.body.id ??
+      '') as string;
+    if (!seededDoctorId.trim()) {
+      throw new Error('seededDoctorId is empty');
+    }
+
+    const runId =
+      Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
     const secondDoctorResult = await getOrCreateUser(
       app,
-      'doctor2@clinic.com',
+      `e2e-doctor2-${runId}@clinic.com`,
       'Password123!',
       Role.DOCTOR,
       adminCookie,
     );
     secondDoctorCookie = secondDoctorResult.cookie;
+    secondDoctorId = secondDoctorResult.user.id;
 
     const secondPatientResult = await getOrCreateUser(
       app,
-      'patient2@clinic.com',
+      `e2e-patient2-${runId}@clinic.com`,
       'Password123!',
       Role.PATIENT,
       adminCookie,
     );
-    secondPatientId = secondPatientResult.userId;
+    secondPatientId = secondPatientResult.user.id;
+
+    if (secondDoctorId === seededDoctorId) {
+      throw new Error(
+        `Setup error: second doctor ${secondDoctorId} has same ID as seeded doctor ${seededDoctorId}`,
+      );
+    }
+    if (secondPatientId === seededPatientId) {
+      throw new Error(
+        `Setup error: second patient ${secondPatientId} has same ID as seeded patient ${seededPatientId}`,
+      );
+    }
   });
 
   describe('Test 1: Pagination & Filtering (Admin)', () => {
@@ -212,6 +292,11 @@ describe('Prescriptions Flow (e2e)', () => {
 
       await request(app.getHttpServer())
         .get(`/prescriptions/${prescriptionId}`)
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}`)
         .set('Cookie', doctorCookie)
         .expect(403)
         .expect((res) => {
@@ -248,6 +333,11 @@ describe('Prescriptions Flow (e2e)', () => {
         .expect(201);
 
       const prescriptionId = prescriptionRes.body.id;
+
+      await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}`)
+        .set('Cookie', adminCookie)
+        .expect(200);
 
       await request(app.getHttpServer())
         .get(`/prescriptions/${prescriptionId}`)
@@ -336,6 +426,11 @@ describe('Prescriptions Flow (e2e)', () => {
       const prescriptionId = prescriptionRes.body.id;
 
       await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}`)
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      await request(app.getHttpServer())
         .patch(`/prescriptions/${prescriptionId}/consume`)
         .set('Cookie', patientCookie)
         .expect(403);
@@ -356,6 +451,11 @@ describe('Prescriptions Flow (e2e)', () => {
       const prescriptionId = prescriptionRes.body.id;
 
       await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}`)
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      await request(app.getHttpServer())
         .get(`/prescriptions/${prescriptionId}/pdf`)
         .set('Cookie', doctorCookie)
         .expect(403);
@@ -372,6 +472,11 @@ describe('Prescriptions Flow (e2e)', () => {
         .expect(201);
 
       const prescriptionId = prescriptionRes.body.id;
+
+      await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}`)
+        .set('Cookie', adminCookie)
+        .expect(200);
 
       await request(app.getHttpServer())
         .get(`/prescriptions/${prescriptionId}/pdf`)
