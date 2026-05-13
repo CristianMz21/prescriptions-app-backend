@@ -5,7 +5,6 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
-import type { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +15,27 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
+
+  private getConfigString(key: string): string {
+    const value: unknown = this.configService.getOrThrow(key);
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new UnauthorizedException(`Invalid config value for ${key}`);
+    }
+    return value;
+  }
+
+  private parseDurationToSeconds(value: string): number {
+    const match = /^(\d+)([smhd])$/.exec(value.trim());
+    if (!match) {
+      throw new UnauthorizedException(`Invalid duration format: ${value}`);
+    }
+    const amount = Number(match[1]);
+    const unit = match[2];
+    if (unit === 's') return amount;
+    if (unit === 'm') return amount * 60;
+    if (unit === 'h') return amount * 60 * 60;
+    return amount * 60 * 60 * 24;
+  }
 
   /**
    * Strictly validates user credentials.
@@ -41,21 +61,23 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
     // Dynamically retrieve secrets and TTLs from the validated ConfigService
-    const accessTokenSecret =
-      this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
-    const refreshTokenSecret =
-      this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
-    const accessTtl = this.configService.getOrThrow<string>('JWT_ACCESS_TTL');
-    const refreshTtl = this.configService.getOrThrow<string>('JWT_REFRESH_TTL');
+    const accessTokenSecret = this.getConfigString('JWT_ACCESS_SECRET');
+    const refreshTokenSecret = this.getConfigString('JWT_REFRESH_SECRET');
+    const accessTtl = this.parseDurationToSeconds(
+      this.getConfigString('JWT_ACCESS_TTL'),
+    );
+    const refreshTtl = this.parseDurationToSeconds(
+      this.getConfigString('JWT_REFRESH_TTL'),
+    );
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: accessTokenSecret,
-        expiresIn: accessTtl as StringValue,
+        expiresIn: accessTtl,
       }),
       this.jwtService.signAsync(payload, {
         secret: refreshTokenSecret,
-        expiresIn: refreshTtl as StringValue,
+        expiresIn: refreshTtl,
       }),
     ]);
 
@@ -72,8 +94,7 @@ export class AuthService {
 
   async refresh(token: string): Promise<{ accessToken: string }> {
     try {
-      const refreshTokenSecret =
-        this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
+      const refreshTokenSecret = this.getConfigString('JWT_REFRESH_SECRET');
       const payload = await this.jwtService.verifyAsync<{ sub: string }>(
         token,
         {
@@ -83,15 +104,16 @@ export class AuthService {
 
       const user = await this.usersService.findById(payload.sub);
 
-      const accessTokenSecret =
-        this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
-      const accessTtl = this.configService.getOrThrow<string>('JWT_ACCESS_TTL');
+      const accessTokenSecret = this.getConfigString('JWT_ACCESS_SECRET');
+      const accessTtl = this.parseDurationToSeconds(
+        this.getConfigString('JWT_ACCESS_TTL'),
+      );
 
       const newAccessToken = await this.jwtService.signAsync(
         { sub: user.id, email: user.email, role: user.role },
         {
           secret: accessTokenSecret,
-          expiresIn: accessTtl as StringValue,
+          expiresIn: accessTtl,
         },
       );
 
