@@ -48,3 +48,6 @@ cats-report/
 
 # Local CATS headers (may contain real tokens)
 cats-headers.local.yml
+
+# CI/CD workflows (not part of this project)
+.github/
