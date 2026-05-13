@@ -82,9 +82,6 @@ export class AuthService {
       );
 
       const user = await this.usersService.findById(payload.sub);
-      if (!user) {
-        throw new UnauthorizedException();
-      }
 
       const accessTokenSecret =
         this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');

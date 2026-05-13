@@ -114,9 +114,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)
   @Get('profile')
-  async getProfile(
-    @CurrentUser() user: JwtPayload,
-  ): Promise<UserEntity | null> {
+  async getProfile(@CurrentUser() user: JwtPayload): Promise<UserEntity> {
     return this.usersService.findById(user.id);
   }
 }

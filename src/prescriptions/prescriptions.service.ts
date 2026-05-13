@@ -1,10 +1,19 @@
 /* Copyright (c) 2026. All rights reserved. */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Role, PrescriptionStatus, Prescription, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { PaginationFilterDto } from './dto/pagination-filter.dto';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+
+const isPrismaError = (
+  err: unknown,
+): err is Prisma.PrismaClientKnownRequestError =>
+  err instanceof Error && 'code' in err;
 
 @Injectable()
 export class PrescriptionsService {
@@ -14,15 +23,28 @@ export class PrescriptionsService {
     doctorId: string,
     createPrescriptionDto: CreatePrescriptionDto,
   ): Promise<Prescription> {
-    return this.prisma.prescription.create({
-      data: {
-        doctorId, // Hardcoded to the authenticated doctor's ID from JWT
-        patientId: createPrescriptionDto.patientId,
-        items: createPrescriptionDto.items as unknown as Prisma.InputJsonValue,
-        notes: createPrescriptionDto.notes,
-        status: PrescriptionStatus.PENDING,
-      },
-    });
+    try {
+      return await this.prisma.prescription.create({
+        data: {
+          doctorId,
+          patientId: createPrescriptionDto.patientId,
+          items:
+            createPrescriptionDto.items as unknown as Prisma.InputJsonValue,
+          notes: createPrescriptionDto.notes,
+          status: PrescriptionStatus.PENDING,
+        },
+      });
+    } catch (err: unknown) {
+      if (
+        isPrismaError(err) &&
+        (err.code === 'P2003' || err.code === 'P2025')
+      ) {
+        throw new BadRequestException(
+          'Patient not found. Please provide a valid patient ID.',
+        );
+      }
+      throw err;
+    }
   }
 
   async findAll(

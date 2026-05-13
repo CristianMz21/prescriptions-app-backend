@@ -30,8 +30,8 @@ sonar-project.properties
 AGENTS.md
 
 # Package managers
-pnpm-lock.yaml
-pnpm-workspace.yaml
+package-lock.json
+*.package-lock.json
 
 # Database (Prisma + SQLite dev)
 *.db
@@ -40,4 +40,5 @@ pnpm-workspace.yaml
 # Misc
 *.tsbuildinfo
 .nyc_output/
-.nx/
+.scannerwork/
+skills-lock.json

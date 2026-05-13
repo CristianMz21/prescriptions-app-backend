@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
@@ -98,10 +99,11 @@ describe('UsersService', () => {
       expect(result?.id).toEqual('user-1');
     });
 
-    it('should return null if user not found', async () => {
+    it('should throw NotFoundException if user not found', async () => {
       prismaService.user.findUnique.mockResolvedValue(null);
-      const result = await service.findById('user-1');
-      expect(result).toBeNull();
+      await expect(service.findById('user-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
