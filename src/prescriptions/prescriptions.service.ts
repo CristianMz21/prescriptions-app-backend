@@ -1,70 +1,61 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Role, PrescriptionStatus } from '@prisma/client';
-// Assuming a global PrismaService exists to interact with the database.
-import { PrismaService } from '../prisma/prisma.service'; 
+import { Role, PrescriptionStatus, Prescription, Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { PaginationFilterDto } from './dto/pagination-filter.dto';
+
+interface RequestUser {
+  id: string;
+  role: Role;
+}
 
 @Injectable()
 export class PrescriptionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Creates a new prescription.
-   * Assumes validation of Doctor existence is handled upstream or naturally via FK constraint.
-   */
-  async create(doctorId: string, createPrescriptionDto: CreatePrescriptionDto) {
+  async create(doctorId: string, createPrescriptionDto: CreatePrescriptionDto): Promise<Prescription> {
     return this.prisma.prescription.create({
       data: {
-        doctorId,
+        doctorId, // Hardcoded to the authenticated doctor's ID from JWT
         patientId: createPrescriptionDto.patientId,
-        // Cast to 'any' is necessary to satisfy Prisma's Json wrapper for structured arrays
-        items: createPrescriptionDto.items as any,
+        items: createPrescriptionDto.items as unknown as Prisma.InputJsonValue,
         notes: createPrescriptionDto.notes,
         status: PrescriptionStatus.PENDING,
       },
     });
   }
 
-  /**
-   * Retrieves a paginated list of prescriptions.
-   * CRITICAL: Implements IDOR prevention by strictly scoping the 'where' clause 
-   * based on the authenticated user's role and ID.
-   */
-  async findAll(user: any, filterDto: PaginationFilterDto) {
+  async findAll(user: RequestUser, filterDto: PaginationFilterDto): Promise<{ data: Prescription[]; meta: unknown }> {
     const { page = 1, limit = 10, status, fromDate, toDate } = filterDto;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.PrescriptionWhereInput = {};
 
-    // ------------------------------------------------------------------
-    // IDOR BOUNDARY ENFORCEMENT
-    // ------------------------------------------------------------------
+    // IDOR BOUNDARY ENFORCEMENT AT DATABASE LEVEL
     if (user.role === Role.PATIENT) {
-      where.patientId = user.id; // Patients only see their own prescriptions
+      where.patientId = user.id;
     } else if (user.role === Role.DOCTOR) {
-      where.doctorId = user.id; // Doctors only see prescriptions they issued
+      where.doctorId = user.id;
     }
-    // If ADMIN, 'where' remains unscoped to User ID, allowing them to see all
+    // ADMIN has no tenant restrictions
 
-    // Apply optional filters
     if (status) {
       where.status = status;
     }
 
     if (fromDate || toDate) {
       where.createdAt = {};
-      if (fromDate) where.createdAt.gte = new Date(fromDate);
-      if (toDate) where.createdAt.lte = new Date(toDate);
+      if (fromDate) (where.createdAt as Prisma.DateTimeFilter).gte = new Date(fromDate);
+      if (toDate) (where.createdAt as Prisma.DateTimeFilter).lte = new Date(toDate);
     }
 
-    // Execute queries concurrently for better performance
     const [data, total] = await Promise.all([
       this.prisma.prescription.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' }, // Newest first
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.prescription.count({ where }),
     ]);
@@ -80,12 +71,19 @@ export class PrescriptionsService {
     };
   }
 
-  /**
-   * Retrieves a specific prescription by ID, including relations.
-   */
-  async findOneById(id: string) {
-    const prescription = await this.prisma.prescription.findUnique({
-      where: { id },
+  async findOneById(id: string, user: RequestUser): Promise<Prescription> {
+    const where: Prisma.PrescriptionWhereInput = { id };
+
+    // Enforce IDOR boundaries directly in the database query
+    if (user.role === Role.PATIENT) {
+      where.patientId = user.id;
+    } else if (user.role === Role.DOCTOR) {
+      where.doctorId = user.id;
+    }
+
+    // Use findFirst instead of findUnique because we are using non-unique fields (patientId/doctorId)
+    const prescription = await this.prisma.prescription.findFirst({
+      where,
       include: {
         doctor: { select: { id: true, email: true, role: true } },
         patient: { select: { id: true, email: true, role: true } }
@@ -93,22 +91,19 @@ export class PrescriptionsService {
     });
 
     if (!prescription) {
-      throw new NotFoundException('Prescription not found.');
+      throw new NotFoundException('Prescription not found or you do not have permission to access it.');
     }
 
     return prescription;
   }
 
-  /**
-   * Marks a specific prescription as consumed.
-   * CRITICAL: Re-verifies ownership in the query to prevent IDOR manipulation via the :id param.
-   */
-  async markAsConsumed(patientId: string, prescriptionId: string) {
-    // 1. Fetch to verify existence AND ownership
+  async markAsConsumed(patientId: string, prescriptionId: string): Promise<Prescription> {
+    // Enforce ownership directly in the Prisma query using a compound where clause
+    // Do NOT fetch the record first and check the ID in memory.
     const prescription = await this.prisma.prescription.findFirst({
       where: {
         id: prescriptionId,
-        patientId, // Critical boundary check
+        patientId,
       },
     });
 
@@ -116,7 +111,6 @@ export class PrescriptionsService {
       throw new NotFoundException('Prescription not found or does not belong to you.');
     }
 
-    // 2. Update state
     return this.prisma.prescription.update({
       where: { id: prescriptionId },
       data: {

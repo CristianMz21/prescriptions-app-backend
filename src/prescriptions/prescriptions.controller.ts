@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Patch, Param, Body, Query, UseGuards, ForbiddenException, StreamableFile, Res } from '@nestjs/common';
-import { Response } from 'express';
-import { Role } from '@prisma/client';
+/* Copyright (c) 2026. All rights reserved. */
+import { Controller, Post, Get, Patch, Param, Body, Query, UseGuards, StreamableFile, Res } from '@nestjs/common';
+import type { Response } from 'express';
+import { Role, Prescription } from '@prisma/client';
 import { ApiTags, ApiOperation, ApiResponse, ApiCookieAuth } from '@nestjs/swagger';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -9,7 +10,12 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PdfService } from '../pdf/pdf.service';
+import { PdfService, PdfPrescriptionData } from '../pdf/pdf.service';
+
+interface RequestUser {
+  id: string;
+  role: Role;
+}
 
 @ApiTags('Prescriptions')
 @ApiCookieAuth('accessToken')
@@ -21,77 +27,59 @@ export class PrescriptionsController {
     private readonly pdfService: PdfService
   ) {}
 
-  /**
-   * DOCTOR ONLY: Creates a new prescription.
-   */
   @Post()
   @Roles(Role.DOCTOR)
   @ApiOperation({ summary: 'Create a new prescription (Doctor Only)' })
   @ApiResponse({ status: 201, description: 'The prescription has been successfully created.' })
   @ApiResponse({ status: 400, description: 'Bad Request - Invalid payload.' })
   @ApiResponse({ status: 403, description: 'Forbidden - User is not a Doctor.' })
-  create(@CurrentUser() user: any, @Body() createPrescriptionDto: CreatePrescriptionDto) {
-    // We pass the authenticated doctor's ID securely from the JWT payload
+  create(@CurrentUser() user: RequestUser, @Body() createPrescriptionDto: CreatePrescriptionDto): Promise<Prescription> {
     return this.prescriptionsService.create(user.id, createPrescriptionDto);
   }
 
-  /**
-   * MULTI-ROLE: Lists prescriptions. 
-   * The Service layer manages data scoping (IDOR prevention) based on the user's role.
-   */
   @Get()
   @ApiOperation({ summary: 'List prescriptions (Paginated)' })
   @ApiResponse({ status: 200, description: 'Returns a paginated list of prescriptions based on user role.' })
-  // No @Roles() decorator means any authenticated role (Admin, Doctor, Patient) can access it
-  findAll(@CurrentUser() user: any, @Query() filterDto: PaginationFilterDto) {
+  findAll(@CurrentUser() user: RequestUser, @Query() filterDto: PaginationFilterDto): Promise<{ data: Prescription[]; meta: unknown }> {
     return this.prescriptionsService.findAll(user, filterDto);
   }
 
-  /**
-   * PATIENT ONLY: Updates the status of a specific prescription to CONSUMED.
-   */
+  @Get(':id')
+  @ApiOperation({ summary: 'Get prescription detail by ID' })
+  @ApiResponse({ status: 200, description: 'Returns the prescription detail.' })
+  @ApiResponse({ status: 404, description: 'Not Found - Prescription does not exist or access is forbidden.' })
+  findOne(@CurrentUser() user: RequestUser, @Param('id') prescriptionId: string): Promise<Prescription> {
+    return this.prescriptionsService.findOneById(prescriptionId, user);
+  }
+
   @Patch(':id/consume')
   @Roles(Role.PATIENT)
   @ApiOperation({ summary: 'Mark prescription as consumed (Patient Only)' })
   @ApiResponse({ status: 200, description: 'The prescription status has been updated to CONSUMED.' })
   @ApiResponse({ status: 403, description: 'Forbidden - User is not a Patient.' })
   @ApiResponse({ status: 404, description: 'Not Found - Prescription does not exist or does not belong to the patient.' })
-  markAsConsumed(@CurrentUser() user: any, @Param('id') prescriptionId: string) {
-    // We pass the authenticated patient's ID to the service to enforce ownership
+  markAsConsumed(@CurrentUser() user: RequestUser, @Param('id') prescriptionId: string): Promise<Prescription> {
     return this.prescriptionsService.markAsConsumed(user.id, prescriptionId);
   }
 
-  /**
-   * PATIENT ONLY: Downloads the prescription as a securely generated PDF.
-   */
   @Get(':id/pdf')
-  @Roles(Role.PATIENT)
-  @ApiOperation({ summary: 'Download prescription PDF (Patient Only)' })
+  @ApiOperation({ summary: 'Download prescription PDF' })
   @ApiResponse({ status: 200, description: 'Streams the generated PDF file.' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not authorized to download this prescription.' })
+  @ApiResponse({ status: 404, description: 'Not Found - Not authorized to download this prescription.' })
   async downloadPdf(
-    @CurrentUser() user: any, 
+    @CurrentUser() user: RequestUser, 
     @Param('id') prescriptionId: string,
     @Res({ passthrough: true }) res: Response
-  ) {
-    // 1. Fetch the full prescription record (includes doctor and patient relations)
-    const prescription = await this.prescriptionsService.findOneById(prescriptionId);
+  ): Promise<StreamableFile> {
+    const prescription = await this.prescriptionsService.findOneById(prescriptionId, user);
 
-    // 2. CRITICAL IDOR CHECK: Re-verify that the fetched prescription's patientId matches the @CurrentUser()'s ID
-    if (prescription.patientId !== user.id) {
-      throw new ForbiddenException('You are not authorized to download this prescription.');
-    }
+    const buffer = await this.pdfService.generatePrescriptionPdf(prescription as unknown as PdfPrescriptionData);
 
-    // 3. Pass data to the PdfService to generate buffer
-    const buffer = await this.pdfService.generatePrescriptionPdf(prescription);
-
-    // 4. Set correct response headers for PDF stream
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="prescription-${prescription.id}.pdf"`,
     });
 
-    // 5. Return StreamableFile
     return new StreamableFile(buffer);
   }
 }
