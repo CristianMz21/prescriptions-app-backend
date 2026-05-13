@@ -8,15 +8,18 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NODE_VERSION: '22'
   PNPM_VERSION: '11.1.1'
   DATABASE_URL: postgresql://cats:cats@localhost:5433/test_db?schema=public
+  REDIS_URL: redis://localhost:6379
   JWT_ACCESS_SECRET: ***REDACTED-TEST-ACCESS-SECRET***
   JWT_REFRESH_SECRET: ***REDACTED-TEST-REFRESH-SECRET***
   JWT_ACCESS_TTL: 15m
@@ -26,54 +29,92 @@ env:
   PORT: 3000
 
 jobs:
-  quality:
-    name: Quality Gates
+  quality-gates:
+    name: Install + Format + Lint + Typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format check
+        run: pnpm run format:check
+      - name: Lint check
+        run: pnpm run lint:check
+      - name: TypeScript typecheck
+        run: pnpm run typecheck
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run format:check
-      - run: pnpm run lint:check
-      - run: pnpm run typecheck
-
-  unit:
-    name: Unit Tests
-    needs: quality
+  build-and-openapi:
+    name: Build + OpenAPI Validation
+    needs: quality-gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run test:cov
+      - name: Build
+        run: pnpm run build
+      - name: Export OpenAPI
+        run: pnpm run export:openapi
+      - name: Validate OpenAPI schema
+        run: pnpm dlx @apidevtools/swagger-cli@4.0.4 validate openapi.json
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: openapi.json
 
-  e2e:
-    name: E2E Tests
-    needs: quality
+  unit-tests:
+    name: Unit Tests + Coverage
+    needs: quality-gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run unit tests
+        run: pnpm run test -- --json --outputFile=reports/unit-test-results.json
+      - name: Run coverage
+        run: pnpm run test:cov -- --json --outputFile=reports/unit-coverage-results.json
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: reports/
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  integration-tests:
+    name: Integration Tests
+    needs: quality-gates
     runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:16-alpine
-        ports:
-          - 5433:5432
+        ports: ['5433:5432']
         env:
           POSTGRES_USER: cats
           POSTGRES_PASSWORD: cats
@@ -83,38 +124,316 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
-      - run: pnpm run test:e2e
+      - name: Run integration tests
+        run: pnpm run test:integration -- --json --outputFile=reports/integration-test-results.json
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports
+          path: reports/integration-test-results.json
 
-  deps-security:
-    name: Dependency Security Audit
-    needs: quality
+  e2e-tests:
+    name: E2E Tests
+    needs: quality-gates
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports: ['5433:5432']
+        env:
+          POSTGRES_USER: cats
+          POSTGRES_PASSWORD: cats
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd "pg_isready -U cats -d test_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm run prisma:seed
+      - name: Run E2E tests
+        run: pnpm run test:e2e -- --json --outputFile=reports/e2e-test-results.json
+      - name: Upload E2E test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-reports
+          path: reports/e2e-test-results.json
+      - name: Upload Playwright report if present
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
 
+  dependency-audit:
+    name: Dependency Audit
+    needs: quality-gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level=high
+
+  semgrep:
+    name: Semgrep
+    needs: quality-gates
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep
+        run: semgrep scan --config=p/security-audit --config=p/typescript --config=p/nodejs --json --output semgrep-report.json .
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep-report.json
+
+  codeql:
+    name: CodeQL
+    needs: quality-gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+      - run: pnpm run build
+      - uses: github/codeql-action/analyze@v3
+        with:
+          output: codeql-results
+      - name: Upload CodeQL report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-results
+          path: codeql-results/
+          if-no-files-found: ignore
+
+  gitleaks:
+    name: Gitleaks
+    needs: quality-gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest detect \
+            --source=/repo --report-format json --report-path /repo/gitleaks-report.json --redact
+      - name: Upload Gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
+  cats-fuzz:
+    name: CATS API Fuzz
+    needs: [build-and-openapi, quality-gates]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports: ['5433:5432']
+        env:
+          POSTGRES_USER: cats
+          POSTGRES_PASSWORD: cats
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd "pg_isready -U cats -d test_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm run prisma:seed
+      - run: pnpm run export:openapi
+      - name: Start app
+        run: pnpm run start:dev > app.log 2>&1 & echo $! > app.pid
+      - name: Wait for app
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${PORT}/ || true)
+            if [ "$code" = "200" ] || [ "$code" = "404" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat app.log
+          exit 1
+      - name: Run CATS
+        run: |
+          mkdir -p cats-report
+          docker run --rm \
+            --add-host host.docker.internal:host-gateway \
+            -v "$PWD/openapi.json:/openapi.json" \
+            -v "$PWD/cats-headers.yml:/cats-headers.yml" \
+            -v "$PWD/cats-report:/cats-report" \
+            ghcr.io/endava/cats:latest \
+            --contract=/openapi.json \
+            --server=http://host.docker.internal:${PORT} \
+            --headers=/cats-headers.yml \
+            --report-format=json,html \
+            --out=/cats-report
+      - name: Upload CATS reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cats-report
+          path: cats-report/
+      - name: Stop app
+        if: always()
+        run: kill "$(cat app.pid)" || true
+
+  owasp-zap:
+    name: OWASP ZAP
+    needs: [build-and-openapi, quality-gates]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports: ['5433:5432']
+        env:
+          POSTGRES_USER: cats
+          POSTGRES_PASSWORD: cats
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd "pg_isready -U cats -d test_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm run prisma:seed
+      - run: pnpm run export:openapi
+      - name: Start app
+        run: pnpm run start:dev > app.log 2>&1 & echo $! > app.pid
+      - name: Wait for app
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${PORT}/ || true)
+            if [ "$code" = "200" ] || [ "$code" = "404" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat app.log
+          exit 1
+      - name: Run ZAP API scan
+        run: |
+          mkdir -p zap-report
+          docker run --rm --network host \
+            -v "$PWD:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable \
+            zap-api-scan.py \
+            -t /zap/wrk/openapi.json \
+            -f openapi \
+            -r zap-report.html \
+            -J zap-report.json \
+            -x zap-report.xml
+          mv zap-report.html zap-report/
+          mv zap-report.json zap-report/
+          mv zap-report.xml zap-report/
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-zap-report
+          path: zap-report/
+      - name: Stop app
+        if: always()
+        run: kill "$(cat app.pid)" || true
