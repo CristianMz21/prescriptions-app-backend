@@ -43,6 +43,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
       - name: Format check
         run: pnpm run format:check
       - name: Lint check
@@ -64,6 +66,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
       - name: Build
         run: pnpm run build
       - name: Export OpenAPI
@@ -90,6 +93,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
       - name: Run unit tests
         run: pnpm run test -- --json --outputFile=reports/unit-test-results.json
       - name: Run coverage
@@ -142,6 +146,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
       - name: Run integration tests
@@ -188,6 +193,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
       - name: Run E2E tests
@@ -220,6 +226,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
       - run: pnpm audit --audit-level=high
 
   semgrep:
@@ -253,6 +260,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
       - uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
@@ -323,6 +331,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
       - run: pnpm run export:openapi
@@ -398,6 +407,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
       - run: pnpm run export:openapi
