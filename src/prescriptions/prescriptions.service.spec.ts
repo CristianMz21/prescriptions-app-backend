@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrescriptionsService } from './prescriptions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, PrescriptionStatus } from '@prisma/client';
-import { NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 describe('PrescriptionsService', () => {
   let service: PrescriptionsService;
@@ -53,6 +57,34 @@ describe('PrescriptionsService', () => {
       const result = await service.create('d1', dto);
       expect(prismaService.prescription.create).toHaveBeenCalled();
       expect(result).toEqual(mockPrescription);
+    });
+
+    it('should throw BadRequestException on P2003 (foreign key)', async () => {
+      const err = new Error('FK violation') as Error & { code: string };
+      err.code = 'P2003';
+      prismaService.prescription.create.mockRejectedValue(err);
+
+      await expect(
+        service.create('d1', { patientId: 'p-missing', items: [] }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException on P2025 (record not found)', async () => {
+      const err = new Error('Record not found') as Error & { code: string };
+      err.code = 'P2025';
+      prismaService.prescription.create.mockRejectedValue(err);
+
+      await expect(
+        service.create('d1', { patientId: 'p-missing', items: [] }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should rethrow unknown prisma errors from create', async () => {
+      prismaService.prescription.create.mockRejectedValue(new Error('boom'));
+
+      await expect(
+        service.create('d1', { patientId: 'p1', items: [] }),
+      ).rejects.toThrow('boom');
     });
   });
 
@@ -135,6 +167,36 @@ describe('PrescriptionsService', () => {
         }),
       ).rejects.toThrow(NotFoundException);
     });
+
+    it('should throw ForbiddenException when patient is not the owner', async () => {
+      prismaService.prescription.findFirst.mockResolvedValue({
+        id: '1',
+        patientId: 'someone-else',
+        doctorId: 'd1',
+      });
+      await expect(
+        service.findOneById('1', {
+          id: 'p1',
+          email: 'patient@clinic.com',
+          role: Role.PATIENT,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw ForbiddenException when doctor is not the owner', async () => {
+      prismaService.prescription.findFirst.mockResolvedValue({
+        id: '1',
+        patientId: 'p1',
+        doctorId: 'some-other-doctor',
+      });
+      await expect(
+        service.findOneById('1', {
+          id: 'd1',
+          email: 'doctor@clinic.com',
+          role: Role.DOCTOR,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 
   describe('markAsConsumed', () => {
@@ -157,6 +219,16 @@ describe('PrescriptionsService', () => {
       prismaService.prescription.findFirst.mockResolvedValue(null);
       await expect(service.markAsConsumed('p1', '1')).rejects.toThrow(
         NotFoundException,
+      );
+    });
+
+    it('should throw ForbiddenException when patient does not own prescription', async () => {
+      prismaService.prescription.findFirst.mockResolvedValue({
+        id: '1',
+        patientId: 'other-patient',
+      });
+      await expect(service.markAsConsumed('p1', '1')).rejects.toThrow(
+        ForbiddenException,
       );
     });
   });

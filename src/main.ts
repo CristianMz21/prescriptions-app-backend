@@ -79,12 +79,14 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // OpenAPI / Swagger Setup
+  const port = configService.get<number>('PORT') ?? 3000;
   const config = new DocumentBuilder()
     .setTitle('Prescription Management API')
     .setDescription(
       'API documentation for the MVP Prescription Management System.',
     )
     .setVersion('1.0')
+    .addServer(`http://localhost:${port}`, 'Local development server')
     .addCookieAuth('accessToken', {
       type: 'apiKey',
       in: 'cookie',
@@ -99,8 +101,6 @@ async function bootstrap() {
     },
   });
 
-  // Use the validated port variable or fallback securely
-  const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }

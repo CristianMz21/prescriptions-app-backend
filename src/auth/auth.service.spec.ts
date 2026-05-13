@@ -173,4 +173,73 @@ describe('AuthService', () => {
       );
     });
   });
+
+  describe('config validation', () => {
+    it('should throw UnauthorizedException when JWT secret is not a string', async () => {
+      configService.getOrThrow.mockImplementationOnce(() => 12345);
+
+      await expect(
+        authService.login({
+          id: 'u',
+          email: 'u@clinic.com',
+          role: Role.PATIENT,
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException when JWT secret is an empty string', async () => {
+      configService.getOrThrow.mockImplementationOnce(() => '');
+
+      await expect(
+        authService.login({
+          id: 'u',
+          email: 'u@clinic.com',
+          role: Role.PATIENT,
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException for an invalid TTL format', async () => {
+      configService.getOrThrow.mockImplementation((key: string) => {
+        if (key === 'JWT_ACCESS_TTL') return 'forever';
+        if (key === 'JWT_REFRESH_TTL') return '7d';
+        return `mock-${key}`;
+      });
+
+      await expect(
+        authService.login({
+          id: 'u',
+          email: 'u@clinic.com',
+          role: Role.PATIENT,
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should parse h and s duration units', async () => {
+      configService.getOrThrow.mockImplementation((key: string) => {
+        if (key === 'JWT_ACCESS_TTL') return '2h';
+        if (key === 'JWT_REFRESH_TTL') return '30s';
+        return `mock-${key}`;
+      });
+      jwtService.signAsync
+        .mockResolvedValueOnce('access')
+        .mockResolvedValueOnce('refresh');
+
+      const result = await authService.login({
+        id: 'u',
+        email: 'u@clinic.com',
+        role: Role.PATIENT,
+      });
+
+      expect(result.accessToken).toBe('access');
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ expiresIn: 2 * 60 * 60 }),
+      );
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ expiresIn: 30 }),
+      );
+    });
+  });
 });

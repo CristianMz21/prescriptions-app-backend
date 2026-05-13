@@ -9,12 +9,14 @@ async function exportOpenApi() {
     logger: ['error', 'warn', 'log'],
   });
 
+  const port = process.env.PORT ?? '3000';
   const config = new DocumentBuilder()
     .setTitle('Prescription Management API')
     .setDescription(
       'API documentation for the MVP Prescription Management System.',
     )
     .setVersion('1.0')
+    .addServer(`http://localhost:${port}`, 'Local development server')
     .addCookieAuth('accessToken', {
       type: 'apiKey',
       in: 'cookie',
