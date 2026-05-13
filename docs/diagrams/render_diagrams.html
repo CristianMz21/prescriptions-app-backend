@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body { background: #1e1e1e; padding: 20px; }
+pre { display: none; }
+img { margin: 20px 0; max-width: 100%; }
+</style>
+</head>
+<body>
+<pre id="src-01">%%{init: {"theme": "base", "themeVariables": {"fontSize": "16px"}}}%%
+graph TD
+    subgraph Clients
+        A["Doctor App"]
+        B["Patient App"]
+        C["Admin Dashboard"]
+    end
+    subgraph NestJS["NestJS Application"]
+        D["Global Middleware"]
+        E["JwtAuthGuard + RolesGuard"]
+        F["ValidationPipe"]
+        G["HttpExceptionFilter"]
+        subgraph Modules["Modulos"]
+            H["AuthModule"]
+            I["UsersModule"]
+            J["PatientsModule"]
+            K["DoctorsModule"]
+            L["PrescriptionsModule"]
+            M["MetricsModule"]
+        end
+    end
+    subgraph Prisma["Prisma + PostgreSQL"]
+        N["PrismaService"]
+        O["PostgreSQL"]
+    end
+    A -->|"HTTPS JWT Bearer"| D
+    B -->|"HTTPS JWT Bearer"| D
+    C -->|"HTTPS JWT Bearer"| D
+    D --> F --> E --> H & I & J & K & L & M
+    H & I & J & K & L & M --> N --> O
+    G -.->|"Error"| A & B & C</pre>
+<pre id="src-02">%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px"}}}%%
+erDiagram
+    USER ||--o| DOCTOR : "1:1 opcional"
+    USER ||--o| PATIENT : "1:1 opcional"
+    USER ||--o{ REFRESH_TOKEN : "posee"
+    USER { string id PK string email string password string name enum role datetime createdAt datetime updatedAt }
+    DOCTOR { string id string userId string specialty }
+    PATIENT { string id string userId datetime birthDate }
+    DOCTOR ||--o{ PRESCRIPTION : "autor de"
+    PATIENT ||--o{ PRESCRIPTION : "receptor de"
+    PRESCRIPTION { string id string code enum status string notes datetime createdAt datetime updatedAt datetime consumedAt string patientId string authorId }
+    PRESCRIPTION ||--o{ PRESCRIPTION_ITEM : "contiene"
+    PRESCRIPTION_ITEM { string id string prescriptionId string name string dosage int quantity string instructions }
+    REFRESH_TOKEN { string id string tokenHash string userId datetime revokedAt datetime expiresAt datetime createdAt }</pre>
+<pre id="src-03">%%{init: {"theme": "base", "themeVariables": {"fontSize": "16px"}}}%%
+sequenceDiagram
+    participant C Client
+    participant AC AuthController
+    participant AS AuthService
+    participant PR PrismaService
+    participant JWT JwtService
+    participant DB PostgreSQL
+    C->>AC POST /auth/login {email, password}
+    AC->>AS login(dto)
+    AS->>PR user.findUnique(email)
+    PR->>DB SELECT WHERE email=?
+    DB-->>PR User
+    alt usuario no existe
+        AS-->>C 401 "Credenciales invalidas"
+    end
+    AS->>AS bcrypt.compare
+    alt contrasena incorrecta
+        AS-->>C 401
+    end
+    AS->>JWT sign(payload)
+    JWT-->>AS accessToken
+    AS->>AS crypto.randomBytes(64)
+    AS->>PR refreshToken.create
+    PR->>DB INSERT
+    AS-->>C {accessToken, refreshToken, user}</pre>
+<pre id="src-04">%%{init: {"theme": "base", "themeVariables": {"fontSize": "16px"}}}%%
+sequenceDiagram
+    participant D Doctor
+    participant PC PrescriptionsController
+    participant PS PrescriptionsService
+    participant PR PrismaService
+    participant DB PostgreSQL
+    D->>PC POST /prescriptions {patientId, items}
+    PC->>PS create(dto, authorId)
+    alt patientId provided
+        PS->>PR patient.findUnique(patientId)
+    else patientEmail provided
+        PS->>PR patient.findFirst(user.email=patientEmail)
+    end
+    alt paciente no encontrado
+        PS-->>D 404
+    end
+    PS->>PR prescription.create
+    PR->>DB INSERT prescription + items
+    PS-->>D Prescription 201
+    participant Pt Patient
+    participant PtC PrescriptionsController
+    participant PtS PrescriptionsService
+    Pt->>PtC GET /prescriptions
+    PtC->>PtS findAll(patientId)
+    PtS->>PR prescription.findMany(where patientId)
+    PR->>DB SELECT
+    PtS-->>Pt {data, meta}
+    Pt->>PtC PATCH /prescriptions/:id/consume
+    PtC->>PtS consume(id, patientId)
+    alt no es el dueno
+        PtS-->>Pt 403
+    end
+    PtS->>PR prescription.update status=consumed
+    PtS-->>Pt Prescription actualizada</pre>
+<pre id="src-05">%%{init: {"theme": "base", "themeVariables": {"fontSize": "13px", "fontFamily": "monospace"}}}%%
+graph TD
+    ROOT["backend/"]
+    ROOT --> SRC["src/"] --> MAIN["main.ts"] & APP["app.module.ts"] & AUTH["auth/"] & USERS["users/"] & PAT["patients/"] & DOC["doctors/"] & PRES["prescriptions/"] & MET["metrics/"] & PRISMA["prisma/"] & COMMON["common/"]
+    AUTH --> AUTH_MOD["auth.module.ts"] & AUTH_CTRL["auth.controller.ts"] & AUTH_SVC["auth.service.ts"] & DTO["dto/"] & STRAT["strategies/"] & GRDS["guards/"] & DECO["decorators/"]
+    PRISMA --> PR_MOD["prisma.module.ts"] & PR_SVC["prisma.service.ts"]
+    COMMON --> GRDS_C["guards/"] & INTE["interceptors/"] & FILT["filters/"]
+    PRISMADIR["prisma/"] --> SCHEMA["schema.prisma"] & SEED["seed.ts"]
+    DOCSDIR["docs/"] --> ARCH["ARCHITECTURE.md"] & API["API_CONTRACTS.md"] & SEC["SECURITY_MODEL.md"] & ROAD["IMPLEMENTATION_ROADMAP.md"] & DIAG["diagrams/"]</pre>
+<pre id="src-06">%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px"}}}%%
+graph LR
+    subgraph RBAC["RBAC Permisos por Rol"]
+        header1["Accion"]
+        header2["Admin"]
+        header3["Doctor"]
+        header4["Patient"]
+        header1 --> A1["POST /auth/login"] & B1["GET /auth/me"] & C1["POST /users"] & D1["GET /patients"] & E1["POST /prescriptions"] & F1["GET /prescriptions"] & G1["PATCH consume"] & H1["GET /metrics"]
+        header2 --> A2["OK"] & B2["OK"] & C2["OK"] & D2["OK"] & E2["403"] & F2["OK todas"] & G2["403"] & H2["OK"]
+        header3 --> A3["OK"] & B3["OK"] & C3["403"] & D3["OK"] & E3["OK"] & F3["OK propias"] & G3["403"] & H3["403"]
+        header4 --> A4["OK"] & B4["OK"] & C4["403"] & D4["403"] & E4["403"] & F4["OK propias"] & G4["OK dueño"] & H4["403"]
+    end</pre>
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: { fontSize: '16px', background: '#1e1e1e', textColor: '#f0f0f0', primaryColor: '#6bcb77', primaryTextColor: '#fff', lineColor: '#ffd93d' } });
+async function renderAll() {
+  for (let i = 1; i <= 6; i++) {
+    const srcEl = document.getElementById('src-0' + i);
+    const { svg } = await mermaid.render('diag-' + i, srcEl.textContent);
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagram-' + i + '.svg';
+    a.click();
+    console.log('Done diagram-' + i + '.svg');
+  }
+}
+renderAll();
+</script>
+</body>
+</html>

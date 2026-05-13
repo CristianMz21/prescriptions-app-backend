@@ -1,0 +1,72 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px"}}}%%
+erDiagram
+    USER ||--o| DOCTOR : "1:1 opcional"
+    USER ||--o| PATIENT : "1:1 opcional"
+    USER ||--o{ REFRESH_TOKEN : "posee"
+
+    USER {
+        string id PK
+        string email UK
+        string password
+        string name
+        enum role
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    DOCTOR {
+        string id PK
+        string userId FK UK
+        string specialty
+    }
+
+    PATIENT {
+        string id PK
+        string userId FK UK
+        datetime birthDate
+    }
+
+    DOCTOR ||--o{ PRESCRIPTION : "autor de"
+    PATIENT ||--o{ PRESCRIPTION : "receptor de"
+
+    PRESCRIPTION {
+        string id PK
+        string code UK
+        enum status
+        string notes
+        datetime createdAt
+        datetime updatedAt
+        datetime consumedAt
+        string patientId FK
+        string authorId FK
+    }
+
+    PRESCRIPTION ||--o{ PRESCRIPTION_ITEM : "contiene"
+
+    PRESCRIPTION_ITEM {
+        string id PK
+        string prescriptionId FK
+        string name
+        string dosage
+        int quantity
+        string instructions
+    }
+
+    REFRESH_TOKEN {
+        string id PK
+        string tokenHash
+        string userId FK
+        datetime revokedAt
+        datetime expiresAt
+        datetime createdAt
+    }
+
+    note right of USER
+        Roles: admin, doctor, patient
+        password es hashed con bcrypt
+    end note
+
+    note right of PRESCRIPTION
+        Status: pending | consumed
+        Indexes: status+createdAt, patientId, authorId, createdAt
+    end note

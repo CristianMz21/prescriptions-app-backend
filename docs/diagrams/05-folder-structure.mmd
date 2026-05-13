@@ -1,0 +1,89 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "13px", "fontFamily": "monospace"}}}%%
+graph TD
+    ROOT["📁 backend/"]
+
+    ROOT --> SRC["📁 src/"]
+    ROOT --> TEST["📁 test/"]
+    ROOT --> PRISMA["📁 prisma/"]
+    ROOT --> DOCS["📁 docs/"]
+    ROOT --> PKG["📄 package.json"]
+    ROOT --> TS["📄 tsconfig.json"]
+    ROOT --> NEST["📄 nest-cli.json"]
+
+    SRC --> MAIN["📄 main.ts"]
+    SRC --> APP["📄 app.module.ts"]
+    SRC --> AUTH["📁 auth/"]
+    SRC --> USERS["📁 users/"]
+    SRC --> PAT["📁 patients/"]
+    SRC --> DOCS_B["📁 doctors/"]
+    SRC --> PRES["📁 prescriptions/"]
+    SRC --> MET["📁 metrics/"]
+    SRC --> PRISMA_SRC["📁 prisma/"]
+    SRC --> COMMON["📁 common/"]
+
+    AUTH --> AUTH_MOD["📄 auth.module.ts"]
+    AUTH --> AUTH_CTRL["📄 auth.controller.ts"]
+    AUTH --> AUTH_SVC["📄 auth.service.ts"]
+    AUTH --> DTO_A["📁 dto/"]
+    AUTH --> STRT["📁 strategies/"]
+    AUTH --> GRDS["📁 guards/"]
+    AUTH --> DECO["📁 decorators/"]
+
+    DTO_A --> LOGIN["📄 login.dto.ts"]
+    DTO_A --> REFR["📄 refresh-token.dto.ts"]
+    STRT --> JWT_STR["📄 jwt.strategy.ts"]
+    STRT --> REFR_STR["📄 refresh-token.strategy.ts"]
+    GRDS --> JWT_G["📄 jwt-auth.guard.ts"]
+    GRDS --> ROL_G["📄 roles.guard.ts"]
+    DECO --> ROL_D["📄 roles.decorator.ts"]
+    DECO --> CUR_D["📄 current-user.decorator.ts"]
+
+    USERS --> USR_MOD["📄 users.module.ts"]
+    USERS --> USR_CTRL["📄 users.controller.ts"]
+    USERS --> USR_SVC["📄 users.service.ts"]
+    USERS --> DTO_U["📁 dto/"]
+    DTO_U --> C_U["📄 create-user.dto.ts"]
+
+    PAT --> PAT_MOD["📄 patients.module.ts"]
+    PAT --> PAT_CTRL["📄 patients.controller.ts"]
+    PAT --> PAT_SVC["📄 patients.service.ts"]
+
+    DOCS_B --> DOC_MOD["📄 doctors.module.ts"]
+    DOCS_B --> DOC_CTRL["📄 doctors.controller.ts"]
+    DOCS_B --> DOC_SVC["📄 doctors.service.ts"]
+
+    PRES --> PRES_MOD["📄 prescriptions.module.ts"]
+    PRES --> PRES_CTRL["📄 prescriptions.controller.ts"]
+    PRES --> PRES_SVC["📄 prescriptions.service.ts"]
+    PRES --> DTO_P["📁 dto/"]
+    DTO_P --> C_P["📄 create-prescription.dto.ts"]
+    DTO_P --> PAG["📄 pagination.dto.ts"]
+
+    MET --> MET_MOD["📄 metrics.module.ts"]
+    MET --> MET_CTRL["📄 metrics.controller.ts"]
+    MET --> MET_SVC["📄 metrics.service.ts"]
+
+    PRISMA_SRC --> PR_MOD["📄 prisma.module.ts"]
+    PRISMA_SRC --> PR_SVC["📄 prisma.service.ts"]
+
+    COMMON --> GRDS_C["📁 guards/"]
+    COMMON --> INTE["📁 interceptors/"]
+    COMMON --> FILT["📁 filters/"]
+    GRDS_C --> EXC_F["📄 http-exception.filter.ts"]
+    INTE --> LOG_I["📄 logging.interceptor.ts"]
+
+    PRISMA --> SCHEMA["📄 schema.prisma"]
+    PRISMA --> SEED["📄 seed.ts"]
+
+    DOCS --> ARCH["📄 ARCHITECTURE.md"]
+    DOCS --> API["📄 API_CONTRACTS.md"]
+    DOCS --> SEC["📄 SECURITY_MODEL.md"]
+    DOCS --> ROAD["📄 IMPLEMENTATION_ROADMAP.md"]
+    DOCS --> DIAG["📁 diagrams/"]
+
+    classDef folder fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    classDef file fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
+    classDef mainfile fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+
+    class ROOT,TEST,PRISMA,DOCS,AUTH,DTO_A,STRT,GRDS,DECO,USERS,DTO_U,PAT,DOCS_B,PRES,DTO_P,MET,PRISMA_SRC,COMMON,GRDS_C,INTE,FILT folder
+    class PKG,TS,NEST,MAIN,APP,AUTH_MOD,AUTH_CTRL,AUTH_SVC,LOGIN,REFR,JWT_STR,REFR_STR,JWT_G,ROL_G,ROL_D,CUR_D,USR_MOD,USR_CTRL,USR_SVC,C_U,PAT_MOD,PAT_CTRL,PAT_SVC,DOC_MOD,DOC_CTRL,DOC_SVC,PRES_MOD,PRES_CTRL,PRES_SVC,C_P,PAG,MET_MOD,MET_CTRL,MET_SVC,PR_MOD,PR_SVC,EXC_F,LOG_I,SCHEMA,SEED,ARCH,API,SEC,ROAD,DIAG file
