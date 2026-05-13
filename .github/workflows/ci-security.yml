@@ -355,24 +355,28 @@ jobs:
           done
           cat app.log
           exit 1
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Install CATS (native binary, pinned to 13.8.0)
+        run: |
+          # The ghcr.io/endava/cats docker image does not publish a stable
+          # tag (`:latest`, `:13.8.0` both return `manifest unknown`), so
+          # download the native release binary instead. This is also faster
+          # and removes the docker-registry dependency entirely.
+          set -euo pipefail
+          CATS_VERSION="13.8.0"
+          curl -sSL -o /tmp/cats.tar.gz \
+            "https://github.com/Endava/cats/releases/download/cats-${CATS_VERSION}/cats_linux_amd64_${CATS_VERSION}.tar.gz"
+          tar -xzf /tmp/cats.tar.gz -C /tmp
+          sudo mv /tmp/cats /usr/local/bin/cats
+          cats --version
       - name: Run CATS
         run: |
           mkdir -p cats-report
-          chmod -R 777 cats-report
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            --add-host host.docker.internal:host-gateway \
-            -v "$PWD/openapi.json:/openapi.json" \
-            -v "$PWD/cats-headers.yml:/cats-headers.yml" \
-            -v "$PWD/cats-report:/cats-report" \
-            ghcr.io/endava/cats:13.8.0 \
-            --contract=/openapi.json \
-            --server=http://host.docker.internal:${PORT} \
-            --headers=/cats-headers.yml \
+          cats \
+            --contract=openapi.json \
+            --server=http://127.0.0.1:${PORT} \
+            --headers=cats-headers.yml \
             --report-format=json,html \
-            --out=/cats-report
+            --out=cats-report
       - name: Upload CATS reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -437,11 +441,16 @@ jobs:
           exit 1
       - name: Run ZAP API scan
         run: |
+          # ZAP's container has its own `zap` user with a non-standard UID,
+          # so we cannot use `--user $(id -u):$(id -g)` (ZAP fails to start).
+          # Instead, make the working directory world-writable so the zap
+          # user inside the container can write its reports to the bind
+          # mount.
           mkdir -p zap-report
+          chmod 777 .
           chmod -R 777 zap-report
           ZAP_EXIT=0
           docker run --rm --network host \
-            --user "$(id -u):$(id -g)" \
             -v "$PWD:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:2.16.0 \
             zap-api-scan.py \
             -t /zap/wrk/openapi.json \
