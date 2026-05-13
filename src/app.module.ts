@@ -15,10 +15,10 @@ import { validate } from './config/env.validation';
       validate,
       isGlobal: true, // Makes ConfigService available globally without re-importing
     }),
-    AuthModule, 
-    PrescriptionsModule, 
-    AdminModule, 
-    UsersModule
+    AuthModule,
+    PrescriptionsModule,
+    AdminModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

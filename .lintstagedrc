@@ -1,0 +1,7 @@
+{
+  "*.ts": [
+    "eslint --fix",
+    "prettier --write",
+    "bash -c 'pnpm exec tsc --noEmit'"
+  ]
+}

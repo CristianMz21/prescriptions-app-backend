@@ -1,5 +1,9 @@
 /* Copyright (c) 2026. All rights reserved. */
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { launch, Browser } from 'puppeteer';
 import { compile } from 'handlebars';
 import { toDataURL } from 'qrcode';
@@ -24,7 +28,9 @@ export interface PdfPrescriptionData {
 export class PdfService {
   private readonly logger = new Logger(PdfService.name);
 
-  async generatePrescriptionPdf(prescription: PdfPrescriptionData): Promise<Buffer> {
+  async generatePrescriptionPdf(
+    prescription: PdfPrescriptionData,
+  ): Promise<Buffer> {
     let browser: Browser | null = null;
 
     try {
@@ -34,11 +40,14 @@ export class PdfService {
         margin: 1,
         color: {
           dark: '#111827',
-          light: '#ffffff'
-        }
+          light: '#ffffff',
+        },
       });
 
-      const templatePath = join(process.cwd(), 'src/pdf/templates/prescription.hbs');
+      const templatePath = join(
+        process.cwd(),
+        'src/pdf/templates/prescription.hbs',
+      );
       const templateContent = await readFile(templatePath, 'utf8');
       const template = compile(templateContent);
 
@@ -50,12 +59,12 @@ export class PdfService {
         doctorEmail: prescription.doctor.email,
         items: prescription.items,
         notes: prescription.notes,
-        qrCode: qrCodeDataUrl
+        qrCode: qrCodeDataUrl,
       });
 
       browser = await launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
 
       const page = await browser.newPage();
@@ -68,16 +77,26 @@ export class PdfService {
           top: '20mm',
           right: '20mm',
           bottom: '20mm',
-          left: '20mm'
-        }
+          left: '20mm',
+        },
       });
 
       return Buffer.from(pdfUint8Array);
-
-    } catch (error) {
-      this.logger.error('Error generating PDF', error);
-      throw new InternalServerErrorException('Failed to generate PDF prescription');
-
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Error generating PDF: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(
+          'An unknown error occurred while generating PDF',
+          String(error),
+        );
+      }
+      throw new InternalServerErrorException(
+        'Failed to generate PDF prescription',
+      );
     } finally {
       if (browser) {
         await browser.close();

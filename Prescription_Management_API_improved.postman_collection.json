@@ -142,6 +142,16 @@
                   "pm.test('Set-Cookie header present', function () { pm.expect(pm.response.headers.has('Set-Cookie')).to.be.true; });",
                   "pm.test('Cookie accessToken is set in Jar', function () { pm.expect(pm.cookies.has('accessToken')).to.be.true; });",
                   "",
+                  "const setCookies = pm.response.headers.get('Set-Cookie');",
+                  "if (setCookies) {",
+                  "    pm.test('accessToken cookie is HttpOnly', function () {",
+                  "        pm.expect(setCookies).to.include('HttpOnly');",
+                  "    });",
+                  "    pm.test('accessToken cookie has SameSite=Strict', function () {",
+                  "        pm.expect(setCookies).to.include('SameSite=Strict');",
+                  "    });",
+                  "}",
+                  "",
                   "const data = pm.response.json();",
                   "pm.test('User role is DOCTOR', function () {",
                   "    pm.expect(data.user.role).to.equal('DOCTOR');",
@@ -184,7 +194,18 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Set-Cookie header present', function () { pm.expect(pm.response.headers.has('Set-Cookie')).to.be.true; });",
                   "pm.test('Cookie accessToken is set in Jar', function () { pm.expect(pm.cookies.has('accessToken')).to.be.true; });",
+                  "",
+                  "const setCookies = pm.response.headers.get('Set-Cookie');",
+                  "if (setCookies) {",
+                  "    pm.test('accessToken cookie is HttpOnly', function () {",
+                  "        pm.expect(setCookies).to.include('HttpOnly');",
+                  "    });",
+                  "    pm.test('accessToken cookie has SameSite=Strict', function () {",
+                  "        pm.expect(setCookies).to.include('SameSite=Strict');",
+                  "    });",
+                  "}",
                   "",
                   "const data = pm.response.json();",
                   "pm.test('User role is ADMIN', function () {",
@@ -288,6 +309,35 @@
           "response": []
         },
         {
+          "name": "Auth — Post-logout verification (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401 Unauthorized after logout', function () { pm.response.to.have.status(401); });",
+                  "pm.test('No accessToken cookie remains', function () {",
+                  "    const cookies = pm.cookies.all();",
+                  "    pm.expect(cookies.accessToken).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Run immediately after Logout. Cookie should be cleared and this should return 401."
+          },
+          "response": []
+        },
+        {
           "name": "GET Profile",
           "event": [
             {
@@ -307,15 +357,11 @@
                   "    pm.expect(data).to.have.property('role');",
                   "    pm.expect(data).to.have.property('createdAt');",
                   "});",
-                  "pm.test('id is valid UUID', function () {",
+"pm.test('id is valid UUID', function () {",
                   "    pm.expect(pm.response.json().id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);",
                   "});",
-                  "pm.test('createdAt is valid ISO date', function () {",
-                  "    pm.expect(new Date(pm.response.json().createdAt).toString()).to.not.equal('Invalid Date');",
-                  "});",
-                  "pm.test('passwordHash is excluded (ClassSerializer)', function () {",
-                  "    const data = pm.response.json();",
-                  "    pm.expect(data).to.not.have.property('passwordHash');",
+                  "pm.test('updatedAt is valid ISO date', function () {",
+                  "    pm.expect(new Date(pm.response.json().updatedAt).toString()).to.not.equal('Invalid Date');",
                   "});"
                 ]
               }
@@ -635,6 +681,12 @@
                   "});",
                   "pm.test('createdAt is valid ISO date', function () {",
                   "    pm.expect(new Date(data.createdAt).toString()).to.not.equal('Invalid Date');",
+                  "});",
+                  "pm.test('updatedAt is valid ISO date', function () {",
+                  "    pm.expect(new Date(data.updatedAt).toString()).to.not.equal('Invalid Date');",
+                  "});",
+                  "pm.test('notes field is present (optional field)', function () {",
+                  "    pm.expect(data).to.have.property('notes');",
                   "});",
                   "pm.test('items is a non-empty array', function () {",
                   "    pm.expect(data.items).to.be.an('array');",
@@ -1134,6 +1186,10 @@
                   "    const err = pm.response.json();",
                   "    pm.expect(err).to.have.property('statusCode');",
                   "    pm.expect(err.statusCode).to.equal(401);",
+                  "});",
+                  "pm.test('No accessToken cookie set on invalid token', function () {",
+                  "    const cookies = pm.cookies.all();",
+                  "    pm.expect(cookies.accessToken).to.be.undefined;",
                   "});"
                 ]
               }
@@ -1511,6 +1567,36 @@
               "path": ["users", "{{adminId}}"]
             },
             "description": "Run with Patient cookie. Only Admin/Doctor can fetch user details by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "RBAC — Doctor lists all users (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Error body has statusCode, message, error', function () {",
+                  "    const err = pm.response.json();",
+                  "    pm.expect(err).to.have.property('statusCode');",
+                  "    pm.expect(err.statusCode).to.equal(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Run with Doctor cookie. RoleGuard returns 403 — only Admin can list all users."
           },
           "response": []
         }

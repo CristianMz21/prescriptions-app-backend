@@ -1,0 +1,7 @@
+# cats-headers.yml
+# This file is used by CATS to inject custom headers into all fuzzer requests.
+# The 'all' key targets every endpoint in the OpenAPI contract.
+all:
+  # Replace <YOUR_JWT_TOKEN> with the actual token extracted from the login response.
+  # This successfully bypasses the JwtAuthGuard while adhering to our HttpOnly architecture.
+  Cookie: "accessToken=<YOUR_JWT_TOKEN>"

@@ -1,5 +1,12 @@
 import { plainToInstance } from 'class-transformer';
-import { IsEnum, IsNumber, IsString, IsUrl, validateSync, IsOptional } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsString,
+  IsUrl,
+  validateSync,
+  IsOptional,
+} from 'class-validator';
 
 enum Environment {
   Development = 'development',
@@ -21,32 +28,32 @@ class EnvironmentVariables {
   PORT: number = 3000;
 
   @IsString()
-  DATABASE_URL: string;
+  DATABASE_URL!: string;
 
   @IsString()
-  JWT_ACCESS_SECRET: string;
+  JWT_ACCESS_SECRET!: string;
 
   @IsString()
-  JWT_REFRESH_SECRET: string;
+  JWT_REFRESH_SECRET!: string;
 
   @IsString()
-  JWT_ACCESS_TTL: string;
+  JWT_ACCESS_TTL!: string;
 
   @IsString()
-  JWT_REFRESH_TTL: string;
+  JWT_REFRESH_TTL!: string;
 
   @IsUrl({ require_tld: false })
-  FRONTEND_URL: string;
+  FRONTEND_URL!: string;
 }
 
 export function validate(config: Record<string, unknown>) {
-  const validatedConfig = plainToInstance(
-    EnvironmentVariables,
-    config,
-    { enableImplicitConversion: true },
-  );
+  const validatedConfig = plainToInstance(EnvironmentVariables, config, {
+    enableImplicitConversion: true,
+  });
 
-  const errors = validateSync(validatedConfig, { skipMissingProperties: false });
+  const errors = validateSync(validatedConfig, {
+    skipMissingProperties: false,
+  });
 
   if (errors.length > 0) {
     throw new Error(`Environment validation failed: ${errors.toString()}`);

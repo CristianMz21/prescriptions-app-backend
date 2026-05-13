@@ -1,69 +1,43 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Environment variables (never commit secrets)
 .env
 .env.local
+.env.*.local
+
+# Logs
 *.log
+
+# Test coverage
 coverage/
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# OS
 .DS_Store
+
+# SONAR
+sonar-project.properties
+
+# Documentation
+AGENTS.md
+
+# Package managers
 pnpm-lock.yaml
 pnpm-workspace.yaml
 
+# Database (Prisma + SQLite dev)
+*.db
+*.db-journal
 
-packages/*/package-lock.json
-sample/**/package-lock.json
-
-# dependencies
-node_modules/
-
-# IDE
-/.idea
-/.awcache
-/.vscode
-/.devcontainer
-/.classpath
-/.project
-/.settings
-*.code-workspace
-
-# Vim
-[._]*.s[a-v][a-z]
-[._]*.sw[a-p]
-[._]s[a-rt-v][a-z]
-[._]ss[a-gi-z]
-[._]sw[a-p]
-
-# bundle
-packages/**/*.d.ts
-packages/**/*.js
-
-# misc
-.DS_Store
-lerna-debug.log
-npm-debug.log
-yarn-error.log
-/**/npm-debug.log
-/packages/**/.npmignore
-/packages/**/LICENSE
+# Misc
 *.tsbuildinfo
-/.nx/workspace-data
-
-# example
-/quick-start
-/example_dist
-/example
-
-# tests
-/test
-/benchmarks/memory
-/coverage
-/.nyc_output
-/packages/graphql
-/benchmarks/memory
-build/config\.gypi
-
-.npmrc
-pnpm-lock.yaml
-/.history
-
-cats-headers.yml
-README-CATS.md
+.nyc_output/
+.nx/

@@ -6,7 +6,15 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('PrescriptionsService', () => {
   let service: PrescriptionsService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: {
+    prescription: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      count: jest.Mock;
+      findFirst: jest.Mock;
+      update: jest.Mock;
+    };
+  };
 
   const mockPrescription = {
     id: '1',
@@ -35,12 +43,12 @@ describe('PrescriptionsService', () => {
     }).compile();
 
     service = module.get<PrescriptionsService>(PrescriptionsService);
-    prismaService = module.get(PrismaService) as any;
+    prismaService = module.get(PrismaService);
   });
 
   describe('create', () => {
     it('should create a prescription', async () => {
-      prismaService.prescription.create.mockResolvedValue(mockPrescription as any);
+      prismaService.prescription.create.mockResolvedValue(mockPrescription);
       const dto = { patientId: 'p1', items: [], notes: 'notes' };
       const result = await service.create('d1', dto);
       expect(prismaService.prescription.create).toHaveBeenCalled();
@@ -50,69 +58,106 @@ describe('PrescriptionsService', () => {
 
   describe('findAll', () => {
     it('should list for patient', async () => {
-      prismaService.prescription.findMany.mockResolvedValue([mockPrescription] as any);
+      prismaService.prescription.findMany.mockResolvedValue([mockPrescription]);
       prismaService.prescription.count.mockResolvedValue(1);
-      
-      const result = await service.findAll({ id: 'p1', role: Role.PATIENT }, {});
-      expect(prismaService.prescription.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { patientId: 'p1' } }));
+
+      const result = await service.findAll(
+        { id: 'p1', email: 'patient@clinic.com', role: Role.PATIENT },
+        {},
+      );
+      expect(prismaService.prescription.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { patientId: 'p1' } }),
+      );
       expect(result.data).toEqual([mockPrescription]);
     });
 
     it('should list for doctor', async () => {
-      prismaService.prescription.findMany.mockResolvedValue([mockPrescription] as any);
+      prismaService.prescription.findMany.mockResolvedValue([mockPrescription]);
       prismaService.prescription.count.mockResolvedValue(1);
-      
-      const result = await service.findAll({ id: 'd1', role: Role.DOCTOR }, {});
-      expect(prismaService.prescription.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { doctorId: 'd1' } }));
+
+      const result = await service.findAll(
+        { id: 'd1', email: 'doctor@clinic.com', role: Role.DOCTOR },
+        {},
+      );
+      expect(prismaService.prescription.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { doctorId: 'd1' } }),
+      );
     });
 
     it('should handle dates and status filter', async () => {
-      prismaService.prescription.findMany.mockResolvedValue([mockPrescription] as any);
+      prismaService.prescription.findMany.mockResolvedValue([mockPrescription]);
       prismaService.prescription.count.mockResolvedValue(1);
-      
+
       const result = await service.findAll(
-        { id: 'a1', role: Role.ADMIN }, 
-        { status: PrescriptionStatus.PENDING, fromDate: '2023-01-01', toDate: '2023-12-31' }
+        { id: 'a1', email: 'admin@clinic.com', role: Role.ADMIN },
+        {
+          status: PrescriptionStatus.PENDING,
+          fromDate: '2023-01-01',
+          toDate: '2023-12-31',
+        },
       );
-      
+
       expect(prismaService.prescription.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             status: PrescriptionStatus.PENDING,
-            createdAt: { gte: new Date('2023-01-01'), lte: new Date('2023-12-31') }
-          })
-        })
+            createdAt: {
+              gte: new Date('2023-01-01'),
+              lte: new Date('2023-12-31'),
+            },
+          }),
+        }),
       );
     });
   });
 
   describe('findOneById', () => {
     it('should find one for admin without boundaries', async () => {
-      prismaService.prescription.findFirst.mockResolvedValue(mockPrescription as any);
-      const result = await service.findOneById('1', { id: 'a1', role: Role.ADMIN });
-      expect(prismaService.prescription.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: '1' } }));
+      prismaService.prescription.findFirst.mockResolvedValue(mockPrescription);
+      const result = await service.findOneById('1', {
+        id: 'a1',
+        email: 'admin@clinic.com',
+        role: Role.ADMIN,
+      });
+      expect(prismaService.prescription.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: '1' } }),
+      );
       expect(result).toEqual(mockPrescription);
     });
 
     it('should throw if not found', async () => {
       prismaService.prescription.findFirst.mockResolvedValue(null);
-      await expect(service.findOneById('1', { id: 'p1', role: Role.PATIENT })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.findOneById('1', {
+          id: 'p1',
+          email: 'patient@clinic.com',
+          role: Role.PATIENT,
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('markAsConsumed', () => {
     it('should update status if owned', async () => {
-      prismaService.prescription.findFirst.mockResolvedValue(mockPrescription as any);
-      prismaService.prescription.update.mockResolvedValue({ ...mockPrescription, status: PrescriptionStatus.CONSUMED } as any);
+      prismaService.prescription.findFirst.mockResolvedValue(mockPrescription);
+      prismaService.prescription.update.mockResolvedValue({
+        ...mockPrescription,
+        status: PrescriptionStatus.CONSUMED,
+      });
 
       const result = await service.markAsConsumed('p1', '1');
-      expect(prismaService.prescription.update).toHaveBeenCalledWith({ where: { id: '1' }, data: { status: PrescriptionStatus.CONSUMED } });
+      expect(prismaService.prescription.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { status: PrescriptionStatus.CONSUMED },
+      });
       expect(result.status).toBe(PrescriptionStatus.CONSUMED);
     });
 
     it('should throw if not owned or not found', async () => {
       prismaService.prescription.findFirst.mockResolvedValue(null);
-      await expect(service.markAsConsumed('p1', '1')).rejects.toThrow(NotFoundException);
+      await expect(service.markAsConsumed('p1', '1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

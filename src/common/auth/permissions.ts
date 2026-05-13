@@ -2,7 +2,7 @@ import { Role } from '@prisma/client';
 
 /**
  * Enterprise-Grade PBAC (Permission-Based Access Control)
- * 
+ *
  * 1. Define explicit, granular permissions for every discrete action in the system.
  * String enums provide strict type safety and auto-completion across the app.
  */
@@ -12,7 +12,7 @@ export enum Permission {
   READ_OWN_PRESCRIPTION = 'read:own_prescription',
   CONSUME_PRESCRIPTION = 'consume:prescription',
   READ_ANY_PRESCRIPTION = 'read:any_prescription',
-  
+
   // Users Directory Module
   READ_PATIENTS_DIRECTORY = 'read:patients_directory',
   READ_DOCTORS_DIRECTORY = 'read:doctors_directory',
@@ -24,7 +24,7 @@ export enum Permission {
 
 /**
  * 2. Static PBAC Mapping Dictionary
- * 
+ *
  * Maps existing Roles to an array of specific Permissions.
  * By keeping this static in code (instead of the database), we ensure:
  * - High performance (No DB lookup required on every request to resolve permissions).

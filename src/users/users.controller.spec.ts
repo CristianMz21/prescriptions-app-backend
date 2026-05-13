@@ -9,7 +9,7 @@ describe('UsersController', () => {
 
   const mockUsers = [
     { id: '1', email: 'p1@c.com', role: Role.PATIENT },
-    { id: '2', email: 'p2@c.com', role: Role.PATIENT }
+    { id: '2', email: 'p2@c.com', role: Role.PATIENT },
   ];
 
   beforeEach(async () => {
@@ -20,9 +20,7 @@ describe('UsersController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [
-        { provide: UsersService, useValue: mockUsersService },
-      ],
+      providers: [{ provide: UsersService, useValue: mockUsersService }],
     }).compile();
 
     controller = module.get<UsersController>(UsersController);
