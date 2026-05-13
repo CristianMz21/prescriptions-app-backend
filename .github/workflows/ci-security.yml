@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   PNPM_VERSION: '11.1.1'
   DATABASE_URL: postgresql://cats:cats@localhost:5433/test_db?schema=public
   JWT_ACCESS_SECRET: test-only-minimum-32-char-secret-key-!!
