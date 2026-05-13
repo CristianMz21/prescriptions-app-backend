@@ -99,7 +99,7 @@ jobs:
       - name: Run unit tests
         run: pnpm exec jest --json --outputFile=reports/unit-test-results.json
       - name: Run coverage
-        run: pnpm exec jest --coverage --json --outputFile=reports/unit-coverage-results.json
+        run: pnpm exec jest --coverage --coverageProvider=v8 --json --outputFile=reports/unit-coverage-results.json
       - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@v4
