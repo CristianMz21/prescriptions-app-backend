@@ -1,0 +1,112 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px"}}}%%
+graph LR
+    subgraph RBAC["MATRIZ RBAC — Permisos por Rol"]
+        direction TB
+
+        header1["Acción / Ruta"]
+        header2["👑 Admin"]
+        header3["👨‍⚕️ Doctor"]
+        header4["👤 Patient"]
+
+        header1 --> |"AUTH"| A1["POST /auth/login"]
+        header2 --> A2["✅"]
+        header3 --> A3["✅"]
+        header4 --> A4["✅"]
+
+        header1 --> |"AUTH"| B1["GET /auth/me"]
+        header2 --> B2["✅"]
+        header3 --> B3["✅"]
+        header4 --> B4["✅"]
+
+        header1 --> |"AUTH"| C1["POST /auth/refresh"]
+        header2 --> C2["✅"]
+        header3 --> C3["✅"]
+        header4 --> C4["✅"]
+
+        header1 --> |"USERS"| D1["POST /users"]
+        header2 --> D2["✅"]
+        header3 --> D3["❌ 403"]
+        header4 --> D4["❌ 403"]
+
+        header1 --> |"PATIENTS"| E1["GET /patients"]
+        header2 --> E2["✅"]
+        header3 --> E3["✅"]
+        header4 --> E4["❌ 403"]
+
+        header1 --> |"PATIENTS"| F1["GET /patients/:id"]
+        header2 --> F2["✅"]
+        header3 --> F3["✅"]
+        header4 --> F4["❌ 403"]
+
+        header1 --> |"DOCTORS"| G1["GET /doctors"]
+        header2 --> G2["✅"]
+        header3 --> G3["❌ 403"]
+        header4 --> G4["❌ 403"]
+
+        header1 --> |"DOCTORS"| H1["GET /doctors/:id"]
+        header2 --> H2["✅"]
+        header3 --> H3["❌ 403"]
+        header4 --> H4["❌ 403"]
+
+        header1 --> |"PRESCRIPTIONS"| I1["POST /prescriptions"]
+        header2 --> I2["❌ 403"]
+        header3 --> I3["✅"]
+        header4 --> I4["❌ 403"]
+
+        header1 --> |"PRESCRIPTIONS"| J1["GET /prescriptions"]
+        header2 --> J2["✅ (todas)"]
+        header3 --> J3["✅ (sus propias)"]
+        header4 --> J4["✅ (sus propias)"]
+
+        header1 --> |"PRESCRIPTIONS"| K1["GET /prescriptions/:id"]
+        header2 --> K2["✅"]
+        header3 --> K3["✅ (si es autor)"]
+        header4 --> K4["✅ (si es dueño)"]
+
+        header1 --> |"PRESCRIPTIONS"| L1["PATCH /prescriptions/:id/consume"]
+        header2 --> L2["❌ 403"]
+        header3 --> L3["❌ 403"]
+        header4 --> L4["✅ (dueño)"]
+
+        header1 --> |"PRESCRIPTIONS"| M1["GET /prescriptions/:id/pdf"]
+        header2 --> M2["✅"]
+        header3 --> M3["✅ (si es autor)"]
+        header4 --> M4["✅ (si es dueño)"]
+
+        header1 --> |"METRICS"| N1["GET /metrics"]
+        header2 --> N2["✅"]
+        header3 --> N3["❌ 403"]
+        header4 --> N4["❌ 403"]
+    end
+
+    style header1 fill:#1e1e1e,stroke:#ff6b6b,color:#fff,font-weight:bold
+    style header2 fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
+    style header3 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style header4 fill:#1e1e1e,stroke:#4d96ff,color:#4d96ff
+
+    style A2,A3,A4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style A2,A3,A4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style B2,B3,B4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style C2,C3,C4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style D2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style D3,D4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style E2,E3 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style E4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style F2,F3 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style F4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style G2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style G3,G4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style H2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style H3,H4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style I3 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style I2,I4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style J2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style J3,J4 fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
+    style K2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style K3,K4 fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
+    style L4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style L2,L3 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style M2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style M3,M4 fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
+    style N2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style N3,N4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
