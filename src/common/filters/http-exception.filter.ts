@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { JsonWebTokenError } from 'jsonwebtoken';
 
 type ExceptionResponse = string | { message?: string | string[] };
 
@@ -23,6 +24,29 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+
+    if (
+      exception instanceof SyntaxError &&
+      exception.message.includes('JSON')
+    ) {
+      response.status(HttpStatus.BAD_REQUEST).json({
+        statusCode: HttpStatus.BAD_REQUEST,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+        message: 'Invalid JSON payload',
+      });
+      return;
+    }
+
+    if (exception instanceof JsonWebTokenError) {
+      response.status(HttpStatus.UNAUTHORIZED).json({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+        message: 'Invalid or malformed token',
+      });
+      return;
+    }
 
     const status =
       exception instanceof HttpException

@@ -6,6 +6,22 @@ import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import type { Request, Response, NextFunction } from 'express';
+
+const securityHeadersMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  res.setHeader(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+  );
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+};
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,7 +31,29 @@ async function bootstrap() {
   const frontendUrl = configService.get<string>('FRONTEND_URL');
 
   // Security: Apply Helmet to set various HTTP headers for app security
-  app.use(helmet());
+  // Disable default X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
+  // because we set them via securityHeadersMiddleware (with no-store)
+  app.use(
+    helmet({
+      frameguard: false,
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+      crossOriginResourcePolicy: false,
+      dnsPrefetchControl: false,
+      hidePoweredBy: false,
+      hsts: false,
+      ieNoOpen: false,
+      noSniff: false,
+      originAgentCluster: false,
+      permittedCrossDomainPolicies: false,
+      referrerPolicy: false,
+      xssFilter: false,
+    }),
+  );
+
+  // Security: Strict cache-control and security headers on all responses
+  app.use(securityHeadersMiddleware);
 
   // Security: Use cookie-parser to handle HttpOnly cookies
   app.use(cookieParser());

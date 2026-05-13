@@ -14,7 +14,7 @@ mkdir -p cats-report
 # --headers points to the mounted headers file.
 # --fuzzers=Validation,Security explicitly targets high-ROI fuzzers to aggressively test DTOs and RBAC, omitting slower boilerplate fuzzers.
 
-docker run --rm -it \
+docker run --rm \
   -v "$(pwd)/cats-headers.yml:/cats-headers.yml" \
   -v "$(pwd)/cats-report:/cats-report" \
   ghcr.io/endava/cats:latest \

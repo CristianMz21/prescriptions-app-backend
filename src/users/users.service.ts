@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -50,15 +50,20 @@ export class UsersService {
    * Crucially returns an instantiated UserEntity. When this hits a controller
    * using ClassSerializerInterceptor, the passwordHash is automatically stripped.
    */
-  async findById(id: string): Promise<UserEntity | null> {
+  async findById(id: string): Promise<UserEntity> {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      // Note: We deliberately fetch the whole record.
-      // The @Exclude() decorator in UserEntity guarantees the hash is stripped at the network layer.
     });
 
-    if (!user) return null;
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     return new UserEntity(user);
+  }
+
+  async findAll(): Promise<UserEntity[]> {
+    const users = await this.prisma.user.findMany();
+    return users.map((user) => new UserEntity(user));
   }
 
   /**

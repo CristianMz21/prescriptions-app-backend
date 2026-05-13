@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Role } from '@prisma/client';
 
@@ -160,7 +160,9 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException if user is not found', async () => {
       jwtService.verifyAsync.mockResolvedValue({ sub: 'user-1' });
-      usersService.findById.mockResolvedValue(null);
+      usersService.findById.mockRejectedValue(
+        new NotFoundException('User not found'),
+      );
 
       await expect(authService.refresh('valid-refresh-token')).rejects.toThrow(
         UnauthorizedException,
