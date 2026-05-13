@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
@@ -74,6 +74,34 @@ describe('UsersService', () => {
       });
       expect(result.id).toEqual(mockUser.id);
       expect(result.email).toEqual(mockUser.email);
+    });
+
+    it('should throw ConflictException on P2002 (duplicate email)', async () => {
+      const dto = {
+        email: 'dupe@clinic.com',
+        password: 'pw',
+        role: Role.PATIENT,
+      };
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
+      const prismaErr = new Error('Unique constraint failed') as Error & {
+        code: string;
+      };
+      prismaErr.code = 'P2002';
+      prismaService.user.create.mockRejectedValue(prismaErr);
+
+      await expect(service.create(dto)).rejects.toThrow(ConflictException);
+    });
+
+    it('should rethrow unknown prisma errors', async () => {
+      const dto = {
+        email: 'other@clinic.com',
+        password: 'pw',
+        role: Role.PATIENT,
+      };
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
+      prismaService.user.create.mockRejectedValue(new Error('boom'));
+
+      await expect(service.create(dto)).rejects.toThrow('boom');
     });
   });
 

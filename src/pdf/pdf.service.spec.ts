@@ -63,5 +63,25 @@ describe('PdfService', () => {
         service.generatePrescriptionPdf(mockPrescription),
       ).rejects.toThrow('Failed to generate PDF prescription');
     });
+
+    it('should throw InternalServerErrorException on non-Error throw', async () => {
+      const mockPrescription = {
+        id: '1',
+        createdAt: new Date(),
+        status: 'PENDING',
+        notes: null,
+        items: [],
+        doctor: { email: 'doc@c.com' },
+        patient: { email: 'pat@c.com' },
+      } satisfies PdfPrescriptionData;
+
+      // Make puppeteer reject with a non-Error value to exercise the
+      // `else` branch of the `error instanceof Error` check.
+      jest.mocked(launch).mockRejectedValueOnce('string-not-error');
+
+      await expect(
+        service.generatePrescriptionPdf(mockPrescription),
+      ).rejects.toThrow('Failed to generate PDF prescription');
+    });
   });
 });

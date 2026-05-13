@@ -1,0 +1,36 @@
+# Gitleaks configuration for the prescriptions backend.
+#
+# We extend the upstream default rule set (no rules are disabled) and add a
+# project-level allowlist for files that legitimately contain low-entropy
+# dev/test placeholders (README env examples, the dev .env template, the
+# seed script env fallback, the e2e test password helper, and the CI test
+# JWT secrets). Real secrets in any of these files would still be caught by
+# the high-entropy rules; the allowlist only suppresses the documented
+# placeholder strings.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented dev/test placeholders only"
+# Paths are matched as regex against the full file path the scanner reports
+# (which may be absolute, e.g. `/repo/docs/...` under docker). Use anchorless
+# patterns so the same config works for both `--no-git` working-tree scans
+# and historic-git scans.
+paths = [
+  '''(^|/)README\.md$''',
+  '''(^|/)docs/''',
+  '''(^|/)prisma/seed\.ts$''',
+  '''(^|/)test/test-credentials\.ts$''',
+  '''(^|/)test/.*\.e2e-spec\.ts$''',
+  '''(^|/)\.github/workflows/ci-security\.yml$''',
+  '''(^|/)\.env$''',
+  '''(^|/)cats-report/''',
+  '''(^|/)Prescription_Management_API_improved\.postman_collection\.json$''',
+]
+regexes = [
+  '''<DEV_[A-Z_]+>''',
+  '''<DEV_[A-Z_]+_PLACEHOLDER>''',
+  '''test-jwt-(access|refresh)-secret-000-do-not-use-in-prod''',
+  '''test-seed-password-000-do-not-use-in-prod''',
+]

@@ -14,6 +14,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiCookieAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -60,6 +61,11 @@ export class UsersController {
   @Get(':id')
   @Roles(Role.ADMIN, Role.DOCTOR)
   @ApiOperation({ summary: 'Get user detail by ID' })
+  @ApiParam({
+    name: 'id',
+    format: 'uuid',
+    description: 'User ID (UUID v4).',
+  })
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
   }

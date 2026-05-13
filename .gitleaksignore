@@ -1,0 +1,12 @@
+# Fingerprints for known-safe dev/test placeholders that survive the
+# `.gitleaks.toml` allowlist. Populate by running:
+#
+#   docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
+#     detect --source=/repo --no-git --report-format json \
+#     --report-path /repo/gitleaks-report.json --redact
+#
+# then paste each finding's `Fingerprint` field on its own line below.
+# Format: <commit-sha>:<file-path>:<rule-id>:<line>
+#
+# Leave this file empty if the working tree is clean after the
+# `.gitleaks.toml` allowlist runs.

@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
+import { TEST_PASSWORD } from './test-credentials';
 
 const extractAccessCookie = (
   setCookieHeader: string | string[] | undefined,
@@ -49,19 +50,19 @@ describe('Admin Endpoints (e2e)', () => {
 
     const adminLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@clinic.com', password: '***REDACTED-DEV-PASSWORD***' })
+      .send({ email: 'admin@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     adminCookie = extractAccessCookie(adminLogin.headers['set-cookie']);
 
     const doctorLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'doctor@clinic.com', password: '***REDACTED-DEV-PASSWORD***' })
+      .send({ email: 'doctor@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     doctorCookie = extractAccessCookie(doctorLogin.headers['set-cookie']);
 
     const patientLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'patient@clinic.com', password: '***REDACTED-DEV-PASSWORD***' })
+      .send({ email: 'patient@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     patientCookie = extractAccessCookie(patientLogin.headers['set-cookie']);
   });

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, PrescriptionStatus } from '@prisma/client';
@@ -73,6 +74,130 @@ describe('AdminService', () => {
         { date: '2023-01-01', count: 2 },
         { date: '2023-01-02', count: 1 },
       ]);
+    });
+  });
+
+  describe('getDashboardMetricsFiltered', () => {
+    beforeEach(() => {
+      prismaService.user.count.mockResolvedValue(3);
+      prismaService.prescription.count.mockResolvedValue(7);
+      prismaService.$queryRaw
+        .mockResolvedValueOnce([
+          { date: new Date('2026-01-01'), count: BigInt(2) },
+        ])
+        .mockResolvedValueOnce([
+          { doctorId: 'doctor-1', count: BigInt(5) },
+          { doctorId: 'doctor-2', count: BigInt(3) },
+        ]);
+    });
+
+    it('should return metrics with no filter (open-ended date range)', async () => {
+      const result = await service.getDashboardMetricsFiltered();
+
+      expect(result.totals.doctors).toBe(3);
+      expect(result.byDay).toEqual([{ date: '2026-01-01', count: 2 }]);
+      expect(result.topDoctors).toEqual([
+        { doctorId: 'doctor-1', count: 5 },
+        { doctorId: 'doctor-2', count: 3 },
+      ]);
+    });
+
+    it('should apply both from and to date filters', async () => {
+      const result = await service.getDashboardMetricsFiltered(
+        '2026-01-01',
+        '2026-01-31',
+      );
+
+      expect(result.totals.doctors).toBe(3);
+      expect(prismaService.prescription.count).toHaveBeenCalledWith({
+        where: {
+          createdAt: { gte: expect.any(Date), lte: expect.any(Date) },
+        },
+      });
+    });
+
+    it('should throw BadRequestException for invalid from date', async () => {
+      await expect(
+        service.getDashboardMetricsFiltered('not-a-date'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for invalid to date', async () => {
+      await expect(
+        service.getDashboardMetricsFiltered(undefined, 'still-not-a-date'),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('findAllPrescriptions', () => {
+    const mockPrescription = {
+      id: 'rx-1',
+      doctorId: 'doctor-1',
+      patientId: 'patient-1',
+      status: PrescriptionStatus.PENDING,
+      items: [],
+      notes: null,
+      createdAt: new Date('2026-01-15'),
+      updatedAt: new Date('2026-01-15'),
+    };
+
+    it('should return paginated data with defaults when no filter given', async () => {
+      prismaService.prescription.findMany.mockResolvedValue([
+        mockPrescription as any,
+      ]);
+      prismaService.prescription.count.mockResolvedValue(1);
+
+      const result = await service.findAllPrescriptions({});
+
+      expect(result.meta).toEqual({
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+      });
+      expect(prismaService.prescription.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0, take: 10 }),
+      );
+    });
+
+    it('should apply status, doctorId, patientId, and date filters', async () => {
+      prismaService.prescription.findMany.mockResolvedValue([]);
+      prismaService.prescription.count.mockResolvedValue(0);
+
+      await service.findAllPrescriptions({
+        page: 2,
+        limit: 5,
+        status: PrescriptionStatus.CONSUMED,
+        doctorId: 'doctor-9',
+        patientId: 'patient-9',
+        from: '2026-01-01',
+        to: '2026-01-31',
+      });
+
+      expect(prismaService.prescription.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            status: PrescriptionStatus.CONSUMED,
+            doctorId: 'doctor-9',
+            patientId: 'patient-9',
+            createdAt: { gte: expect.any(Date), lte: expect.any(Date) },
+          },
+          skip: 5,
+          take: 5,
+        }),
+      );
+    });
+
+    it('should throw BadRequestException for invalid from in findAllPrescriptions', async () => {
+      await expect(
+        service.findAllPrescriptions({ from: 'invalid-date' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for invalid to in findAllPrescriptions', async () => {
+      await expect(
+        service.findAllPrescriptions({ to: 'invalid-date' }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

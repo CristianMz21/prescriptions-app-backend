@@ -6,6 +6,7 @@ import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { Role } from '@prisma/client';
+import { TEST_PASSWORD } from './test-credentials';
 
 const extractAccessCookie = (
   setCookieHeader: string | string[] | undefined,
@@ -69,19 +70,19 @@ describe('Auth & Users Endpoints (e2e)', () => {
 
     const adminLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@clinic.com', password: '***REDACTED-DEV-PASSWORD***' })
+      .send({ email: 'admin@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     adminCookie = extractAccessCookie(adminLogin.headers['set-cookie']);
 
     const doctorLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'doctor@clinic.com', password: '***REDACTED-DEV-PASSWORD***' })
+      .send({ email: 'doctor@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     doctorCookie = extractAccessCookie(doctorLogin.headers['set-cookie']);
 
     const patientLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'patient@clinic.com', password: '***REDACTED-DEV-PASSWORD***' })
+      .send({ email: 'patient@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     patientCookie = extractAccessCookie(patientLogin.headers['set-cookie']);
   });
@@ -97,7 +98,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
     it('should return 401 with non-existent email', async () => {
       await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: 'nonexistent@clinic.com', password: '***REDACTED-DEV-PASSWORD***' })
+        .send({ email: 'nonexistent@clinic.com', password: TEST_PASSWORD })
         .expect(401);
     });
 
@@ -186,7 +187,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/users')
         .set('Cookie', adminCookie)
-        .send({ email, password: '***REDACTED-DEV-PASSWORD***', role: Role.PATIENT })
+        .send({ email, password: TEST_PASSWORD, role: Role.PATIENT })
         .expect(201);
 
       expect(res.body).toHaveProperty('id');
@@ -200,7 +201,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', doctorCookie)
         .send({
           email: `doctor_create_${uniqueSuffix}@clinic.com`,
-          password: '***REDACTED-DEV-PASSWORD***',
+          password: TEST_PASSWORD,
           role: Role.PATIENT,
         })
         .expect(403);
@@ -212,7 +213,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', patientCookie)
         .send({
           email: `patient_create_${uniqueSuffix}@clinic.com`,
-          password: '***REDACTED-DEV-PASSWORD***',
+          password: TEST_PASSWORD,
           role: Role.PATIENT,
         })
         .expect(403);
@@ -232,7 +233,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .send({
           email: 'admin@clinic.com',
-          password: '***REDACTED-DEV-PASSWORD***',
+          password: TEST_PASSWORD,
           role: Role.ADMIN,
         })
         .expect(409);
@@ -243,7 +244,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .post('/users')
         .send({
           email: `nocookie_${uniqueSuffix}@clinic.com`,
-          password: '***REDACTED-DEV-PASSWORD***',
+          password: TEST_PASSWORD,
           role: Role.PATIENT,
         })
         .expect(401);
