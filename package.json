@@ -23,7 +23,9 @@
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check \"{src,test}/**/*.ts\"",
-    "lint:check": "eslint \"{src,test}/**/*.ts\" --max-warnings=0"
+    "lint:check": "eslint \"{src,test}/**/*.ts\" --max-warnings=0",
+    "export:openapi": "ts-node scripts/export-openapi.ts",
+    "test:integration": "jest --config ./test/jest-e2e.json --testPathPatterns=prescriptions.e2e-spec.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
