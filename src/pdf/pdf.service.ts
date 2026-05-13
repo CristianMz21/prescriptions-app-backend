@@ -1,39 +1,47 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import * as puppeteer from 'puppeteer';
-import * as handlebars from 'handlebars';
-import * as QRCode from 'qrcode';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+/* Copyright (c) 2026. All rights reserved. */
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { launch, Browser } from 'puppeteer';
+import { compile } from 'handlebars';
+import { toDataURL } from 'qrcode';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+export interface PdfPrescriptionData {
+  id: string;
+  createdAt: Date;
+  status: string;
+  notes: string | null;
+  items: unknown;
+  patient: {
+    email: string;
+  };
+  doctor: {
+    email: string;
+  };
+}
 
 @Injectable()
 export class PdfService {
-  /**
-   * Generates a PDF buffer for a given prescription.
-   * Compiles Handlebars template, generates QR code, and runs Puppeteer.
-   */
-  async generatePrescriptionPdf(prescription: any): Promise<Buffer> {
-    let browser: puppeteer.Browser | null = null;
+  private readonly logger = new Logger(PdfService.name);
+
+  async generatePrescriptionPdf(prescription: PdfPrescriptionData): Promise<Buffer> {
+    let browser: Browser | null = null;
+
     try {
-      // 1. Generate QR Code as base64 string
-      // The QR code contains the unique ID of the prescription for verification.
-      const qrCodeDataUrl = await QRCode.toDataURL(prescription.id, {
+      const qrCodeDataUrl = await toDataURL(prescription.id, {
         errorCorrectionLevel: 'H',
         type: 'image/png',
         margin: 1,
         color: {
-          dark: '#111827', // Matching the premium dark tone of the template
+          dark: '#111827',
           light: '#ffffff'
         }
       });
 
-      // 2. Read Handlebars template
-      const templatePath = path.join(process.cwd(), 'src/pdf/templates/prescription.hbs');
-      const templateContent = await fs.readFile(templatePath, 'utf8');
+      const templatePath = join(process.cwd(), 'src/pdf/templates/prescription.hbs');
+      const templateContent = await readFile(templatePath, 'utf8');
+      const template = compile(templateContent);
 
-      // 3. Compile template
-      const template = handlebars.compile(templateContent);
-      
-      // Inject data into template
       const html = template({
         prescriptionId: prescription.id,
         date: prescription.createdAt.toLocaleDateString(),
@@ -45,21 +53,17 @@ export class PdfService {
         qrCode: qrCodeDataUrl
       });
 
-      // 4. Launch headless Puppeteer browser
-      browser = await puppeteer.launch({
+      browser = await launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Recommended for containerized environments
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
 
       const page = await browser.newPage();
-      
-      // Set the HTML content
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'load' });
 
-      // 5. Generate PDF
       const pdfUint8Array = await page.pdf({
         format: 'A4',
-        printBackground: true, // Ensures CSS background colors/borders are printed
+        printBackground: true,
         margin: {
           top: '20mm',
           right: '20mm',
@@ -68,13 +72,13 @@ export class PdfService {
         }
       });
 
-      // return Buffer from Uint8Array
       return Buffer.from(pdfUint8Array);
+
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      this.logger.error('Error generating PDF', error);
       throw new InternalServerErrorException('Failed to generate PDF prescription');
+
     } finally {
-      // 6. Robust cleanup: Ensure browser is closed to prevent memory leaks
       if (browser) {
         await browser.close();
       }

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".opencode/rules/architecture.md",
+    ".opencode/rules/security.md",
+    ".opencode/rules/quality_and_testing.md",
+    ".opencode/rules/backend-django.md"
+  ],
+  "skills": {
+    "registry": ".agents/skills/_shared/skill-registry.md"
+  }
+}

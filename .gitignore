@@ -64,3 +64,6 @@ build/config\.gypi
 .npmrc
 pnpm-lock.yaml
 /.history
+
+cats-headers.yml
+README-CATS.md

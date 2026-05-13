@@ -1,0 +1,6 @@
+projectKey=prescriptions-api
+serverUrl=http://localhost:9000
+serverVersion=26.3.0.120487
+dashboardUrl=http://localhost:9000/dashboard?id=prescriptions-api
+ceTaskId=039f55c3-e2c9-47e5-b95b-5410890f32cc
+ceTaskUrl=http://localhost:9000/api/ce/task?id=039f55c3-e2c9-47e5-b95b-5410890f32cc
