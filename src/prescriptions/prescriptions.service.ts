@@ -81,6 +81,25 @@ export class PrescriptionsService {
   }
 
   /**
+   * Retrieves a specific prescription by ID, including relations.
+   */
+  async findOneById(id: string) {
+    const prescription = await this.prisma.prescription.findUnique({
+      where: { id },
+      include: {
+        doctor: { select: { id: true, email: true, role: true } },
+        patient: { select: { id: true, email: true, role: true } }
+      }
+    });
+
+    if (!prescription) {
+      throw new NotFoundException('Prescription not found.');
+    }
+
+    return prescription;
+  }
+
+  /**
    * Marks a specific prescription as consumed.
    * CRITICAL: Re-verifies ownership in the query to prevent IDOR manipulation via the :id param.
    */

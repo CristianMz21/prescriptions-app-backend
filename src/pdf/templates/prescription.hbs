@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prescription</title>
+  <style>
+    /* Premium Industrial Aesthetic */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #111827;
+      background-color: #ffffff;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #111827;
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+
+    .header-info {
+      flex: 1;
+    }
+
+    .title {
+      font-size: 36px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+      margin: 0 0 12px 0;
+      color: #111827;
+    }
+
+    .meta-data {
+      font-size: 13px;
+      color: #4B5563;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-data span {
+      color: #111827;
+      font-weight: 600;
+    }
+
+    /* QR Code */
+    .qr-container {
+      text-align: right;
+    }
+
+    .qr-code {
+      width: 110px;
+      height: 110px;
+      border: 2px solid #E5E7EB;
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 36px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #374151;
+      border-bottom: 1px solid #D1D5DB;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* Info Grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      background-color: #F9FAFB;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+    }
+
+    .info-block strong {
+      display: block;
+      font-size: 12px;
+      color: #6B7280;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-block span {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th {
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6B7280;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #E5E7EB;
+    }
+
+    td {
+      padding: 16px 0;
+      border-bottom: 1px solid #F3F4F6;
+      vertical-align: top;
+    }
+
+    .item-name {
+      font-weight: 700;
+      font-size: 16px;
+      color: #111827;
+    }
+
+    .item-qty {
+      font-size: 13px;
+      color: #4B5563;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .item-dosage {
+      color: #111827;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .item-instructions {
+      font-size: 14px;
+      color: #4B5563;
+      line-height: 1.6;
+    }
+
+    /* Notes */
+    .notes {
+      background-color: #F9FAFB;
+      padding: 20px;
+      border-left: 4px solid #111827;
+      font-size: 15px;
+      color: #374151;
+      border-radius: 0 8px 8px 0;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 60px;
+      border-top: 1px solid #E5E7EB;
+      padding-top: 24px;
+      font-size: 12px;
+      color: #9CA3AF;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-info">
+        <h1 class="title">Digital Prescription</h1>
+        <div class="meta-data">
+          <div>Document ID: <span>{{prescriptionId}}</span></div>
+          <div>Issued Date: <span>{{date}}</span></div>
+          <div>Status: <span>{{status}}</span></div>
+        </div>
+      </div>
+      <div class="qr-container">
+        <img src="{{qrCode}}" alt="QR Code" class="qr-code" />
+      </div>
+    </div>
+
+    <div class="section info-grid">
+      <div class="info-block">
+        <strong>Patient Email</strong>
+        <span>{{patientEmail}}</span>
+      </div>
+      <div class="info-block">
+        <strong>Prescribing Doctor</strong>
+        <span>{{doctorEmail}}</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Medication Details</div>
+      <table>
+        <thead>
+          <tr>
+            <th width="35%">Medication</th>
+            <th width="20%">Dosage</th>
+            <th width="45%">Instructions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each items}}
+          <tr>
+            <td>
+              <div class="item-name">{{this.name}}</div>
+              {{#if this.quantity}}<div class="item-qty">Qty: {{this.quantity}}</div>{{/if}}
+            </td>
+            <td>
+              <div class="item-dosage">{{this.dosage}}</div>
+            </td>
+            <td>
+              <div class="item-instructions">{{this.instructions}}</div>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+
+    {{#if notes}}
+    <div class="section">
+      <div class="section-title">Doctor's Notes</div>
+      <div class="notes">
+        {{notes}}
+      </div>
+    </div>
+    {{/if}}
+
+    <div class="footer">
+      <div>VERIFIED DIGITAL DOCUMENT • DO NOT MODIFY</div>
+      <div>Page 1 of 1</div>
+    </div>
+  </div>
+</body>
+</html>

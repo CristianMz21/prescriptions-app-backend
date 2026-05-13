@@ -1,14 +1,14 @@
-# API Contracts — Prescriptions App MVP
+# Contratos de API — App de Prescripciones MVP
 
-> **OpenAPI 3.0.3 spec** | All endpoints require JWT Bearer token unless marked **Public**
+> **OpenAPI 3.0.3 spec** | Todos los endpoints requieren JWT Bearer a menos que esté marcado **Público**
 
 ---
 
-## 1. Auth API
+## 1. API de Auth
 
 ### POST /auth/login
 
-**Public** — No authentication required.
+**Público** — Sin autenticación requerida.
 
 **Request:**
 
@@ -53,7 +53,7 @@ Content-Type: application/json
 
 ### POST /auth/refresh
 
-**Public** — Requires `refreshToken` in body.
+**Público** — Requiere `refreshToken` en body.
 
 **Request:**
 
@@ -71,7 +71,7 @@ Content-Type: application/json
 ```json
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "new-refresh-token..."
+  "refreshToken": "nuevo-refresh-token..."
 }
 ```
 
@@ -89,7 +89,7 @@ Content-Type: application/json
 
 ### POST /auth/logout
 
-**Auth required.**
+**Auth requerida.**
 
 **Request:**
 
@@ -115,7 +115,7 @@ Content-Type: application/json
 
 ### GET /auth/me
 
-**Auth required.**
+**Auth requerida.**
 
 **Request:**
 
@@ -139,11 +139,11 @@ Authorization: Bearer <accessToken>
 
 ---
 
-## 2. Users API
+## 2. API de Users
 
 ### POST /users
 
-**Auth required** — `admin` role only.
+**Auth requerida** — Solo rol `admin`.
 
 **Request:**
 
@@ -153,7 +153,7 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 
 {
-  "email": "newpatient@test.com",
+  "email": "nuevopaciente@test.com",
   "password": "Patient123*",
   "name": "María López",
   "role": "patient",
@@ -161,11 +161,11 @@ Content-Type: application/json
 }
 ```
 
-For a doctor:
+Para un doctor:
 
 ```json
 {
-  "email": "newdoctor@test.com",
+  "email": "nuevodoctor@test.com",
   "password": "Doctor123*",
   "name": "Dra. Ana García",
   "role": "doctor",
@@ -178,7 +178,7 @@ For a doctor:
 ```json
 {
   "id": "cld3...",
-  "email": "newpatient@test.com",
+  "email": "nuevopaciente@test.com",
   "name": "María López",
   "role": "patient",
   "doctorId": null,
@@ -186,7 +186,7 @@ For a doctor:
 }
 ```
 
-**Response 409** (email already exists):
+**Response 409** (email ya existe):
 
 ```json
 {
@@ -198,11 +198,11 @@ For a doctor:
 
 ---
 
-## 3. Patients API
+## 3. API de Patients
 
 ### GET /patients
 
-**Auth required** — `admin`, `doctor` roles.
+**Auth requerida** — Roles `admin`, `doctor`.
 
 **Request:**
 
@@ -240,7 +240,7 @@ Authorization: Bearer <accessToken>
 
 ### GET /patients/:id
 
-**Auth required** — `admin`, `doctor` roles.
+**Auth requerida** — Roles `admin`, `doctor`.
 
 **Request:**
 
@@ -280,9 +280,7 @@ Authorization: Bearer <accessToken>
         }
       ],
       "author": {
-        "user": {
-          "name": "Dr. Juan Pérez"
-        }
+        "user": { "name": "Dr. Juan Pérez" }
       }
     }
   ]
@@ -301,11 +299,11 @@ Authorization: Bearer <accessToken>
 
 ---
 
-## 4. Doctors API
+## 4. API de Doctors
 
 ### GET /doctors
 
-**Auth required** — `admin` role only.
+**Auth requerida** — Solo rol `admin`.
 
 **Request:**
 
@@ -343,7 +341,7 @@ Authorization: Bearer <accessToken>
 
 ### GET /doctors/:id
 
-**Auth required** — `admin` role only.
+**Auth requerida** — Solo rol `admin`.
 
 **Request:**
 
@@ -352,29 +350,13 @@ GET /doctors/cld9...
 Authorization: Bearer <accessToken>
 ```
 
-**Response 200:**
-
-```json
-{
-  "id": "cld9...",
-  "specialty": "Cardiología",
-  "user": {
-    "id": "cld10...",
-    "email": "doctor@test.com",
-    "name": "Dr. Juan Pérez",
-    "role": "doctor"
-  },
-  "prescriptions": [...]
-}
-```
-
 ---
 
-## 5. Prescriptions API
+## 5. API de Prescriptions
 
 ### POST /prescriptions
 
-**Auth required** — `doctor` role only. `authorId` is inferred from JWT.
+**Auth requerida** — Solo rol `doctor`. `authorId` se infiere del JWT.
 
 **Request:**
 
@@ -403,7 +385,7 @@ Content-Type: application/json
 }
 ```
 
-Or by patient email (instead of patientId):
+O por email del paciente (en lugar de patientId):
 
 ```json
 {
@@ -435,12 +417,8 @@ Or by patient email (instead of patientId):
       "instructions": "Una vez al día por la mañana"
     }
   ],
-  "patient": {
-    "user": { "name": "Carlos García" }
-  },
-  "author": {
-    "user": { "name": "Dr. Juan Pérez" }
-  }
+  "patient": { "user": { "name": "Carlos García" } },
+  "author": { "user": { "name": "Dr. Juan Pérez" } }
 }
 ```
 
@@ -458,19 +436,19 @@ Or by patient email (instead of patientId):
 
 ### GET /prescriptions
 
-**Auth required** — Role-based filtering applied automatically.
+**Auth requerida** — Filtrado automático por rol.
 
-**Query Parameters:**
+**Parámetros de query:**
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| `page` | integer | `1` | Page number |
-| `limit` | integer | `10` | Items per page (max 100) |
-| `status` | string | — | Filter by `pending` or `consumed` |
-| `from` | string (date) | — | Filter from date (ISO) |
-| `to` | string (date) | — | Filter to date (ISO) |
-| `sort` | string | `createdAt` | Sort field |
-| `order` | string | `desc` | `asc` or `desc` |
+| Parámetro | Tipo | Default | Descripción |
+|-----------|------|---------|-------------|
+| `page` | integer | `1` | Número de página |
+| `limit` | integer | `10` | Items por página (max 100) |
+| `status` | string | — | Filtrar por `pending` o `consumed` |
+| `from` | string (fecha) | — | Filtrar desde fecha (ISO) |
+| `to` | string (fecha) | — | Filtrar hasta fecha (ISO) |
+| `sort` | string | `createdAt` | Campo de ordenamiento |
+| `order` | string | `desc` | `asc` o `desc` |
 
 **Doctor request:**
 
@@ -479,7 +457,7 @@ GET /prescriptions?page=1&limit=10&status=pending
 Authorization: Bearer <accessToken>
 ```
 
-→ Returns only prescriptions authored by the doctor.
+→ Retorna solo las prescripciones que el doctor autorizó.
 
 **Patient request:**
 
@@ -488,7 +466,7 @@ GET /prescriptions?status=pending&sort=createdAt&order=desc
 Authorization: Bearer <accessToken>
 ```
 
-→ Returns only prescriptions received by the patient.
+→ Retorna solo las prescripciones recibidas por el paciente.
 
 **Response 200:**
 
@@ -503,12 +481,8 @@ Authorization: Bearer <accessToken>
       "createdAt": "2026-05-13T12:00:00.000Z",
       "consumedAt": null,
       "items": [...],
-      "patient": {
-        "user": { "name": "Carlos García" }
-      },
-      "author": {
-        "user": { "name": "Dr. Juan Pérez" }
-      }
+      "patient": { "user": { "name": "Carlos García" } },
+      "author": { "user": { "name": "Dr. Juan Pérez" } }
     }
   ],
   "meta": {
@@ -524,16 +498,9 @@ Authorization: Bearer <accessToken>
 
 ### GET /prescriptions/:id
 
-**Auth required** — Owner (doctor who authored OR patient who received) or `admin`.
+**Auth requerida** — Dueño (doctor autor o patient dueño) o `admin`.
 
-**Request:**
-
-```yaml
-GET /prescriptions/cld11...
-Authorization: Bearer <accessToken>
-```
-
-**Response 200:** Same as POST response with full details.
+**Response 200:** Igual que POST response con todos los detalles.
 
 **Response 403:**
 
@@ -549,7 +516,7 @@ Authorization: Bearer <accessToken>
 
 ### PATCH /prescriptions/:id/consume
 
-**Auth required** — `patient` role only, must be the prescription owner.
+**Auth requerida** — Solo rol `patient`, debe ser el dueño de la prescripción.
 
 **Request:**
 
@@ -570,7 +537,7 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-**Response 400** (already consumed):
+**Response 400** (ya consumida):
 
 ```json
 {
@@ -584,7 +551,7 @@ Authorization: Bearer <accessToken>
 
 ### GET /prescriptions/:id/pdf
 
-**Auth required** — Owner or `admin`.
+**Auth requerida** — Dueño o `admin`.
 
 **Request:**
 
@@ -604,11 +571,11 @@ Content-Disposition: attachment; filename="prescription-PRESC-M3XK9P.pdf"
 
 ---
 
-## 6. Metrics API
+## 6. API de Metrics
 
 ### GET /metrics
 
-**Auth required** — `admin` role only.
+**Auth requerida** — Solo rol `admin`.
 
 **Request:**
 
@@ -639,30 +606,30 @@ Authorization: Bearer <accessToken>
 
 ---
 
-## 7. Error Response Schema
+## 7. Formato de Respuesta de Error
 
-All errors follow RFC 7807:
+Todos los errores siguen RFC 7807:
 
 ```json
 {
   "statusCode": 400,
-  "message": "Human readable message",
+  "message": "Mensaje legible",
   "error": "Error Type",
   "timestamp": "2026-05-13T12:00:00.000Z",
   "path": "/prescriptions"
 }
 ```
 
-### Common HTTP Status Codes
+### Códigos HTTP Comunes
 
-| Code | Meaning |
-|------|---------|
-| 200 | Success |
-| 201 | Created |
-| 400 | Bad Request (validation, business rule) |
-| 401 | Unauthorized (missing/invalid token) |
-| 403 | Forbidden (insufficient role or not owner) |
-| 404 | Not Found |
-| 409 | Conflict (duplicate email) |
-| 429 | Too Many Requests (rate limited) |
-| 500 | Internal Server Error |
+| Código | Significado |
+|--------|-------------|
+| 200 | Éxito |
+| 201 | Creado |
+| 400 | Bad Request (validación, regla de negocio) |
+| 401 | Unauthorized (token faltante/inválido) |
+| 403 | Forbidden (rol insuficiente o no es dueño) |
+| 404 | No encontrado |
+| 409 | Conflict (email duplicado) |
+| 429 | Demasiadas solicitudes (rate limited) |
+| 500 | Error interno del servidor |
