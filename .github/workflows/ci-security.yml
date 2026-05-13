@@ -94,6 +94,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma generate
+      - name: Prepare report directories
+        run: mkdir -p reports coverage
       - name: Run unit tests
         run: pnpm run test -- --json --outputFile=reports/unit-test-results.json
       - name: Run coverage
@@ -149,6 +151,8 @@ jobs:
       - run: pnpm exec prisma generate
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
+      - name: Prepare report directories
+        run: mkdir -p reports
       - name: Run integration tests
         run: pnpm run test:integration -- --json --outputFile=reports/integration-test-results.json
       - name: Upload integration test reports
@@ -196,6 +200,8 @@ jobs:
       - run: pnpm exec prisma generate
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
+      - name: Prepare report directories
+        run: mkdir -p reports
       - name: Run E2E tests
         run: pnpm run test:e2e -- --json --outputFile=reports/e2e-test-results.json
       - name: Upload E2E test reports
@@ -283,12 +289,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: Run Gitleaks
         run: |
           docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest detect \
-            --source=/repo --report-format json --report-path /repo/gitleaks-report.json --redact
+            --source=/repo --no-git --report-format json --report-path /repo/gitleaks-report.json --redact
       - name: Upload Gitleaks report
         if: always()
         uses: actions/upload-artifact@v4
