@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -22,16 +26,25 @@ export class UsersService {
       saltRounds,
     );
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: createUserDto.email,
-        passwordHash: hashedPassword,
-        role: createUserDto.role,
-      },
-    });
-
-    // 3. Return the instantiated UserEntity so @Exclude() rules apply if returned to a controller
-    return new UserEntity(user);
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: createUserDto.email,
+          passwordHash: hashedPassword,
+          role: createUserDto.role,
+        },
+      });
+      return new UserEntity(user);
+    } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2002'
+      ) {
+        throw new ConflictException('A user with this email already exists');
+      }
+      throw err;
+    }
   }
 
   /**

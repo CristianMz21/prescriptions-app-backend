@@ -11,6 +11,8 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
   Logger,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -105,6 +107,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   logout(@Res({ passthrough: true }) response: Response): { message: string } {
     response.clearCookie('accessToken');
     response.clearCookie('refreshToken', { path: '/auth/refresh' });
