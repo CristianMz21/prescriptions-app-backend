@@ -19,18 +19,28 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 });
 
+const fontSizes = {
+  '01-arquitectura.mmd': '18px',
+  '02-er.mmd': '16px',
+  '03-flujo-auth.mmd': '18px',
+  '04-flujo-prescription.mmd': '18px',
+  '05-folder-structure.mmd': '16px',
+  '06-rbac-matrix.mmd': '16px'
+};
+
 for (const file of files) {
   const src = readFileSync(join(__dirname, file), 'utf-8');
-  const id = file.replace('.mmd', '');
+  const id = 'd' + file.replace('.mmd', '').replace(/-/g, '_');
+  const fontSize = fontSizes[file] || '16px';
 
   const html = `<!DOCTYPE html>
-<html><head><style>body{background:#1e1e1e;margin:0}</style></head>
+<html><head><style>body{background:#ffffff;margin:0;padding:40px}</style></head>
 <body>
 <pre id="src" style="display:none">${src.replace(/`/g, '\\`').replace(/\$/g, '\\$')}</pre>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script>
 mermaid.initialize({ startOnLoad: false, theme: 'base', themeVariables: {
-  background: '#1e1e1e', fontSize: '14px', textColor: '#f0f0f0',
+  background: '#ffffff', fontSize: '${fontSize}', textColor: '#1e1e1e',
   primaryColor: '#6bcb77', lineColor: '#ffd93d'
 }});
 setTimeout(async () => {
@@ -46,6 +56,7 @@ setTimeout(async () => {
 </script></body></html>`;
 
   const page = await browser.newPage();
+  await page.setViewport({ width: 1600, height: 1200, deviceScaleFactor: 2 });
   await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
   await new Promise(r => setTimeout(r, 3000));
 

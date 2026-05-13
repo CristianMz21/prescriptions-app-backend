@@ -1,4 +1,4 @@
-%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "16px"}}}%%
 erDiagram
     USER ||--o| DOCTOR : "1:1 opcional"
     USER ||--o| PATIENT : "1:1 opcional"
@@ -16,18 +16,18 @@ erDiagram
 
     DOCTOR {
         string id PK
-        string userId FK UK
+        string userId FK
         string specialty
     }
 
     PATIENT {
         string id PK
-        string userId FK UK
+        string userId FK
         datetime birthDate
     }
 
-    DOCTOR ||--o{ PRESCRIPTION : "autor de"
-    PATIENT ||--o{ PRESCRIPTION : "receptor de"
+    DOCTOR ||--o{ PRESCRIPTION : "autor"
+    PATIENT ||--o{ PRESCRIPTION : "receptor"
 
     PRESCRIPTION {
         string id PK
@@ -60,13 +60,3 @@ erDiagram
         datetime expiresAt
         datetime createdAt
     }
-
-    note right of USER
-        Roles: admin, doctor, patient
-        password es hashed con bcrypt
-    end note
-
-    note right of PRESCRIPTION
-        Status: pending | consumed
-        Indexes: status+createdAt, patientId, authorId, createdAt
-    end note
