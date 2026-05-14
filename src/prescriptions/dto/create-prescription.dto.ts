@@ -1,11 +1,13 @@
 /* Copyright (c) 2026. All rights reserved. */
 import {
   IsArray,
+  IsDateString,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   Min,
   ValidateNested,
   ArrayMinSize,
@@ -32,12 +34,23 @@ export class PrescriptionItemDto {
 
   @ApiPropertyOptional({
     example: 30,
-    description: 'Quantity to dispense (number of units)',
+    description: 'Quantity to dispense (number of units of `unit`)',
   })
   @IsInt()
   @Min(1)
   @IsOptional()
   quantity?: number;
+
+  @ApiProperty({
+    example: 'cápsulas',
+    description:
+      'Unit of measure that gives `quantity` meaning (mg, ml, cápsulas, comprimidos, gotas, ...). Required.',
+    maxLength: 32,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  unit!: string;
 
   @ApiPropertyOptional({
     example: 'Take 1 pill every 8 hours',
@@ -78,4 +91,14 @@ export class CreatePrescriptionDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-12-31',
+    description:
+      'Optional date past which the prescription is considered invalid; independent of consumedAt.',
+    format: 'date',
+  })
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
 }

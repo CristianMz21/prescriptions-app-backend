@@ -57,6 +57,20 @@ export class UserEntity {
   })
   email!: string;
 
+  @ApiProperty({
+    description: 'Display name shown in the UI.',
+    example: 'Jane Doe',
+  })
+  name!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Optional contact phone (canonical contact field).',
+    example: '+54 11 1234-5678',
+    nullable: true,
+  })
+  phone?: string | null;
+
   @Exclude()
   passwordHash!: string;
 

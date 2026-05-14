@@ -258,12 +258,18 @@ describe('Auth & Users Endpoints (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/users')
         .set('Cookie', adminCookie)
-        .send({ email, password: TEST_PASSWORD, role: Role.PATIENT })
+        .send({
+          email,
+          password: TEST_PASSWORD,
+          role: Role.PATIENT,
+          name: 'New Patient',
+        })
         .expect(201);
 
       expect(res.body).toHaveProperty('id');
       expect(res.body.email).toBe(email);
       expect(res.body.role).toBe('PATIENT');
+      expect(res.body.name).toBe('New Patient');
     });
 
     it('should return 403 as DOCTOR', async () => {
@@ -274,6 +280,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
           email: `doctor_create_${uniqueSuffix}@clinic.com`,
           password: TEST_PASSWORD,
           role: Role.PATIENT,
+          name: 'Should Fail',
         })
         .expect(403);
       expect(_res.status).toBe(403);
@@ -287,6 +294,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
           email: `patient_create_${uniqueSuffix}@clinic.com`,
           password: TEST_PASSWORD,
           role: Role.PATIENT,
+          name: 'Should Fail',
         })
         .expect(403);
       expect(_res.status).toBe(403);
@@ -309,6 +317,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
           email: 'admin@clinic.com',
           password: TEST_PASSWORD,
           role: Role.ADMIN,
+          name: 'Duplicate Admin',
         })
         .expect(409);
       expect(_res.status).toBe(409);

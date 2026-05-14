@@ -18,10 +18,17 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@clinic.com' },
-    update: { passwordHash: hashedPassword, role: Role.ADMIN },
+    update: {
+      passwordHash: hashedPassword,
+      role: Role.ADMIN,
+      name: 'Sandra Admin',
+      phone: '+54 11 4000-0001',
+    },
     create: {
       email: 'admin@clinic.com',
       passwordHash: hashedPassword,
+      name: 'Sandra Admin',
+      phone: '+54 11 4000-0001',
       role: Role.ADMIN,
     },
   });
@@ -29,10 +36,17 @@ async function main() {
 
   const doctorUser = await prisma.user.upsert({
     where: { email: 'doctor@clinic.com' },
-    update: { passwordHash: hashedPassword, role: Role.DOCTOR },
+    update: {
+      passwordHash: hashedPassword,
+      role: Role.DOCTOR,
+      name: 'Jane Doe',
+      phone: '+54 11 4000-1001',
+    },
     create: {
       email: 'doctor@clinic.com',
       passwordHash: hashedPassword,
+      name: 'Jane Doe',
+      phone: '+54 11 4000-1001',
       role: Role.DOCTOR,
       doctor: {
         create: {
@@ -48,10 +62,17 @@ async function main() {
 
   const doctor2User = await prisma.user.upsert({
     where: { email: 'doctor2@clinic.com' },
-    update: { passwordHash: hashedPassword, role: Role.DOCTOR },
+    update: {
+      passwordHash: hashedPassword,
+      role: Role.DOCTOR,
+      name: 'John Smith',
+      phone: '+54 11 4000-1002',
+    },
     create: {
       email: 'doctor2@clinic.com',
       passwordHash: hashedPassword,
+      name: 'John Smith',
+      phone: '+54 11 4000-1002',
       role: Role.DOCTOR,
       doctor: {
         create: {
@@ -67,10 +88,17 @@ async function main() {
 
   const patientUser = await prisma.user.upsert({
     where: { email: 'patient@clinic.com' },
-    update: { passwordHash: hashedPassword, role: Role.PATIENT },
+    update: {
+      passwordHash: hashedPassword,
+      role: Role.PATIENT,
+      name: 'Carlos Rivera',
+      phone: '+54 11 4000-2001',
+    },
     create: {
       email: 'patient@clinic.com',
       passwordHash: hashedPassword,
+      name: 'Carlos Rivera',
+      phone: '+54 11 4000-2001',
       role: Role.PATIENT,
       patient: { create: { birthDate: new Date('1990-05-21') } },
     },
@@ -93,14 +121,19 @@ async function main() {
   });
 
   if (existingPrescriptionsCount === 0) {
+    // expiryDate ~30 days from now for the first PENDING script — exercises the new field.
+    const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
     const dummyPrescriptions = [
       {
         status: PrescriptionStatus.PENDING,
+        expiryDate: thirtyDaysFromNow,
         items: [
           {
             name: 'Amoxicillin',
             dosage: '500mg',
             quantity: 21,
+            unit: 'cápsulas',
             instructions: 'Take 1 pill every 8 hours for 7 days',
           },
         ],
@@ -108,11 +141,13 @@ async function main() {
       },
       {
         status: PrescriptionStatus.CONSUMED,
+        expiryDate: null,
         items: [
           {
             name: 'Ibuprofen',
             dosage: '400mg',
             quantity: 30,
+            unit: 'comprimidos',
             instructions: 'Take 1 pill every 6 hours as needed for pain',
           },
         ],
@@ -120,17 +155,20 @@ async function main() {
       },
       {
         status: PrescriptionStatus.PENDING,
+        expiryDate: null,
         items: [
           {
             name: 'Lisinopril',
             dosage: '10mg',
             quantity: 30,
+            unit: 'comprimidos',
             instructions: 'Take 1 pill daily in the morning',
           },
           {
             name: 'Atorvastatin',
             dosage: '20mg',
             quantity: 30,
+            unit: 'comprimidos',
             instructions: 'Take 1 pill daily at bedtime',
           },
         ],
@@ -138,11 +176,13 @@ async function main() {
       },
       {
         status: PrescriptionStatus.CONSUMED,
+        expiryDate: null,
         items: [
           {
             name: 'Azithromycin',
             dosage: '250mg',
             quantity: 6,
+            unit: 'comprimidos',
             instructions: 'Take 2 pills on day 1, then 1 pill daily for 4 days',
           },
         ],
@@ -150,11 +190,13 @@ async function main() {
       },
       {
         status: PrescriptionStatus.PENDING,
+        expiryDate: null,
         items: [
           {
             name: 'Metformin',
             dosage: '500mg',
             quantity: 60,
+            unit: 'comprimidos',
             instructions: 'Take 1 pill twice daily with meals',
           },
         ],

@@ -39,6 +39,10 @@ model User {
   id              String          @id @default(uuid())
   email           String          @unique
   passwordHash    String
+  // Display name for UI; required by the product spec.
+  name            String
+  // Canonical contact phone — kept on User (not duplicated on Doctor/Patient).
+  phone           String?
   role            Role
   themePreference ThemePreference @default(SYSTEM)
   createdAt       DateTime        @default(now())
@@ -49,6 +53,7 @@ model User {
   auditLogs PrescriptionAuditLog[] @relation("ChangedBy")
 
   @@index([email])
+  @@index([name])
 }
 
 model Doctor {
@@ -80,6 +85,9 @@ model Prescription {
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
   consumedAt DateTime?
+  // Optional date past which the prescription is considered invalid;
+  // independent of `consumedAt` (consumption marks "already used").
+  expiryDate DateTime?
 
   authorId String
   author   Doctor @relation("AuthoredBy", fields: [authorId], references: [id])
@@ -101,6 +109,9 @@ model PrescriptionItem {
   name         String
   dosage       String?
   quantity     Int?
+  // Unit of measure for `quantity` — closes the 3NF smell of storing a
+  // bare number whose meaning depends on context (mg, ml, cápsulas, ...).
+  unit         String
   instructions String?
   createdAt    DateTime @default(now())
 

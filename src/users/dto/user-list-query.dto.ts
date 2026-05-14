@@ -18,6 +18,7 @@ export enum UserSortBy {
   CreatedAt = 'createdAt',
   UpdatedAt = 'updatedAt',
   Email = 'email',
+  Name = 'name',
   Role = 'role',
 }
 
@@ -29,8 +30,8 @@ export enum UserSortBy {
 export class UserListQueryDto extends BaseListQueryDto {
   @ApiPropertyOptional({
     description:
-      'Case-insensitive substring search on user email (and doctor specialty/medicalId on /users/doctors).',
-    example: 'patient@test.com',
+      'Case-insensitive substring search across user.email AND user.name.',
+    example: 'jane',
     type: String,
   })
   @IsOptional()

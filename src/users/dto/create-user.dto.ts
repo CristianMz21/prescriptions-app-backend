@@ -39,6 +39,28 @@ export class CreateUserDto {
   password!: string;
 
   @ApiProperty({
+    example: 'Jane Doe',
+    description: 'Full display name (UI). Required.',
+    minLength: 1,
+    maxLength: 120,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  name!: string;
+
+  @ApiPropertyOptional({
+    example: '+54 11 1234-5678',
+    description:
+      'Optional contact phone (E.164-ish, free-form up to 32 chars).',
+    maxLength: 32,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  phone?: string;
+
+  @ApiProperty({
     enum: Role,
     enumName: 'Role',
     description: 'User role (ADMIN, DOCTOR, PATIENT)',

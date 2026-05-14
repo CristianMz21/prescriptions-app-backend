@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'bcrypt';
 import { UserEntity } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserListQueryDto, UserSortBy } from './dto/user-list-query.dto';
 import { DoctorListQueryDto } from './dto/doctor-list-query.dto';
 import { PatientListQueryDto } from './dto/patient-list-query.dto';
@@ -75,6 +76,8 @@ export class UsersService {
         data: {
           email: createUserDto.email,
           passwordHash: hashedPassword,
+          name: createUserDto.name,
+          phone: createUserDto.phone,
           role: createUserDto.role,
           doctor: this.buildDoctorCreate(createUserDto),
           patient: this.buildPatientCreate(createUserDto),
@@ -154,10 +157,23 @@ export class UsersService {
     userId: string,
     themePreference: ThemePreference,
   ): Promise<UserEntity> {
+    return this.updateAndIncludeProfiles(userId, { themePreference });
+  }
+
+  /**
+   * Internal helper: runs prisma.user.update with the canonical doctor/patient
+   * include and translates Prisma's P2025 (record-not-found) into a domain
+   * NotFoundException. Centralized to avoid duplicating the include block +
+   * error mapping across `updateTheme` and `updateProfile`.
+   */
+  private async updateAndIncludeProfiles(
+    userId: string,
+    data: Prisma.UserUpdateInput,
+  ): Promise<UserEntity> {
     try {
       const user = await this.prisma.user.update({
         where: { id: userId },
-        data: { themePreference },
+        data,
         include: {
           doctor: {
             select: {
@@ -236,6 +252,23 @@ export class UsersService {
     return this.findUsersPaginated(baseWhere, query);
   }
 
+  /**
+   * Patches the authenticated user's own profile (name/phone). No role/email/password
+   * mutation here — those flow through admin endpoints or a dedicated password route.
+   */
+  async updateProfile(userId: string, dto: UpdateUserDto): Promise<UserEntity> {
+    const data: Prisma.UserUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.phone !== undefined) data.phone = dto.phone;
+
+    if (Object.keys(data).length === 0) {
+      // Idempotent: return current state without hitting the writer.
+      return this.findById(userId);
+    }
+
+    return this.updateAndIncludeProfiles(userId, data);
+  }
+
   private async findUsersPaginated(
     where: Prisma.UserWhereInput,
     query: UserListQueryDto,
@@ -255,11 +288,14 @@ export class UsersService {
     } = query;
     const skip = (page - 1) * limit;
 
-    const emailFilter = caseInsensitiveContains(q);
+    const qFilter = caseInsensitiveContains(q);
     const createdAtFilter = dateRangeFilter(createdFromDate, createdToDate);
 
     const composedWhere: Prisma.UserWhereInput = { ...where };
-    if (emailFilter) composedWhere.email = emailFilter;
+    if (qFilter) {
+      // Top-level OR is AND-combined with the rest of the where clause by Prisma.
+      composedWhere.OR = [{ email: qFilter }, { name: qFilter }];
+    }
     if (createdAtFilter) composedWhere.createdAt = createdAtFilter;
     if (themePreference) composedWhere.themePreference = themePreference;
 

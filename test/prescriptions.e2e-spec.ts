@@ -70,10 +70,13 @@ async function getOrCreateUser(
     };
   }
 
+  // Derive a deterministic display name from the email local part so the
+  // CreateUserDto's `name` requirement is satisfied without leaking PII.
+  const derivedName = `Test ${email.split('@')[0]}`;
   const createRes = await request(app.getHttpServer())
     .post('/users')
     .set('Cookie', adminCookie)
-    .send({ email, password, role });
+    .send({ email, password, role, name: derivedName });
 
   if (createRes.status === 409) {
     const usersRes = await request(app.getHttpServer())
@@ -265,7 +268,7 @@ describe('Prescriptions Flow (e2e)', () => {
     it('should return 403 Forbidden when a PATIENT tries to create a prescription', async () => {
       const mockPayload = {
         patientId: randomUUID(),
-        items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
+        items: [{ name: 'Test Med', dosage: '10mg', quantity: 30, unit: 'mg' }],
       };
 
       return request(app.getHttpServer())
@@ -310,7 +313,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test', dosage: '5mg', quantity: 0 }],
+          items: [{ name: 'Test', dosage: '5mg', quantity: 0, unit: 'mg' }],
         })
         .expect(400);
       expect(res.body.error).toEqual('Bad Request');
@@ -327,7 +330,14 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test', dosage: '5mg', quantity: 'not-a-number' }],
+          items: [
+            {
+              name: 'Test',
+              dosage: '5mg',
+              quantity: 'not-a-number',
+              unit: 'mg',
+            },
+          ],
         })
         .expect(400);
       expect(res.body.error).toEqual('Bad Request');
@@ -346,7 +356,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
+          items: [
+            { name: 'Test Med', dosage: '10mg', quantity: 30, unit: 'mg' },
+          ],
         })
         .expect(201);
 
@@ -391,7 +403,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
+          items: [
+            { name: 'Test Med', dosage: '10mg', quantity: 30, unit: 'mg' },
+          ],
         })
         .expect(201);
 
@@ -468,7 +482,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
+          items: [
+            { name: 'Test Med', dosage: '10mg', quantity: 30, unit: 'mg' },
+          ],
         })
         .expect(201);
       expect(prescriptionRes.status).toBe(201);
@@ -492,7 +508,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
+          items: [
+            { name: 'Test Med', dosage: '10mg', quantity: 30, unit: 'mg' },
+          ],
         })
         .expect(201);
       expect(prescriptionRes.status).toBe(201);
@@ -523,6 +541,7 @@ describe('Prescriptions Flow (e2e)', () => {
               name: 'Amoxicillin',
               dosage: '500mg',
               quantity: 30,
+              unit: 'mg',
               instructions: 'Take 1 pill every 8 hours',
             },
           ],
@@ -559,6 +578,7 @@ describe('Prescriptions Flow (e2e)', () => {
               name: 'Ibuprofen',
               dosage: '400mg',
               quantity: 20,
+              unit: 'mg',
               instructions: 'Take 1 tablet after meals',
             },
           ],
@@ -594,6 +614,7 @@ describe('Prescriptions Flow (e2e)', () => {
               name: 'Paracetamol',
               dosage: '500mg',
               quantity: 10,
+              unit: 'mg',
               instructions: 'Take 2 tablets every 6 hours',
             },
           ],
@@ -624,7 +645,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: 5 }],
+          items: [
+            { name: 'Test Med', dosage: '10mg', quantity: 5, unit: 'mg' },
+          ],
         })
         .expect(201);
 
@@ -643,7 +666,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'IDOR', dosage: '1mg', quantity: 1 }],
+          items: [{ name: 'IDOR', dosage: '1mg', quantity: 1, unit: 'mg' }],
         })
         .expect(201);
 
@@ -660,7 +683,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'IDOR', dosage: '1mg', quantity: 1 }],
+          items: [{ name: 'IDOR', dosage: '1mg', quantity: 1, unit: 'mg' }],
         })
         .expect(201);
 
@@ -723,7 +746,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'AuditMed', dosage: '10mg', quantity: 5 }],
+          items: [
+            { name: 'AuditMed', dosage: '10mg', quantity: 5, unit: 'mg' },
+          ],
         })
         .expect(201);
 
@@ -826,6 +851,7 @@ describe('Prescriptions Flow (e2e)', () => {
               name: `${itemSeed}-A`,
               dosage: '10mg',
               quantity: 1,
+              unit: 'mg',
               instructions: 'x',
             },
           ],
@@ -859,6 +885,7 @@ describe('Prescriptions Flow (e2e)', () => {
               name: `${itemSeed}-B`,
               dosage: '20mg',
               quantity: 2,
+              unit: 'mg',
               instructions: 'y',
             },
           ],

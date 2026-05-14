@@ -29,6 +29,7 @@ describe('PrescriptionsController', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     consumedAt: null,
+    expiryDate: null,
   };
 
   const mockPrescriptionWithRelations = {

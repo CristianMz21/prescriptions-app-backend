@@ -25,6 +25,8 @@ describe('UsersService', () => {
     id: 'user-1',
     email: 'test@clinic.com',
     passwordHash: 'hashed-password',
+    name: 'Test Patient',
+    phone: '+54 11 0000-0000',
     role: Role.PATIENT,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -61,6 +63,8 @@ describe('UsersService', () => {
       const dto = {
         email: 'test@clinic.com',
         password: 'password',
+        name: 'Test Patient',
+        phone: '+54 11 1111-1111',
         role: Role.PATIENT,
       };
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
@@ -73,6 +77,8 @@ describe('UsersService', () => {
         data: expect.objectContaining({
           email: dto.email,
           passwordHash: 'hashed-password',
+          name: dto.name,
+          phone: dto.phone,
           role: dto.role,
           patient: { create: { birthDate: null } },
         }),
@@ -85,6 +91,7 @@ describe('UsersService', () => {
       const dto = {
         email: 'dupe@clinic.com',
         password: 'pw',
+        name: 'Dupe',
         role: Role.PATIENT,
       };
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
@@ -101,12 +108,50 @@ describe('UsersService', () => {
       const dto = {
         email: 'other@clinic.com',
         password: 'pw',
+        name: 'Other',
         role: Role.PATIENT,
       };
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
       prismaService.user.create.mockRejectedValue(new Error('boom'));
 
       await expect(service.create(dto)).rejects.toThrow('boom');
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should patch name and phone and return UserEntity', async () => {
+      prismaService.user.update.mockResolvedValue(mockUser);
+      const result = await service.updateProfile('user-1', {
+        name: 'New Name',
+        phone: '+54 11 9999-9999',
+      });
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { name: 'New Name', phone: '+54 11 9999-9999' },
+        include: expect.objectContaining({
+          doctor: expect.any(Object),
+          patient: expect.any(Object),
+        }),
+      });
+      expect(result.id).toBe(mockUser.id);
+    });
+
+    it('should be idempotent when no fields are provided', async () => {
+      prismaService.user.findUnique.mockResolvedValue(mockUser);
+      const result = await service.updateProfile('user-1', {});
+      expect(prismaService.user.update).not.toHaveBeenCalled();
+      expect(result.id).toBe(mockUser.id);
+    });
+
+    it('should throw NotFoundException on P2025', async () => {
+      const prismaErr = new Error('Record not found') as Error & {
+        code: string;
+      };
+      prismaErr.code = 'P2025';
+      prismaService.user.update.mockRejectedValue(prismaErr);
+      await expect(
+        service.updateProfile('missing', { name: 'X' }),
+      ).rejects.toThrow('User not found');
     });
   });
 
@@ -264,10 +309,11 @@ describe('UsersService', () => {
       });
       const call = prismaService.user.findMany.mock.calls[0][0];
       expect(call.where.role).toBe(Role.DOCTOR);
-      expect(call.where.email).toMatchObject({
-        contains: 'jane',
-        mode: 'insensitive',
-      });
+      // q now matches email OR name (case-insensitive substring)
+      expect(call.where.OR).toEqual([
+        { email: { contains: 'jane', mode: 'insensitive' } },
+        { name: { contains: 'jane', mode: 'insensitive' } },
+      ]);
       expect(call.where.createdAt.gte).toBeInstanceOf(Date);
       expect(call.where.createdAt.lte).toBeInstanceOf(Date);
       expect(call.where.themePreference).toBe('DARK');
