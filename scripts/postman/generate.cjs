@@ -633,13 +633,13 @@ function securityFolder() {
         403,
       ),
       rawJsonRequest(
-        'Consuming already consumed prescription returns 400',
+        'Consuming already consumed prescription returns 409',
         'PATCH',
         '/prescriptions/{{prescriptionId}}/consume',
         { reason: 'Duplicate consume attempt' },
         'PATIENT',
         [],
-        400,
+        409,
       ),
     ],
   };

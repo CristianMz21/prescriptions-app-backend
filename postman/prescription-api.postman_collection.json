@@ -1415,7 +1415,7 @@
           ]
         },
         {
-          "name": "Consuming already consumed prescription returns 400",
+          "name": "Consuming already consumed prescription returns 409",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1465,7 +1465,7 @@
                   "function getSetCookieHeaders() { return pm.response.headers.all().filter(h => h.key.toLowerCase() === 'set-cookie').map(h => h.value); }",
                   "function cookieValue(setCookie, name) { const found = setCookie.find(c => c.startsWith(`${name}=`)); return found ? found.split(';')[0].slice(name.length + 1) : undefined; }",
                   "function captureCookies(role) { const setCookie = getSetCookieHeaders(); const access = cookieValue(setCookie, 'accessToken'); const refresh = cookieValue(setCookie, 'refreshToken'); const csrf = cookieValue(setCookie, 'csrfToken') || pm.response.headers.get('X-CSRF-Token'); if (access) pm.environment.set(`${role}AccessToken`, access); if (refresh) pm.environment.set(`${role}RefreshToken`, refresh); if (csrf) pm.environment.set(`${role}CsrfToken`, csrf); }",
-                  "pm.test('Consuming already consumed prescription returns 400 returns 400', function () { pm.response.to.have.status(400); });"
+                  "pm.test('Consuming already consumed prescription returns 409 returns 409', function () { pm.response.to.have.status(409); });"
                 ]
               }
             }
