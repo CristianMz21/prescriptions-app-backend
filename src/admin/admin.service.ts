@@ -3,6 +3,12 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { Role, PrescriptionStatus, Prisma, Prescription } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminListPrescriptionsDto } from './dto/admin-list-prescriptions.dto';
+import { PrescriptionSortBy } from '../prescriptions/dto/pagination-filter.dto';
+import {
+  caseInsensitiveContains,
+  dateRangeFilter,
+  toPrismaSort,
+} from '../common/utils/filter.utils';
 
 export interface AggregateMetrics {
   totals: { doctors: number; patients: number; prescriptions: number };
@@ -200,12 +206,20 @@ export class AdminService {
       status,
       authorId,
       patientId,
-      from,
-      to,
+      fromDate,
+      toDate,
+      consumedFromDate,
+      consumedToDate,
+      code,
+      hasNotes,
+      patientEmail,
+      doctorEmail,
       q,
+      sortBy = PrescriptionSortBy.CreatedAt,
+      sortOrder,
     } = filter;
 
-    const where = this.buildDateRangeWhere(from, to);
+    const where = this.buildDateRangeWhere(fromDate, toDate);
     if (status) {
       where.status = status;
     }
@@ -215,6 +229,27 @@ export class AdminService {
     if (patientId) {
       where.patientId = patientId;
     }
+
+    const consumedAtFilter = dateRangeFilter(consumedFromDate, consumedToDate);
+    if (consumedAtFilter) where.consumedAt = consumedAtFilter;
+
+    const codeFilter = caseInsensitiveContains(code);
+    if (codeFilter) where.code = codeFilter;
+
+    if (typeof hasNotes === 'boolean') {
+      where.notes = hasNotes ? { not: null } : null;
+    }
+
+    const patientEmailFilter = caseInsensitiveContains(patientEmail);
+    if (patientEmailFilter) {
+      where.patient = { user: { email: patientEmailFilter } };
+    }
+
+    const doctorEmailFilter = caseInsensitiveContains(doctorEmail);
+    if (doctorEmailFilter) {
+      where.author = { user: { email: doctorEmailFilter } };
+    }
+
     if (q && q.trim().length > 0) {
       const term = q.trim();
       where.OR = [
@@ -223,13 +258,17 @@ export class AdminService {
       ];
     }
 
+    const orderBy: Prisma.PrescriptionOrderByWithRelationInput = {
+      [sortBy]: toPrismaSort(sortOrder),
+    };
+
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.prisma.prescription.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           author: {
             include: {

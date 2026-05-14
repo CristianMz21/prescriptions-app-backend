@@ -11,8 +11,16 @@ import {
 import { Role, PrescriptionStatus, Prescription, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
-import { PaginationFilterDto } from './dto/pagination-filter.dto';
+import {
+  PaginationFilterDto,
+  PrescriptionSortBy,
+} from './dto/pagination-filter.dto';
 import { ConsumePrescriptionDto } from './dto/consume-prescription.dto';
+import {
+  caseInsensitiveContains,
+  dateRangeFilter,
+  toPrismaSort,
+} from '../common/utils/filter.utils';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { generatePrescriptionCode } from '../common/utils/code.utils';
 import { EmailService } from '../email/email.service';
@@ -190,7 +198,22 @@ export class PrescriptionsService {
     data: Prescription[];
     meta: { total: number; page: number; limit: number; totalPages: number };
   }> {
-    const { page = 1, limit = 10, status, fromDate, toDate, q } = filterDto;
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      fromDate,
+      toDate,
+      consumedFromDate,
+      consumedToDate,
+      code,
+      patientId,
+      authorId,
+      hasNotes,
+      q,
+      sortBy = PrescriptionSortBy.CreatedAt,
+      sortOrder,
+    } = filterDto;
     const skip = (page - 1) * limit;
 
     const where: Prisma.PrescriptionWhereInput = {};
@@ -200,14 +223,31 @@ export class PrescriptionsService {
       where.status = status;
     }
 
-    if (fromDate || toDate) {
-      where.createdAt = {};
-      if (fromDate) {
-        (where.createdAt as Prisma.DateTimeFilter).gte = new Date(fromDate);
-      }
-      if (toDate) {
-        (where.createdAt as Prisma.DateTimeFilter).lte = new Date(toDate);
-      }
+    const createdAtFilter = dateRangeFilter(fromDate, toDate);
+    if (createdAtFilter) where.createdAt = createdAtFilter;
+
+    const consumedAtFilter = dateRangeFilter(consumedFromDate, consumedToDate);
+    if (consumedAtFilter) where.consumedAt = consumedAtFilter;
+
+    const codeFilter = caseInsensitiveContains(code);
+    if (codeFilter) where.code = codeFilter;
+
+    if (typeof hasNotes === 'boolean') {
+      where.notes = hasNotes ? { not: null } : null;
+    }
+
+    // Tenant-aware patientId override: silently ignored when caller IS the patient
+    // (their tenant boundary already restricts to own prescriptions).
+    if (patientId && user.role !== Role.PATIENT) {
+      where.patient = {
+        OR: [{ id: patientId }, { userId: patientId }],
+      };
+    }
+
+    if (authorId && user.role !== Role.DOCTOR) {
+      where.author = {
+        OR: [{ id: authorId }, { userId: authorId }],
+      };
     }
 
     if (q && q.trim().length > 0) {
@@ -218,12 +258,16 @@ export class PrescriptionsService {
       ];
     }
 
+    const orderBy: Prisma.PrescriptionOrderByWithRelationInput = {
+      [sortBy]: toPrismaSort(sortOrder),
+    };
+
     const [data, total] = await Promise.all([
       this.prisma.prescription.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           author: {
             include: {

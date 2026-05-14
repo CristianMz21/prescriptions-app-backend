@@ -9,7 +9,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'bcrypt';
 import { UserEntity } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserListQueryDto } from './dto/user-list-query.dto';
+import { UserListQueryDto, UserSortBy } from './dto/user-list-query.dto';
+import { DoctorListQueryDto } from './dto/doctor-list-query.dto';
+import { PatientListQueryDto } from './dto/patient-list-query.dto';
+import {
+  caseInsensitiveContains,
+  dateRangeFilter,
+  toPrismaSort,
+  yearsAgo,
+} from '../common/utils/filter.utils';
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -133,7 +141,10 @@ export class UsersService {
     data: UserEntity[];
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
-    return this.findUsersPaginated({}, query);
+    // On the generic /users endpoint admins MAY filter by role via the query.
+    const baseWhere: Prisma.UserWhereInput = {};
+    if (query.role) baseWhere.role = query.role;
+    return this.findUsersPaginated(baseWhere, query);
   }
 
   /**
@@ -175,12 +186,54 @@ export class UsersService {
 
   async findAllByRole(
     role: Role,
-    query: UserListQueryDto = {},
+    query: UserListQueryDto | DoctorListQueryDto | PatientListQueryDto = {},
   ): Promise<{
     data: UserEntity[];
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
-    return this.findUsersPaginated({ role }, query);
+    // Role is fixed by the endpoint; ignore any role override on the DTO.
+    const baseWhere: Prisma.UserWhereInput = { role };
+
+    if (role === Role.DOCTOR) {
+      const dto = query as DoctorListQueryDto;
+      const specialtyFilter = caseInsensitiveContains(dto.specialty);
+      const medicalIdFilter = caseInsensitiveContains(dto.medicalId);
+      if (specialtyFilter || medicalIdFilter) {
+        baseWhere.doctor = {
+          ...(specialtyFilter ? { specialty: specialtyFilter } : {}),
+          ...(medicalIdFilter ? { medicalId: medicalIdFilter } : {}),
+        };
+      }
+    }
+
+    if (role === Role.PATIENT) {
+      const dto = query as PatientListQueryDto;
+      // Combine explicit birthDate range with min/max age (also a birthDate range).
+      const explicit = dateRangeFilter(
+        dto.birthDateFromDate,
+        dto.birthDateToDate,
+      );
+      const ageRange =
+        dto.minAge !== undefined || dto.maxAge !== undefined
+          ? {
+              ...(dto.maxAge !== undefined
+                ? { gte: yearsAgo(dto.maxAge + 1) }
+                : {}),
+              ...(dto.minAge !== undefined
+                ? { lte: yearsAgo(dto.minAge) }
+                : {}),
+            }
+          : undefined;
+      const merged: Prisma.DateTimeFilter = {
+        ...(explicit ?? {}),
+        ...(ageRange ?? {}),
+      };
+      if (Object.keys(merged).length > 0) {
+        baseWhere.patient = { birthDate: merged };
+      }
+    }
+
+    return this.findUsersPaginated(baseWhere, query);
   }
 
   private async findUsersPaginated(
@@ -190,21 +243,36 @@ export class UsersService {
     data: UserEntity[];
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
-    const { page = 1, limit = 10, q } = query;
-    const normalizedQuery = q?.trim();
+    const {
+      page = 1,
+      limit = 10,
+      q,
+      createdFromDate,
+      createdToDate,
+      themePreference,
+      sortBy = UserSortBy.CreatedAt,
+      sortOrder,
+    } = query;
     const skip = (page - 1) * limit;
 
-    const emailFilter =
-      normalizedQuery && normalizedQuery.length > 0
-        ? { email: { contains: normalizedQuery, mode: 'insensitive' as const } }
-        : {};
+    const emailFilter = caseInsensitiveContains(q);
+    const createdAtFilter = dateRangeFilter(createdFromDate, createdToDate);
+
+    const composedWhere: Prisma.UserWhereInput = { ...where };
+    if (emailFilter) composedWhere.email = emailFilter;
+    if (createdAtFilter) composedWhere.createdAt = createdAtFilter;
+    if (themePreference) composedWhere.themePreference = themePreference;
+
+    const orderBy: Prisma.UserOrderByWithRelationInput = {
+      [sortBy]: toPrismaSort(sortOrder),
+    };
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
-        where: { ...where, ...emailFilter },
+        where: composedWhere,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           patient: { select: { id: true, birthDate: true } },
           doctor: {
@@ -218,7 +286,7 @@ export class UsersService {
           },
         },
       }),
-      this.prisma.user.count({ where: { ...where, ...emailFilter } }),
+      this.prisma.user.count({ where: composedWhere }),
     ]);
 
     return {
