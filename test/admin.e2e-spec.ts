@@ -283,10 +283,15 @@ describe('Admin Endpoints (e2e)', () => {
     }, 10000);
 
     it('returns 403 when a non-admin tries to subscribe', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .get('/admin/metrics/stream')
         .set('Cookie', doctorCookie)
         .expect(403);
+      expect(res.status).toBe(403);
+      expect(res.body).toMatchObject({
+        statusCode: 403,
+        message: expect.any(String),
+      });
     });
   });
 

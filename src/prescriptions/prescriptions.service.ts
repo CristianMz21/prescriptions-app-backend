@@ -106,8 +106,9 @@ export class PrescriptionsService {
       where.patient = { userId: user.id };
     } else if (user.role === Role.DOCTOR) {
       where.author = { userId: user.id };
+    } else {
+      // ADMIN: no tenant restrictions
     }
-    // ADMIN: no tenant restrictions
   }
 
   async findAll(

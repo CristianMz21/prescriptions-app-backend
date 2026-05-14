@@ -493,18 +493,22 @@ describe('Auth & Users Endpoints (e2e)', () => {
     });
 
     it('rejects invalid themePreference value with 400', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .patch('/users/me/theme')
         .set('Cookie', patientCookie)
         .send({ themePreference: 'NEON' })
         .expect(400);
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ statusCode: 400 });
     });
 
     it('returns 401 without auth cookie', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .patch('/users/me/theme')
         .send({ themePreference: 'LIGHT' })
         .expect(401);
+      expect(res.status).toBe(401);
+      expect(res.body).toMatchObject({ statusCode: 401 });
     });
   });
 

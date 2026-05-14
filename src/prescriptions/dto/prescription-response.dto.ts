@@ -2,6 +2,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PrescriptionStatus, Role } from '@prisma/client';
 
+const EXAMPLE_UUID = '123e4567-e89b-12d3-a456-426614174000';
+
 export class PrescriptionItemResponseDto {
   @ApiProperty({
     description: 'Prescription item unique identifier',
@@ -38,7 +40,7 @@ export class PrescriptionItemResponseDto {
 export class PrescriptionUserSummaryDto {
   @ApiProperty({
     description: 'User unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
+    example: EXAMPLE_UUID,
     format: 'uuid',
   })
   id!: string;
@@ -53,7 +55,7 @@ export class PrescriptionUserSummaryDto {
 export class PrescriptionAuthorSummaryDto {
   @ApiProperty({
     description: 'Doctor unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
+    example: EXAMPLE_UUID,
     format: 'uuid',
   })
   id!: string;
@@ -169,7 +171,7 @@ export class PrescriptionResponseDto {
 
   @ApiProperty({
     description: 'Author (Doctor) unique identifier',
-    example: '123e4567-e89b-12d3-a456-426614174000',
+    example: EXAMPLE_UUID,
     format: 'uuid',
   })
   authorId!: string;
