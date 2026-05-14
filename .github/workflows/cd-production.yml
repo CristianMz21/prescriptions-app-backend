@@ -1,0 +1,62 @@
+name: CD Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancel a deploy in flight.
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '24'
+  PNPM_VERSION: '11.1.1'
+
+jobs:
+  build:
+    name: Build for production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies (frozen)
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+      - name: Build
+        run: pnpm run build
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to production
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://prescriptions-app-backend.onrender.com
+    steps:
+      - name: Placeholder — deploy step
+        run: |
+          echo "::notice title=CD placeholder::Render currently auto-deploys via render.yaml on push to main."
+          echo "Future targets: explicit Render deploy hook, Docker push to GHCR, or VPS rsync."
+          echo "To wire an explicit deploy:"
+          echo "  1. Add a secret RENDER_DEPLOY_HOOK_URL in GitHub Settings → Secrets → Actions."
+          echo "  2. Replace this step with:"
+          echo "     run: curl -fsS -X POST \"\${{ secrets.RENDER_DEPLOY_HOOK_URL }}\""
