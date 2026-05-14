@@ -7,16 +7,21 @@ export class DoctorProfileSummary {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiPropertyOptional({ example: 'Cardiology', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Cardiology', nullable: true })
   specialty?: string | null;
 
-  @ApiPropertyOptional({ example: 'MED-12345', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'MED-12345', nullable: true })
   medicalId?: string | null;
 
-  @ApiPropertyOptional({ example: 'Dr. Jane Doe', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Dr. Jane Doe',
+    nullable: true,
+  })
   signatureText?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://cdn.clinic.com/signatures/jane-doe.png',
     format: 'uri',
     nullable: true,
@@ -29,6 +34,7 @@ export class PatientProfileSummary {
   id!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: '1990-05-21T00:00:00.000Z',
     format: 'date-time',
     nullable: true,

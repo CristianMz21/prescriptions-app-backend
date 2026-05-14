@@ -1552,22 +1552,22 @@
             "format": "uuid"
           },
           "specialty": {
-            "type": "object",
+            "type": "string",
             "example": "Cardiology",
             "nullable": true
           },
           "medicalId": {
-            "type": "object",
+            "type": "string",
             "example": "MED-12345",
             "nullable": true
           },
           "signatureText": {
-            "type": "object",
+            "type": "string",
             "example": "Dr. Jane Doe",
             "nullable": true
           },
           "signatureImageUrl": {
-            "type": "object",
+            "type": "string",
             "example": "https://cdn.clinic.com/signatures/jane-doe.png",
             "format": "uri",
             "nullable": true
@@ -1585,7 +1585,7 @@
             "format": "uuid"
           },
           "birthDate": {
-            "type": "object",
+            "type": "string",
             "example": "1990-05-21T00:00:00.000Z",
             "format": "date-time",
             "nullable": true
