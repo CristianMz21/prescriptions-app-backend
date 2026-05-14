@@ -205,5 +205,73 @@ describe('UsersService', () => {
         totalPages: 1,
       });
     });
+
+    it('should apply doctor specialty + medicalId filters', async () => {
+      prismaService.user.findMany.mockResolvedValue([]);
+      prismaService.user.count.mockResolvedValue(0);
+      await service.findAllByRole(Role.DOCTOR, {
+        specialty: 'cardio',
+        medicalId: 'MED-1',
+      });
+      const call = prismaService.user.findMany.mock.calls[0][0];
+      expect(call.where).toMatchObject({
+        role: Role.DOCTOR,
+        doctor: {
+          specialty: { contains: 'cardio', mode: 'insensitive' },
+          medicalId: { contains: 'MED-1', mode: 'insensitive' },
+        },
+      });
+    });
+
+    it('should apply patient birthDate range filter', async () => {
+      prismaService.user.findMany.mockResolvedValue([]);
+      prismaService.user.count.mockResolvedValue(0);
+      await service.findAllByRole(Role.PATIENT, {
+        birthDateFromDate: '1990-01-01',
+        birthDateToDate: '2000-12-31',
+      });
+      const call = prismaService.user.findMany.mock.calls[0][0];
+      expect(call.where.patient.birthDate.gte).toBeInstanceOf(Date);
+      expect(call.where.patient.birthDate.lte).toBeInstanceOf(Date);
+    });
+
+    it('should apply patient minAge/maxAge as birthDate bounds', async () => {
+      prismaService.user.findMany.mockResolvedValue([]);
+      prismaService.user.count.mockResolvedValue(0);
+      await service.findAllByRole(Role.PATIENT, { minAge: 18, maxAge: 65 });
+      const call = prismaService.user.findMany.mock.calls[0][0];
+      // gte = 65 years ago + 1 (lower bound), lte = 18 years ago (upper bound)
+      expect(call.where.patient.birthDate.gte).toBeInstanceOf(Date);
+      expect(call.where.patient.birthDate.lte).toBeInstanceOf(Date);
+      expect(call.where.patient.birthDate.gte.getTime()).toBeLessThan(
+        call.where.patient.birthDate.lte.getTime(),
+      );
+    });
+  });
+
+  describe('findAll (admin generic)', () => {
+    it('should accept role override + createdAt range + theme + sort', async () => {
+      prismaService.user.findMany.mockResolvedValue([]);
+      prismaService.user.count.mockResolvedValue(0);
+      await service.findAll({
+        role: Role.DOCTOR,
+        createdFromDate: '2026-01-01',
+        createdToDate: '2026-12-31',
+        themePreference: 'DARK' as never,
+        q: 'jane',
+        sortBy: 'email' as never,
+        sortOrder: 'asc' as never,
+      });
+      const call = prismaService.user.findMany.mock.calls[0][0];
+      expect(call.where.role).toBe(Role.DOCTOR);
+      expect(call.where.email).toMatchObject({
+        contains: 'jane',
+        mode: 'insensitive',
+      });
+      expect(call.where.createdAt.gte).toBeInstanceOf(Date);
+      expect(call.where.createdAt.lte).toBeInstanceOf(Date);
+      expect(call.where.themePreference).toBe('DARK');
+      expect(call.orderBy).toEqual({ email: 'asc' });
+    });
   });
 });

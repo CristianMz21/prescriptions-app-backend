@@ -432,4 +432,84 @@ describe('PrescriptionsService', () => {
       );
     });
   });
+
+  describe('findAll new filters', () => {
+    const adminUser = {
+      id: 'a-user',
+      email: 'a@c.com',
+      role: Role.ADMIN,
+    } as const;
+
+    beforeEach(() => {
+      prismaService.prescription.findMany.mockResolvedValue([]);
+      prismaService.prescription.count.mockResolvedValue(0);
+    });
+
+    it('should filter by consumedAt range', async () => {
+      await service.findAll(adminUser, {
+        consumedFromDate: '2026-01-01',
+        consumedToDate: '2026-12-31',
+      });
+      const call = prismaService.prescription.findMany.mock.calls[0][0];
+      expect(call.where.consumedAt.gte).toBeInstanceOf(Date);
+      expect(call.where.consumedAt.lte).toBeInstanceOf(Date);
+    });
+
+    it('should filter by code (case-insensitive contains)', async () => {
+      await service.findAll(adminUser, { code: 'RX-AB' });
+      const call = prismaService.prescription.findMany.mock.calls[0][0];
+      expect(call.where.code).toEqual({
+        contains: 'RX-AB',
+        mode: 'insensitive',
+      });
+    });
+
+    it('should filter by hasNotes=true (notes is not null)', async () => {
+      await service.findAll(adminUser, { hasNotes: true });
+      const call = prismaService.prescription.findMany.mock.calls[0][0];
+      expect(call.where.notes).toEqual({ not: null });
+    });
+
+    it('should filter by hasNotes=false (notes is null)', async () => {
+      await service.findAll(adminUser, { hasNotes: false });
+      const call = prismaService.prescription.findMany.mock.calls[0][0];
+      expect(call.where.notes).toBeNull();
+    });
+
+    it('should accept patientId override for ADMIN', async () => {
+      await service.findAll(adminUser, { patientId: 'pat-1' });
+      const call = prismaService.prescription.findMany.mock.calls[0][0];
+      expect(call.where.patient).toEqual({
+        OR: [{ id: 'pat-1' }, { userId: 'pat-1' }],
+      });
+    });
+
+    it('should silently ignore patientId override for PATIENT (tenant wins)', async () => {
+      await service.findAll(
+        { id: 'p-user', email: 'p@c.com', role: Role.PATIENT },
+        { patientId: 'other-patient' },
+      );
+      const call = prismaService.prescription.findMany.mock.calls[0][0];
+      // tenant boundary keeps patient.userId (own); override is dropped
+      expect(call.where.patient).toEqual({ userId: 'p-user' });
+    });
+
+    it('should silently ignore authorId override for DOCTOR (tenant wins)', async () => {
+      await service.findAll(
+        { id: 'd-user', email: 'd@c.com', role: Role.DOCTOR },
+        { authorId: 'other-doctor' },
+      );
+      const call = prismaService.prescription.findMany.mock.calls[0][0];
+      expect(call.where.author).toEqual({ userId: 'd-user' });
+    });
+
+    it('should accept sortBy/sortOrder whitelist', async () => {
+      await service.findAll(adminUser, {
+        sortBy: 'consumedAt' as never,
+        sortOrder: 'asc' as never,
+      });
+      const call = prismaService.prescription.findMany.mock.calls[0][0];
+      expect(call.orderBy).toEqual({ consumedAt: 'asc' });
+    });
+  });
 });
