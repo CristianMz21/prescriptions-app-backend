@@ -703,6 +703,7 @@ function writeJson(file, data) {
     ...generated,
     info: {
       ...generated.info,
+      _postman_id: 'prescription-api-generated-curated-qa-suite',
       name: 'Prescription Management API - Generated and Curated QA Suite',
       description:
         'Generated from openapi.json with curated Newman business-flow and security tests.',
