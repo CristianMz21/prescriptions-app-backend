@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { PdfPrescriptionData, PdfService } from './pdf.service';
 import { launch } from 'puppeteer';
 
@@ -15,20 +16,26 @@ jest.mock('puppeteer', () => ({
 describe('PdfService', () => {
   let service: PdfService;
 
+  const mockConfigService = {
+    get: jest.fn<string | undefined, [string]>(),
+  };
+
   beforeEach(async () => {
+    jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PdfService],
+      providers: [
+        PdfService,
+        { provide: ConfigService, useValue: mockConfigService },
+      ],
     }).compile();
 
     service = module.get<PdfService>(PdfService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('generatePrescriptionPdf', () => {
     it('should generate a PDF buffer successfully', async () => {
+      mockConfigService.get.mockReturnValue(undefined);
+
       const mockPrescription = {
         id: '1',
         createdAt: new Date(),
@@ -38,7 +45,7 @@ describe('PdfService', () => {
           {
             name: 'Meds',
             dosage: '10mg',
-            quantity: '1',
+            quantity: 1,
             instructions: 'Take 1',
           },
         ],

@@ -27,7 +27,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
+  const appOrigin = configService.get<string>('APP_ORIGIN');
   const frontendUrl = configService.get<string>('FRONTEND_URL');
+  const corsOrigin = appOrigin ?? frontendUrl;
+
+  if (!corsOrigin) {
+    throw new Error(
+      'Environment validation failed: At least one of APP_ORIGIN or FRONTEND_URL must be provided',
+    );
+  }
 
   app.use(
     helmet({
@@ -52,7 +60,7 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.enableCors({
-    origin: frontendUrl,
+    origin: corsOrigin,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',

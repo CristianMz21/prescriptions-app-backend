@@ -46,7 +46,15 @@ describe('AuthController', () => {
         { provide: UsersService, useValue: mockUsersService },
         {
           provide: ConfigService,
-          useValue: { getOrThrow: jest.fn().mockReturnValue('test') },
+          useValue: {
+            get: jest.fn<string | undefined, [string]>(),
+            getOrThrow: jest.fn<string, [string]>((key: string) => {
+              if (key === 'JWT_ACCESS_TTL') return '15m';
+              if (key === 'JWT_REFRESH_TTL') return '7d';
+              if (key === 'NODE_ENV') return 'development';
+              return 'mock-secret';
+            }),
+          },
         },
       ],
     }).compile();

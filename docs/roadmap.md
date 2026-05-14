@@ -4,17 +4,17 @@
 
 | Componente | Estado | Notas |
 |-----------|--------|-------|
-| Auth (login/refresh/logout) | ✅ Listo | JWT en HttpOnly cookies |
-| Users (CRUD + listados) | ✅ Listo | ADMIN, DOCTOR, PATIENT |
-| Prescriptions (CRUD + consume + PDF) | ✅ Listo | Puppeteer + Handlebars |
-| Admin (metricas + listado total) | ✅ Listo | Metrics + all prescriptions |
-| Swagger /docs | ✅ Listo | withCredentials enabled |
-| Prisma migrations | ✅ Listo | Nunca synchronize: true |
-| Seed data | ✅ Listo | Upsert (re-runnable) |
-| Unit tests | ✅ Listo | Coverage >= 80% |
-| E2E tests | ✅ Listo | auth.e2e-spec.ts + prescriptions.e2e-spec.ts |
-| Wiki (MkDocs + GitHub Pages) | ✅ Listo | https://CristianMz21.github.io/prescriptions-app-backend/ |
-| CI/CD (GitHub Actions) | ✅ Listo | Lint + tests + security |
+| Auth (login/refresh/logout) | OK Listo | JWT en HttpOnly cookies |
+| Users (CRUD + listados) | OK Listo | ADMIN, DOCTOR, PATIENT |
+| Prescriptions (CRUD + consume + PDF) | OK Listo | Puppeteer + Handlebars |
+| Admin (metricas + listado total) | OK Listo | Metrics + all prescriptions |
+| Swagger /docs | OK Listo | withCredentials enabled |
+| Prisma migrations | OK Listo | Nunca synchronize: true |
+| Seed data | OK Listo | Upsert (re-runnable) |
+| Unit tests | OK Listo | Coverage >= 80% |
+| E2E tests | OK Listo | auth.e2e-spec.ts + prescriptions.e2e-spec.ts |
+| Wiki (MkDocs + GitHub Pages) | OK Listo | https://CristianMz21.github.io/prescriptions-app-backend/ |
+| CI/CD (GitHub Actions) | OK Listo | Lint + tests + security |
 
 ---
 

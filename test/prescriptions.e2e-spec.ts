@@ -286,7 +286,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: '30' }],
+          items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
         })
         .expect(201);
 
@@ -330,7 +330,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: '30' }],
+          items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
         })
         .expect(201);
 
@@ -406,7 +406,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: '30' }],
+          items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
         })
         .expect(201);
 
@@ -429,7 +429,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: '30' }],
+          items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
         })
         .expect(201);
 
@@ -447,51 +447,137 @@ describe('Prescriptions Flow (e2e)', () => {
     });
   });
 
-  describe('GET /prescriptions/:id/pdf — Patient PDF Download', () => {
-    it('should return 403 when doctor tries to download a prescription PDF not their own', async () => {
+  describe('GET /prescriptions/:id/pdf — Positive Authorization + Content', () => {
+    it('should return 200 and valid PDF when patient downloads their own prescription', async () => {
       const prescriptionRes = await request(app.getHttpServer())
         .post('/prescriptions')
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: '30' }],
+          items: [
+            {
+              name: 'Amoxicillin',
+              dosage: '500mg',
+              quantity: 30,
+              instructions: 'Take 1 pill every 8 hours',
+            },
+          ],
         })
         .expect(201);
 
       const prescriptionId = prescriptionRes.body.id;
 
-      await request(app.getHttpServer())
-        .get(`/prescriptions/${prescriptionId}`)
-        .set('Cookie', adminCookie)
+      const pdfRes = await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}/pdf`)
+        .set('Cookie', secondDoctorCookie)
         .expect(200);
 
-      await request(app.getHttpServer())
-        .get(`/prescriptions/${prescriptionId}/pdf`)
-        .set('Cookie', doctorCookie)
-        .expect(403);
+      expect(pdfRes.headers['content-type']).toMatch(/application\/pdf/);
+      expect(pdfRes.headers['content-disposition']).toMatch(/\.pdf/);
+      expect(pdfRes.body).toBeDefined();
+      expect(Buffer.isBuffer(pdfRes.body)).toBe(true);
+      const bodyBuffer =
+        pdfRes.body instanceof Buffer
+          ? pdfRes.body
+          : Buffer.from(pdfRes.body as unknown as ArrayBuffer);
+      expect(bodyBuffer.length).toBeGreaterThan(0);
+      expect(bodyBuffer.subarray(0, 4).toString()).toBe('%PDF');
     });
 
-    it('should return 403 when patient tries to download another patients prescription PDF', async () => {
+    it('should return 200 and valid PDF when doctor downloads a prescription they created', async () => {
       const prescriptionRes = await request(app.getHttpServer())
         .post('/prescriptions')
         .set('Cookie', secondDoctorCookie)
         .send({
           patientId: secondPatientId,
-          items: [{ name: 'Test Med', dosage: '10mg', quantity: '30' }],
+          items: [
+            {
+              name: 'Ibuprofen',
+              dosage: '400mg',
+              quantity: 20,
+              instructions: 'Take 1 tablet after meals',
+            },
+          ],
+        })
+        .expect(201);
+
+      const prescriptionId = prescriptionRes.body.id;
+
+      const pdfRes = await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}/pdf`)
+        .set('Cookie', secondDoctorCookie)
+        .expect(200);
+
+      expect(pdfRes.headers['content-type']).toMatch(/application\/pdf/);
+      expect(pdfRes.headers['content-disposition']).toMatch(/\.pdf/);
+      expect(pdfRes.body).toBeDefined();
+      const bodyBuffer =
+        pdfRes.body instanceof Buffer
+          ? pdfRes.body
+          : Buffer.from(pdfRes.body as unknown as ArrayBuffer);
+      expect(bodyBuffer.length).toBeGreaterThan(0);
+      expect(bodyBuffer.subarray(0, 4).toString()).toBe('%PDF');
+    });
+
+    it('should return 200 and valid PDF when admin downloads any prescription', async () => {
+      const prescriptionRes = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', secondDoctorCookie)
+        .send({
+          patientId: secondPatientId,
+          items: [
+            {
+              name: 'Paracetamol',
+              dosage: '500mg',
+              quantity: 10,
+              instructions: 'Take 2 tablets every 6 hours',
+            },
+          ],
+        })
+        .expect(201);
+
+      const prescriptionId = prescriptionRes.body.id;
+
+      const pdfRes = await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionId}/pdf`)
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      expect(pdfRes.headers['content-type']).toMatch(/application\/pdf/);
+      expect(pdfRes.headers['content-disposition']).toMatch(/\.pdf/);
+      expect(pdfRes.body).toBeDefined();
+      const bodyBuffer =
+        pdfRes.body instanceof Buffer
+          ? pdfRes.body
+          : Buffer.from(pdfRes.body as unknown as ArrayBuffer);
+      expect(bodyBuffer.length).toBeGreaterThan(0);
+      expect(bodyBuffer.subarray(0, 4).toString()).toBe('%PDF');
+    });
+
+    it('should return 401 when no auth cookie is provided', async () => {
+      const prescriptionRes = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', secondDoctorCookie)
+        .send({
+          patientId: secondPatientId,
+          items: [{ name: 'Test Med', dosage: '10mg', quantity: 5 }],
         })
         .expect(201);
 
       const prescriptionId = prescriptionRes.body.id;
 
       await request(app.getHttpServer())
-        .get(`/prescriptions/${prescriptionId}`)
-        .set('Cookie', adminCookie)
-        .expect(200);
+        .get(`/prescriptions/${prescriptionId}/pdf`)
+        .expect(401);
+    });
+
+    it('should return 404 when prescription does not exist', async () => {
+      const nonExistentId = '00000000-0000-0000-0000-000000000000';
 
       await request(app.getHttpServer())
-        .get(`/prescriptions/${prescriptionId}/pdf`)
-        .set('Cookie', patientCookie)
-        .expect(403);
+        .get(`/prescriptions/${nonExistentId}/pdf`)
+        .set('Cookie', adminCookie)
+        .expect(404);
     });
   });
 

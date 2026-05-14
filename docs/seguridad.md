@@ -43,20 +43,20 @@
 
 | Accion | ADMIN | DOCTOR | PATIENT |
 |--------|:-----:|:------:|:-------:|
-| Login | ✅ | ✅ | ✅ |
-| Ver propio perfil | ✅ | ✅ | ✅ |
-| Crear usuario | ✅ | ❌ | ❌ |
-| Listar usuarios | ✅ | ❌ | ❌ |
-| Listar pacientes | ✅ | ✅ | ❌ |
-| Listar doctores | ✅ | ❌ | ❌ |
-| Ver detalle usuario | ✅ | ✅ | ❌ |
-| Crear prescripcion | ❌ | ✅ | ❌ |
-| Listar propias | ✅ | las que autoro | las que recibio |
-| Detalle prescripcion | ✅ | si es autor | si es dueno |
-| Marcar consumida | ❌ | ❌ | ✅ owner |
-| Descargar PDF | ✅ | si autor | si dueno |
-| Listar todas prescripciones | ✅ | ❌ | ❌ |
-| Ver metricas | ✅ | ❌ | ❌ |
+| Login | OK | OK | OK |
+| Ver propio perfil | OK | OK | OK |
+| Crear usuario | OK | NO | NO |
+| Listar usuarios | OK | NO | NO |
+| Listar pacientes | OK | OK | NO |
+| Listar doctores | OK | NO | NO |
+| Ver detalle usuario | OK | OK | NO |
+| Crear prescripcion | NO | OK | NO |
+| Listar propias | OK | las que autoro | las que recibio |
+| Detalle prescripcion | OK | si es autor | si es dueno |
+| Marcar consumida | NO | NO | OK owner |
+| Descargar PDF | OK | si autor | si dueno |
+| Listar todas prescripciones | OK | NO | NO |
+| Ver metricas | OK | NO | NO |
 
 ### 2.2 Cadena de Guards
 
@@ -145,13 +145,13 @@ Implementados via Helmet + custom middleware en `src/main.ts`.
 
 | Categoria | Estado | Implementacion |
 |-----------|--------|----------------|
-| A01 Broken Access Control | ✅ | RolesGuard + IDOR checks en servicios |
-| A02 Cryptographic Failures | ✅ | bcrypt, secretos JWT firmados |
-| A03 Injection | ✅ | Prisma parametrizadas + ValidationPipe |
-| A04 Insecure Design | ✅ | Matriz RBAC + ownership checks |
-| A05 Security Misconfiguration | ✅ | Headers OK + CORS configurado |
-| A06 Vulnerable Components | ✅ | npm audit en CI |
-| A07 Auth Failures | ✅ | JWT corta vida + cookie HttpOnly |
-| A08 Data Integrity | ✅ | Prisma transacciones |
-| A09 Logging Failures | ✅ | Interceptor existe, logs disponibles |
+| A01 Broken Access Control | OK | RolesGuard + IDOR checks en servicios |
+| A02 Cryptographic Failures | OK | bcrypt, secretos JWT firmados |
+| A03 Injection | OK | Prisma parametrizadas + ValidationPipe |
+| A04 Insecure Design | OK | Matriz RBAC + ownership checks |
+| A05 Security Misconfiguration | OK | Headers OK + CORS configurado |
+| A06 Vulnerable Components | OK | npm audit en CI |
+| A07 Auth Failures | OK | JWT corta vida + cookie HttpOnly |
+| A08 Data Integrity | OK | Prisma transacciones |
+| A09 Logging Failures | OK | Interceptor existe, logs disponibles |
 | A10 SSRF | N/A | No hay file upload |

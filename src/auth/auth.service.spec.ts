@@ -199,7 +199,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw UnauthorizedException for an invalid TTL format', async () => {
+    it('should throw Error for an invalid TTL format', async () => {
       configService.getOrThrow.mockImplementation((key: string) => {
         if (key === 'JWT_ACCESS_TTL') return 'forever';
         if (key === 'JWT_REFRESH_TTL') return '7d';
@@ -212,7 +212,7 @@ describe('AuthService', () => {
           email: 'u@clinic.com',
           role: Role.PATIENT,
         }),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(Error);
     });
 
     it('should parse h and s duration units', async () => {

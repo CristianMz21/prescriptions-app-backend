@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { parseDurationToSeconds } from '../common/utils/duration.utils';
 import {
   ApiTags,
   ApiOperation,
@@ -43,12 +44,19 @@ import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
+  private readonly accessCookieMaxAge: number;
+  private readonly refreshCookieMaxAge: number;
 
   constructor(
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    const accessTtl = this.configService.getOrThrow<string>('JWT_ACCESS_TTL');
+    const refreshTtl = this.configService.getOrThrow<string>('JWT_REFRESH_TTL');
+    this.accessCookieMaxAge = parseDurationToSeconds(accessTtl) * 1000;
+    this.refreshCookieMaxAge = parseDurationToSeconds(refreshTtl) * 1000;
+  }
 
   @Post('login')
   @ApiOperation({ summary: 'Authenticate user and obtain access tokens' })
@@ -81,7 +89,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000,
+      maxAge: this.accessCookieMaxAge,
     });
 
     response.cookie('refreshToken', authResult.refreshToken, {
@@ -89,7 +97,7 @@ export class AuthController {
       secure: isProduction,
       sameSite: 'strict',
       path: '/auth/refresh',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: this.refreshCookieMaxAge,
     });
 
     return {
@@ -128,7 +136,7 @@ export class AuthController {
         httpOnly: true,
         secure: isProduction,
         sameSite: 'strict',
-        maxAge: 15 * 60 * 1000,
+        maxAge: this.accessCookieMaxAge,
       });
 
       return { message: 'Token refreshed' };

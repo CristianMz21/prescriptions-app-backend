@@ -1,82 +1,92 @@
-%%{init: {"theme": "base", "themeVariables": {"fontSize": "16px"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px"}}}%%
 graph LR
-    subgraph RBAC["MATRIZ RBAC — Permisos por Rol"]
+    subgraph RBAC["MATRIZ RBAC - Permisos por Rol"]
         direction TB
 
-        header1["Acción / Ruta"]
-        header2["👑 Admin"]
-        header3["👨‍⚕️ Doctor"]
-        header4["👤 Patient"]
+        header1["Accion / Ruta"]
+        header2["Admin"]
+        header3["Doctor"]
+        header4["Patient"]
 
-        header1 --> |"AUTH"| A1["POST /auth/login"]
-        header2 --> A2["✅"]
-        header3 --> A3["✅"]
-        header4 --> A4["✅"]
+        header1 --> AUTH1["POST /auth/login"]
+        header2 --> AUTH1A["OK"]
+        header3 --> AUTH1B["OK"]
+        header4 --> AUTH1C["OK"]
 
-        header1 --> |"AUTH"| B1["GET /auth/me"]
-        header2 --> B2["✅"]
-        header3 --> B3["✅"]
-        header4 --> B4["✅"]
+        header1 --> AUTH2["POST /auth/refresh"]
+        header2 --> AUTH2A["OK"]
+        header3 --> AUTH2B["OK"]
+        header4 --> AUTH2C["OK"]
 
-        header1 --> |"AUTH"| C1["POST /auth/refresh"]
-        header2 --> C2["✅"]
-        header3 --> C3["✅"]
-        header4 --> C4["✅"]
+        header1 --> AUTH3["POST /auth/logout"]
+        header2 --> AUTH3A["OK"]
+        header3 --> AUTH3B["OK"]
+        header4 --> AUTH3C["OK"]
 
-        header1 --> |"USERS"| D1["POST /users"]
-        header2 --> D2["✅"]
-        header3 --> D3["❌ 403"]
-        header4 --> D4["❌ 403"]
+        header1 --> AUTH4["GET /auth/profile"]
+        header2 --> AUTH4A["OK"]
+        header3 --> AUTH4B["OK"]
+        header4 --> AUTH4C["OK"]
 
-        header1 --> |"PATIENTS"| E1["GET /patients"]
-        header2 --> E2["✅"]
-        header3 --> E3["✅"]
-        header4 --> E4["❌ 403"]
+        header1 --> USR1["POST /users"]
+        header2 --> USR1A["OK"]
+        header3 --> USR1B["NO 403"]
+        header4 --> USR1C["NO 403"]
 
-        header1 --> |"PATIENTS"| F1["GET /patients/:id"]
-        header2 --> F2["✅"]
-        header3 --> F3["✅"]
-        header4 --> F4["❌ 403"]
+        header1 --> USR2["GET /users"]
+        header2 --> USR2A["OK"]
+        header3 --> USR2B["NO 403"]
+        header4 --> USR2C["NO 403"]
 
-        header1 --> |"DOCTORS"| G1["GET /doctors"]
-        header2 --> G2["✅"]
-        header3 --> G3["❌ 403"]
-        header4 --> G4["❌ 403"]
+        header1 --> USR3["GET /users/patients"]
+        header2 --> USR3A["OK"]
+        header3 --> USR3B["OK"]
+        header4 --> USR3C["NO 403"]
 
-        header1 --> |"DOCTORS"| H1["GET /doctors/:id"]
-        header2 --> H2["✅"]
-        header3 --> H3["❌ 403"]
-        header4 --> H4["❌ 403"]
+        header1 --> USR4["GET /users/doctors"]
+        header2 --> USR4A["OK"]
+        header3 --> USR4B["NO 403"]
+        header4 --> USR4C["NO 403"]
 
-        header1 --> |"PRESCRIPTIONS"| I1["POST /prescriptions"]
-        header2 --> I2["❌ 403"]
-        header3 --> I3["✅"]
-        header4 --> I4["❌ 403"]
+        header1 --> USR5["GET /users/:id"]
+        header2 --> USR5A["OK"]
+        header3 --> USR5B["OK"]
+        header4 --> USR5C["NO 403"]
 
-        header1 --> |"PRESCRIPTIONS"| J1["GET /prescriptions"]
-        header2 --> J2["✅ (todas)"]
-        header3 --> J3["✅ (sus propias)"]
-        header4 --> J4["✅ (sus propias)"]
+        header1 --> PRE1["POST /prescriptions"]
+        header2 --> PRE1A["NO 403"]
+        header3 --> PRE1B["OK"]
+        header4 --> PRE1C["NO 403"]
 
-        header1 --> |"PRESCRIPTIONS"| K1["GET /prescriptions/:id"]
-        header2 --> K2["✅"]
-        header3 --> K3["✅ (si es autor)"]
-        header4 --> K4["✅ (si es dueño)"]
+        header1 --> PRE2["GET /prescriptions"]
+        header2 --> PRE2A["OK todas"]
+        header3 --> PRE2B["OK sus propias"]
+        header4 --> PRE2C["OK sus propias"]
 
-        header1 --> |"PRESCRIPTIONS"| L1["PATCH /prescriptions/:id/consume"]
-        header2 --> L2["❌ 403"]
-        header3 --> L3["❌ 403"]
-        header4 --> L4["✅ (dueño)"]
+        header1 --> PRE3["GET /prescriptions/:id"]
+        header2 --> PRE3A["OK"]
+        header3 --> PRE3B["OK si autor"]
+        header4 --> PRE3C["OK si dueno"]
 
-        header1 --> |"PRESCRIPTIONS"| M1["GET /prescriptions/:id/pdf"]
-        header2 --> M2["✅"]
-        header3 --> M3["✅ (si es autor)"]
-        header4 --> M4["✅ (si es dueño)"]
+        header1 --> PRE4["PATCH /prescriptions/:id/consume"]
+        header2 --> PRE4A["NO 403"]
+        header3 --> PRE4B["NO 403"]
+        header4 --> PRE4C["OK owner"]
 
-        header1 --> |"METRICS"| N1["GET /metrics"]
-        header2 --> N2["✅"]
-        header3 --> N3["❌ 403"]
-        header4 --> N4["❌ 403"]
+        header1 --> PRE5["GET /prescriptions/:id/pdf"]
+        header2 --> PRE5A["OK"]
+        header3 --> PRE5B["OK si autor"]
+        header4 --> PRE5C["OK si dueno"]
+
+        header1 --> ADM1["GET /admin/prescriptions"]
+        header2 --> ADM1A["OK"]
+        header3 --> ADM1B["NO 403"]
+        header4 --> ADM1C["NO 403"]
+
+        header1 --> ADM2["GET /admin/metrics"]
+        header2 --> ADM2A["OK"]
+        header3 --> ADM2B["NO 403"]
+        header4 --> ADM2C["NO 403"]
     end
 
     style header1 fill:#1e1e1e,stroke:#ff6b6b,color:#fff,font-weight:bold
@@ -84,29 +94,31 @@ graph LR
     style header3 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
     style header4 fill:#1e1e1e,stroke:#4d96ff,color:#4d96ff
 
-    style A2,A3,A4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style A2,A3,A4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style B2,B3,B4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style C2,C3,C4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style D2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style D3,D4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
-    style E2,E3 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style E4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
-    style F2,F3 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style F4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
-    style G2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style G3,G4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
-    style H2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style H3,H4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
-    style I3 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style I2,I4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
-    style J2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style J3,J4 fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
-    style K2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style K3,K4 fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
-    style L4 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style L2,L3 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
-    style M2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style M3,M4 fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
-    style N2 fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
-    style N3,N4 fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style AUTH1A,AUTH1B,AUTH1C fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style AUTH2A,AUTH2B,AUTH2C fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style AUTH3A,AUTH3B,AUTH3C fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style AUTH4A,AUTH4B,AUTH4C fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style USR1A fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style USR1B,USR1C fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style USR2A fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style USR2B,USR2C fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style USR3A,USR3B fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style USR3C fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style USR4A fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style USR4B,USR4C fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style USR5A,USR5B fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style USR5C fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style PRE1B fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style PRE1A,PRE1C fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style PRE2A fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style PRE2B,PRE2C fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
+    style PRE3A fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style PRE3B,PRE3C fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
+    style PRE4C fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style PRE4A,PRE4B fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style PRE5A fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style PRE5B,PRE5C fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
+    style ADM1A fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style ADM1B,ADM1C fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
+    style ADM2A fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
+    style ADM2B,ADM2C fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b

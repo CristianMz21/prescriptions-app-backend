@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { launch, Browser } from 'puppeteer';
 import { compile } from 'handlebars';
 import { toDataURL } from 'qrcode';
@@ -22,11 +23,14 @@ export interface PdfPrescriptionData {
   doctor: {
     email: string;
   };
+  qrCodeUrl?: string;
 }
 
 @Injectable()
 export class PdfService {
   private readonly logger = new Logger(PdfService.name);
+
+  constructor(private readonly configService: ConfigService) {}
 
   async generatePrescriptionPdf(
     prescription: PdfPrescriptionData,
@@ -34,7 +38,16 @@ export class PdfService {
     let browser: Browser | null = null;
 
     try {
-      const qrCodeDataUrl = await toDataURL(prescription.id, {
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      const appOrigin = this.configService.get<string>('APP_ORIGIN');
+      const qrBaseUrl = frontendUrl ?? appOrigin;
+      const qrData =
+        prescription.qrCodeUrl ??
+        (qrBaseUrl
+          ? `${qrBaseUrl}/patient/prescriptions/${prescription.id}`
+          : `/patient/prescriptions/${prescription.id}`);
+
+      const qrCodeDataUrl = await toDataURL(qrData, {
         errorCorrectionLevel: 'H',
         type: 'image/png',
         margin: 1,

@@ -1,62 +1,52 @@
 %%{init: {"theme": "base", "themeVariables": {"fontSize": "18px"}}}%%
 sequenceDiagram
-    participant C as 👤 Cliente
-    participant AC as 🎮 AuthController
-    participant AS as 🔐 AuthService
-    participant PR as 🗄️ PrismaService
-    participant JWT as 🏷️ JwtService
-    participant DB as 🐘 PostgreSQL
+    participant C as Client
+    participant AC as AuthController
+    participant AS as AuthService
+    participant PR as PrismaService
+    participant JWT as JwtService
+    participant DB as PostgreSQL
 
     Note over C,DB: FLUJO DE LOGIN
 
     C->>AC: POST /auth/login {email, password}
     AC->>AS: login(dto)
-    AS->>PR: user.findUnique(email)
-    PR->>DB: SELECT * FROM user WHERE email=?
+    AS->>PR: user.findUnique({where: {email}})
+    PR->>DB: SELECT * FROM "User" WHERE email=?
     DB-->>PR: User | null
     PR-->>AS: User
     alt Usuario no existe
-        AS-->>C: 401 "Credenciales inválidas"
+        AS-->>C: 401 Credenciales invalidas
     end
     AS->>AS: bcrypt.compare(password, hash)
-    alt Contraseña incorrecta
-        AS-->>C: 401 "Credenciales inválidas"
+    alt Contrasena incorrecta
+        AS-->>C: 401 Credenciales invalidas
     end
-    AS->>JWT: sign(payload, {expiresIn: 15m})
+    AS->>JWT: sign(accessPayload, {expiresIn: 15m})
     JWT-->>AS: accessToken
-    AS->>AS: crypto.randomBytes(64)
-    AS->>AS: sha256(refreshToken) → tokenHash
-    AS->>PR: refreshToken.create({tokenHash, userId, expiresAt})
-    PR->>DB: INSERT INTO refresh_token
-    DB-->>PR: RefreshToken
-    PR-->>AS: RefreshToken
-    AS-->>C: {accessToken, refreshToken, user}
+    AS->>JWT: sign(refreshPayload, {expiresIn: 7d})
+    JWT-->>AS: refreshToken
+    AS-->>AC: user + Set-Cookie accessToken + refreshToken
+    AC-->>C: 200 {user}
 
     Note over C,DB: FLUJO DE REFRESH
 
-    C->>AC: POST /auth/refresh {refreshToken}
-    AC->>AS: refresh(refreshToken)
-    AS->>AS: sha256(refreshToken)
-    AS->>PR: refreshToken.findFirst(hash, not revoked, not expired)
-    PR->>DB: SELECT * FROM refresh_token WHERE ...
-    DB-->>PR: RefreshToken | null
-    alt Token inválido o expirado
-        AS-->>C: 401 "Refresh token inválido"
+    C->>AC: POST /auth/refresh
+    Note over AC: Cookie refreshToken=<token>
+    AC->>AS: refresh(refreshToken from cookie)
+    AS->>JWT: verify(refreshToken, JWT_REFRESH_SECRET)
+    alt Token invalido o expirado
+        AS-->>C: 401 Refresh token invalido
     end
-    AS->>PR: refreshToken.update(revokedAt: now)
-    PR->>DB: UPDATE refresh_token SET revokedAt=now
-    AS->>JWT: sign(new payload)
+    AS->>JWT: sign(new accessPayload, {expiresIn: 15m})
     JWT-->>AS: newAccessToken
-    AS->>AS: newRefreshToken + sha256 hash
-    AS->>PR: refreshToken.create(newHash)
-    PR->>DB: INSERT new_refresh_token
-    AS-->>C: {newAccessToken, newRefreshToken}
+    AS-->>AC: user + Set-Cookie new accessToken
+    AC-->>C: 200 {user}
 
     Note over C,DB: FLUJO DE LOGOUT
 
-    C->>AC: POST /auth/logout {refreshToken} + JWT
-    AC->>AS: logout(refreshToken)
-    AS->>AS: sha256(refreshToken)
-    AS->>PR: refreshToken.updateMany(revokedAt: now)
-    PR->>DB: UPDATE refresh_token SET revokedAt=now WHERE hash=?
-    AS-->>C: "Logged out successfully"
+    C->>AC: POST /auth/logout
+    Note over AC: Cookie accessToken=<token>
+    AC->>AS: logout()
+    AS-->>AC: Clear cookies
+    AC-->>C: 200 {message: Logged out successfully}

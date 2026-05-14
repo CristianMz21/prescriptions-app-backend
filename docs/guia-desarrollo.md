@@ -159,10 +159,10 @@ await request(app.getHttpServer())
 ### No usar process.env fuera de ConfigModule
 
 ```typescript
-// ❌ INCORRECTO
+// NO INCORRECTO
 const secret = process.env.JWT_ACCESS_SECRET;
 
-// ✅ CORRECTO
+// OK CORRECTO
 const secret = this.configService.get('JWT_ACCESS_SECRET');
 ```
 

@@ -42,9 +42,9 @@ Sistema de gestión de prescripciones médicas. Backend API construida con **Nes
 
 | Módulo | Estado |
 |--------|--------|
-| Auth (login/refresh/logout) | ✅ Implementado |
-| Users (CRUD + listados) | ✅ Implementado |
-| Prescriptions (CRUD + consume + PDF) | ✅ Implementado |
-| Admin (métricas + listado total) | ✅ Implementado |
-| Wiki + GitHub Pages | ✅ Implementado |
-| E2E Tests | ✅ Implementado |
+| Auth (login/refresh/logout) |  Implementado |
+| Users (CRUD + listados) |  Implementado |
+| Prescriptions (CRUD + consume + PDF) |  Implementado |
+| Admin (métricas + listado total) |  Implementado |
+| Wiki + GitHub Pages |  Implementado |
+| E2E Tests |  Implementado |

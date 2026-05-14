@@ -1,67 +1,67 @@
 %%{init: {"theme": "base", "themeVariables": {"fontSize": "18px"}}}%%
 sequenceDiagram
-    participant D as 👨‍⚕️ Doctor
-    participant PC as 🎮 PrescriptionsController
-    participant PS as 💊 PrescriptionsService
-    participant PR as 🗄️ PrismaService
-    participant DB as 🐘 PostgreSQL
+    participant D as Doctor
+    participant PC as PrescriptionsController
+    participant PS as PrescriptionsService
+    participant PR as PrismaService
+    participant DB as PostgreSQL
 
-    Note over D,DB: FLUJO: CREAR PRESCRIPCIÓN
+    Note over D,DB: FLUJO CREAR PRESCRIPCION
 
-    D->>PC: POST /prescriptions {patientId?, patientEmail, items, notes}
-    PC->>PS: create(dto, authorId from JWT)
+    D->>PC: POST /prescriptions {patientId or patientEmail, items, notes}
+    PC->>PS: create(dto, doctorId from JWT)
     PS->>PS: Validar patientId o patientEmail
 
     alt patientId proporcionado
-        PS->>PR: patient.findUnique(patientId)
-        PR->>DB: SELECT * FROM patient WHERE id=?
+        PS->>PR: user.findFirst where id=patientId AND role=PATIENT
+        PR->>DB: SELECT * FROM "User" WHERE id=? AND role=PATIENT
     else patientEmail proporcionado
-        PS->>PR: patient.findFirst(where: user.email = patientEmail)
-        PR->>DB: SELECT p.* FROM patient p JOIN user u ON p.userId = u.id WHERE u.email=?
+        PS->>PR: user.findFirst where email=patientEmail AND role=PATIENT
+        PR->>DB: SELECT * FROM "User" WHERE email=? AND role=PATIENT
     end
 
-    DB-->>PR: Patient | null
-    PR-->>PS: Patient
+    DB-->>PR: User | null
+    PR-->>PS: User
 
     alt Paciente no encontrado
-        PS-->>D: 404 "Paciente no encontrado"
+        PS-->>D: 404 Paciente no encontrado
     end
 
-    PS->>PS: Generar código único: PRESC-{timestamp36}
-    PS->>PR: prescription.create({code, items, patientId, authorId})
-    PR->>DB: INSERT INTO prescription + INSERT INTO prescription_item (batch)
-    DB-->>PR: Prescription + PrescriptionItems
-    PR-->>PS: Prescription con items cargados
-    PS-->>D: Prescription (201)
+    PS->>PS: Generar codigo unico PRESC-XXXXXX
+    PS->>PR: prescription.create with items as JSON
+    PR->>DB: INSERT INTO "Prescription" items=JSON items
+    DB-->>PR: Prescription
+    PR-->>PS: Prescription
+    PS-->>D: Prescription 201
 
-    Note over D,DB: FLUJO: VER PRESCRIPCIONES (patient)
+    Note over D,DB: FLUJO VER PRESCRIPCIONES patient
 
-    participant Pt as 👤 Patient
-    participant PtC as 🎮 PrescriptionsController
-    participant PtS as 💊 PrescriptionsService
+    participant Pt as Patient
+    participant PtC as PrescriptionsController
+    participant PtS as PrescriptionsService
 
-    Pt->>PtC: GET /prescriptions (JWT con rol=patient)
-    PtC->>PtS: findAll(pagination, userId, "patient", null, patientId)
-    PtS->>PR: prescription.findMany({ where: { patientId: patientId } })
-    PR->>DB: SELECT * FROM prescription WHERE patientId=? LIMIT ? OFFSET ?
-    DB-->>PR: Prescription[]
-    PR-->>PtS: Prescription[]
-    PtS-->>PtC: {data: [...], meta: {page, limit, total, totalPages}}
+    Pt->>PtC: GET /prescriptions JWT role=PATIENT
+    PtC->>PtS: findAll pagination currentUser
+    PtS->>PR: prescription.findMany where patientId=currentUser.id
+    PR->>DB: SELECT * FROM "Prescription" WHERE patientId=? LIMIT ? OFFSET ?
+    DB-->>PR: Prescription list
+    PR-->>PtS: Prescription list
+    PtS-->>PtC: data and meta pagination
     PtC-->>Pt: {data: [...], meta: {...}}
 
-    Note over D,DB: FLUJO: CONSUMIR PRESCRIPCIÓN
+    Note over D,DB: FLUJO CONSUMIR PRESCRIPCION
 
     Pt->>PtC: PATCH /prescriptions/:id/consume
-    PtC->>PtS: consume(prescriptionId, patientId)
-    PtS->>PR: prescription.findUnique(id)
-    PR->>DB: SELECT * FROM prescription WHERE id=?
-    DB-->>PR: Prescription
-    alt No es el dueño
-        PtS-->>Pt: 403 "Solo el paciente puede marcar como consumida"
+    PtC->>PtS: consume prescriptionId currentUser.id
+    PtS->>PR: prescription.findFirst where id=prescriptionId AND patientId=currentUser.id
+    PR->>DB: SELECT * FROM "Prescription" WHERE id=? AND patientId=?
+    DB-->>PR: Prescription | null
+    alt IDOR - no es el dueno
+        PtS-->>Pt: 403 No tenes acceso a esta prescripcion
     end
     alt Ya consumida
-        PtS-->>Pt: 400 "Ya está marcada como consumida"
+        PtS-->>Pt: 400 Ya esta marcada como consumida
     end
-    PtS->>PR: prescription.update(status: "consumed", consumedAt: now)
-    PR->>DB: UPDATE prescription SET status='consumed', consumedAt=now
-    PtS-->>Pt: Prescription actualizada
+    PtS->>PR: prescription.update status=CONSUMED consumedAt=now
+    PR->>DB: UPDATE "Prescription" SET status=CONSUMED consumedAt=now
+    PtS-->>Pt: Prescription actualizada 200

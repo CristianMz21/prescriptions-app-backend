@@ -1,35 +1,34 @@
 %%{init: {"theme": "base", "themeVariables": {"fontSize": "18px"}}}%%
 graph TD
     subgraph Clients
-        A["👨‍⚕️ Doctor App"]
-        B["👤 Patient App"]
-        C["🔧 Admin Dashboard"]
+        A["Doctor App"]
+        B["Patient App"]
+        C["Admin Dashboard"]
     end
 
     subgraph NestJS["NestJS Application"]
-        D["🌐 Global Middleware"]
-        E["🔒 JwtAuthGuard + RolesGuard"]
-        F["✅ ValidationPipe"]
-        G["❌ HttpExceptionFilter"]
+        D["Global Middleware"]
+        E["JwtAuthGuard + RolesGuard"]
+        F["ValidationPipe"]
+        G["HttpExceptionFilter"]
 
-        subgraph Modules["Módulos"]
-            H["🔑 AuthModule"]
-            I["👥 UsersModule"]
-            J["👤 PatientsModule"]
-            K["👨‍⚕️ DoctorsModule"]
-            L["💊 PrescriptionsModule"]
-            M["📊 MetricsModule"]
+        subgraph Modules["Modules"]
+            H["AuthModule"]
+            I["UsersModule"]
+            J["PrescriptionsModule"]
+            K["AdminModule"]
+            L["PDFModule"]
         end
     end
 
     subgraph Prisma["Prisma + PostgreSQL"]
-        N["🗄️ PrismaService"]
-        O["🐘 PostgreSQL"]
+        N["PrismaService"]
+        O["PostgreSQL"]
     end
 
-    A -->|"HTTPS JWT Bearer"| D
-    B -->|"HTTPS JWT Bearer"| D
-    C -->|"HTTPS JWT Bearer"| D
+    A -->|"HTTPS JWT HttpOnly Cookie"| D
+    B -->|"HTTPS JWT HttpOnly Cookie"| D
+    C -->|"HTTPS JWT HttpOnly Cookie"| D
 
     D --> F
     F --> E
@@ -37,15 +36,12 @@ graph TD
     E --> I
     E --> J
     E --> K
-    E --> L
-    E --> M
 
     H --> N
     I --> N
     J --> N
     K --> N
     L --> N
-    M --> N
     N --> O
 
     G -.->|"Error 4xx/5xx"| A
@@ -54,5 +50,5 @@ graph TD
 
     class D,G fill:#2d2d2d,stroke:#ff6b6b,color:#fff
     class E,F fill:#2d2d2d,stroke:#ffd93d,color:#fff
-    class H,I,J,K,L,M fill:#2d2d2d,stroke:#6bcb77,color:#fff
+    class H,I,J,K,L fill:#2d2d2d,stroke:#6bcb77,color:#fff
     class N,O fill:#2d2d2d,stroke:#4d96ff,color:#fff

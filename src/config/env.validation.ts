@@ -14,11 +14,6 @@ enum Environment {
   Test = 'test',
 }
 
-/**
- * Strict Environment Validation Schema.
- * Guarantees that the application will fast-fail on startup
- * if any required environment variable is missing or malformed.
- */
 class EnvironmentVariables {
   @IsEnum(Environment)
   @IsOptional()
@@ -43,10 +38,21 @@ class EnvironmentVariables {
   JWT_REFRESH_TTL!: string;
 
   @IsUrl({ require_tld: false })
-  FRONTEND_URL!: string;
+  @IsOptional()
+  APP_ORIGIN?: string;
+
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  FRONTEND_URL?: string;
 }
 
 export function validate(config: Record<string, unknown>) {
+  if (!config['APP_ORIGIN'] && !config['FRONTEND_URL']) {
+    throw new Error(
+      'Environment validation failed: At least one of APP_ORIGIN or FRONTEND_URL must be provided',
+    );
+  }
+
   const stringToNumberConfig: Record<string, unknown> = { ...config };
   if (stringToNumberConfig['PORT'] !== undefined) {
     stringToNumberConfig['PORT'] = Number(stringToNumberConfig['PORT']);
@@ -67,5 +73,6 @@ export function validate(config: Record<string, unknown>) {
   if (errors.length > 0) {
     throw new Error(`Environment validation failed: ${errors.toString()}`);
   }
+
   return validatedConfig;
 }

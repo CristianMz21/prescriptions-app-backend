@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { parseDurationToSeconds } from '../common/utils/duration.utils';
 
 @Injectable()
 export class AuthService {
@@ -22,19 +23,6 @@ export class AuthService {
       throw new UnauthorizedException(`Invalid config value for ${key}`);
     }
     return value;
-  }
-
-  private parseDurationToSeconds(value: string): number {
-    const match = /^(\d+)([smhd])$/.exec(value.trim());
-    if (!match) {
-      throw new UnauthorizedException(`Invalid duration format: ${value}`);
-    }
-    const amount = Number(match[1]);
-    const unit = match[2];
-    if (unit === 's') return amount;
-    if (unit === 'm') return amount * 60;
-    if (unit === 'h') return amount * 60 * 60;
-    return amount * 60 * 60 * 24;
   }
 
   /**
@@ -63,10 +51,10 @@ export class AuthService {
     // Dynamically retrieve secrets and TTLs from the validated ConfigService
     const accessTokenSecret = this.getConfigString('JWT_ACCESS_SECRET');
     const refreshTokenSecret = this.getConfigString('JWT_REFRESH_SECRET');
-    const accessTtl = this.parseDurationToSeconds(
+    const accessTtl = parseDurationToSeconds(
       this.getConfigString('JWT_ACCESS_TTL'),
     );
-    const refreshTtl = this.parseDurationToSeconds(
+    const refreshTtl = parseDurationToSeconds(
       this.getConfigString('JWT_REFRESH_TTL'),
     );
 
@@ -105,7 +93,7 @@ export class AuthService {
       const user = await this.usersService.findById(payload.sub);
 
       const accessTokenSecret = this.getConfigString('JWT_ACCESS_SECRET');
-      const accessTtl = this.parseDurationToSeconds(
+      const accessTtl = parseDurationToSeconds(
         this.getConfigString('JWT_ACCESS_TTL'),
       );
 
