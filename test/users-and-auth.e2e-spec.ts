@@ -6,7 +6,7 @@ import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { Role } from '@prisma/client';
-import { TEST_PASSWORD } from './test-credentials';
+import { TEST_PASSWORD, INVALID_TEST_PASSWORD } from './test-credentials';
 
 const extractAccessCookie = (
   setCookieHeader: string | string[] | undefined,
@@ -94,7 +94,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
     it('should return 401 with invalid credentials', async () => {
       const _res = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({ email: 'admin@clinic.com', password: 'wrongpassword' })
+        .send({ email: 'admin@clinic.com', password: INVALID_TEST_PASSWORD })
         .expect(401);
       expect(_res.status).toBe(401);
     });

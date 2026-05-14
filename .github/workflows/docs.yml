@@ -9,10 +9,7 @@ on:
       - 'openapi.json'
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# Per-job permissions (Sonar S8264).
 
 concurrency:
   group: 'pages'
@@ -31,12 +28,15 @@ jobs:
       contains(join(github.event.head_commit.added, ','), 'openapi.json') ||
       contains(join(github.event.head_commit.modified, ','), 'openapi.json')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      # Pin third-party actions to full commit SHAs (Sonar S7637).
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.12'
 
@@ -52,10 +52,10 @@ jobs:
         run: mkdocs build --strict --verbose
 
       - name: Setup Pages
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: site/
 
@@ -64,8 +64,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
