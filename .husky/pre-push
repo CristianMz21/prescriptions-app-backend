@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+# Regenerate openapi.json + Postman collection and fail if they drift.
+# Single source of truth: NestJS @Api* / class-validator decorators.
+echo "[pre-push] Refreshing OpenAPI + Postman from decorators..."
+pnpm api:refresh
+
+if ! git diff --quiet -- openapi.json postman/; then
+  echo ""
+  echo "[pre-push] ❌ openapi.json or postman/ are out of sync with the source."
+  echo "           Run 'pnpm api:refresh' locally and commit the regenerated artifacts."
+  git --no-pager diff --stat -- openapi.json postman/
+  exit 1
+fi

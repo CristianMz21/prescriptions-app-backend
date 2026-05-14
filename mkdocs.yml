@@ -44,6 +44,8 @@ nav:
   - Arquitectura: arquitectura.md
   - Modulos: modulos.md
   - Contratos API: contratos-api.md
+  - API Reference (live): api-reference.md
+  - Workflow del contrato: api-contract-workflow.md
   - Seguridad: seguridad.md
   - Despliegue: despliegue.md
   - Guia de Desarrollo: guia-desarrollo.md

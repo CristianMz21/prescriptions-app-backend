@@ -5,6 +5,7 @@ import { EmailService } from '../email/email.service';
 import { Role, PrescriptionStatus } from '@prisma/client';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
   UnprocessableEntityException,
@@ -383,7 +384,7 @@ describe('PrescriptionsService', () => {
       });
       await expect(
         service.markAsConsumed('patient-user-id', '1'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(ConflictException);
       expect(prismaService.$transaction).not.toHaveBeenCalled();
     });
 

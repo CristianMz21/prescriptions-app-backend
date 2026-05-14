@@ -190,12 +190,18 @@ export class UsersService {
     data: UserEntity[];
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
-    const { page = 1, limit = 10 } = query;
+    const { page = 1, limit = 10, q } = query;
+    const normalizedQuery = q?.trim();
     const skip = (page - 1) * limit;
+
+    const emailFilter =
+      normalizedQuery && normalizedQuery.length > 0
+        ? { email: { contains: normalizedQuery, mode: 'insensitive' as const } }
+        : {};
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
-        where,
+        where: { ...where, ...emailFilter },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -212,7 +218,7 @@ export class UsersService {
           },
         },
       }),
-      this.prisma.user.count({ where }),
+      this.prisma.user.count({ where: { ...where, ...emailFilter } }),
     ]);
 
     return {

@@ -1,11 +1,19 @@
 /* Copyright (c) 2026. All rights reserved. */
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  Logger,
+  ValidationPipe,
+} from '@nestjs/common';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
+import {
+  buildSwaggerConfig,
+  swaggerDocumentOptions,
+} from './common/swagger/swagger.config';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -81,22 +89,18 @@ void (async () => {
 
     app.useGlobalFilters(new HttpExceptionFilter());
 
-    const port = configService.get<number>('PORT') ?? DEFAULT_PORT;
-    const config = new DocumentBuilder()
-      .setTitle('Prescription Management API')
-      .setDescription(
-        'API documentation for the MVP Prescription Management System.',
-      )
-      .setVersion('1.0')
-      .addServer(`http://localhost:${port}`, 'Local development server')
-      .addCookieAuth('accessToken', {
-        type: 'apiKey',
-        in: 'cookie',
-        name: 'accessToken',
-      })
-      .build();
+    app.useGlobalInterceptors(
+      new ClassSerializerInterceptor(app.get(Reflector)),
+    );
 
-    const document = SwaggerModule.createDocument(app, config);
+    const port = configService.get<number>('PORT') ?? DEFAULT_PORT;
+    const config = buildSwaggerConfig(port);
+
+    const document = SwaggerModule.createDocument(
+      app,
+      config,
+      swaggerDocumentOptions,
+    );
     SwaggerModule.setup('docs', app, document, {
       swaggerOptions: {
         withCredentials: true,

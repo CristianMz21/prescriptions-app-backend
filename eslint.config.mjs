@@ -43,7 +43,28 @@ export default tseslint.config(
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': 'off'
-    }
-  }
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+  {
+    // Strict typing guards for controllers — the OpenAPI source of truth.
+    files: ['src/**/*.controller.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "TSAsExpression > TSAsExpression[typeAnnotation.type='TSUnknownKeyword']",
+          message:
+            "Avoid 'as unknown as T' double-casts in controllers; type the upstream service or add a typed mapper.",
+        },
+        {
+          selector:
+            "MethodDefinition[kind='method']:not([returnType]) > FunctionExpression:not([returnType])",
+          message:
+            'Controller methods must declare an explicit return type that matches the documented @ApiResponse DTO.',
+        },
+      ],
+    },
+  },
 );

@@ -772,7 +772,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .patch(`/prescriptions/${rxId}/consume`)
         .set('Cookie', consumerCookie)
         .send({})
-        .expect(400);
+        .expect(409);
       expect(reConsume.body.message).toMatch(/already consumed/i);
     });
   });

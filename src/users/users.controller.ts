@@ -8,8 +8,6 @@ import {
   Post,
   Query,
   UseGuards,
-  UseInterceptors,
-  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import {
@@ -17,11 +15,6 @@ import {
   ApiOperation,
   ApiOkResponse,
   ApiCreatedResponse,
-  ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
-  ApiForbiddenResponse,
-  ApiNotFoundResponse,
-  ApiConflictResponse,
   ApiCookieAuth,
   ApiParam,
   ApiExtraModels,
@@ -39,10 +32,9 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
 import { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
-import { ErrorResponseDto } from '../common/dto/error-response.dto';
 import { apiPaginatedOkResponse } from '../common/swagger/api-paginated-response.decorator';
+import { ApiStandardErrors } from '../common/swagger/api-standard-errors.decorator';
 import {
-  UNAUTHORIZED_DESC,
   FORBIDDEN_ADMIN_DESC,
   FORBIDDEN_ADMIN_OR_DOCTOR_DESC,
 } from '../common/swagger/swagger-descriptions';
@@ -51,7 +43,6 @@ import {
 @ApiCookieAuth('accessToken')
 @ApiExtraModels(PaginatedResultDto, PaginationMetaDto, UserEntity)
 @UseGuards(JwtAuthGuard, RolesGuard)
-@UseInterceptors(ClassSerializerInterceptor)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -63,23 +54,15 @@ export class UsersController {
     type: UserResponseDto,
     description: 'User created successfully',
   })
-  @ApiBadRequestResponse({
-    type: ErrorResponseDto,
-    description: 'Bad Request — validation failed',
+  @ApiStandardErrors({
+    400: 'Bad Request — validation failed',
+    401: true,
+    403: FORBIDDEN_ADMIN_DESC,
+    409: 'Conflict — user with this email already exists',
   })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
-  })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description: FORBIDDEN_ADMIN_DESC,
-  })
-  @ApiConflictResponse({
-    type: ErrorResponseDto,
-    description: 'Conflict — user with this email already exists',
-  })
-  create(@Body() createUserDto: CreateUserDto) {
+  create(
+    @Body() createUserDto: CreateUserDto,
+  ): ReturnType<UsersService['create']> {
     return this.usersService.create(createUserDto);
   }
 
@@ -87,15 +70,10 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all users (Admin Only)' })
   @apiPaginatedOkResponse(UserEntity, 'Returns paginated list of all users')
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
-  })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description: FORBIDDEN_ADMIN_DESC,
-  })
-  findAll(@Query() query: UserListQueryDto) {
+  @ApiStandardErrors({ 401: true, 403: FORBIDDEN_ADMIN_DESC })
+  findAll(
+    @Query() query: UserListQueryDto,
+  ): ReturnType<UsersService['findAll']> {
     return this.usersService.findAll(query);
   }
 
@@ -103,15 +81,10 @@ export class UsersController {
   @Roles(Role.ADMIN, Role.DOCTOR)
   @ApiOperation({ summary: 'List all patients (Admin/Doctor Only)' })
   @apiPaginatedOkResponse(UserEntity, 'Returns paginated list of all patients')
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
-  })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description: FORBIDDEN_ADMIN_OR_DOCTOR_DESC,
-  })
-  findAllPatients(@Query() query: UserListQueryDto) {
+  @ApiStandardErrors({ 401: true, 403: FORBIDDEN_ADMIN_OR_DOCTOR_DESC })
+  findAllPatients(
+    @Query() query: UserListQueryDto,
+  ): ReturnType<UsersService['findAllByRole']> {
     return this.usersService.findAllByRole(Role.PATIENT, query);
   }
 
@@ -119,15 +92,10 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all doctors (Admin Only)' })
   @apiPaginatedOkResponse(UserEntity, 'Returns paginated list of all doctors')
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
-  })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description: FORBIDDEN_ADMIN_DESC,
-  })
-  findAllDoctors(@Query() query: UserListQueryDto) {
+  @ApiStandardErrors({ 401: true, 403: FORBIDDEN_ADMIN_DESC })
+  findAllDoctors(
+    @Query() query: UserListQueryDto,
+  ): ReturnType<UsersService['findAllByRole']> {
     return this.usersService.findAllByRole(Role.DOCTOR, query);
   }
 
@@ -139,13 +107,9 @@ export class UsersController {
     type: UserEntity,
     description: 'Theme preference updated; returns the refreshed user profile',
   })
-  @ApiBadRequestResponse({
-    type: ErrorResponseDto,
-    description: 'Bad Request — invalid themePreference value',
-  })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
+  @ApiStandardErrors({
+    400: 'Bad Request — invalid themePreference value',
+    401: true,
   })
   updateMyTheme(
     @CurrentUser() user: JwtPayload,
@@ -162,19 +126,12 @@ export class UsersController {
     type: UserResponseDto,
     description: 'Returns the user details',
   })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
+  @ApiStandardErrors({
+    401: true,
+    403: FORBIDDEN_ADMIN_OR_DOCTOR_DESC,
+    404: 'Not Found — user not found',
   })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description: FORBIDDEN_ADMIN_OR_DOCTOR_DESC,
-  })
-  @ApiNotFoundResponse({
-    type: ErrorResponseDto,
-    description: 'Not Found — user not found',
-  })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string): ReturnType<UsersService['findById']> {
     return this.usersService.findById(id);
   }
 }

@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -20,6 +21,24 @@ const isPrismaError = (
   err: unknown,
 ): err is Prisma.PrismaClientKnownRequestError =>
   err instanceof Error && 'code' in err;
+
+export const prescriptionWithRelationsInclude = {
+  author: {
+    include: {
+      user: { select: { id: true, email: true, role: true } },
+    },
+  },
+  patient: {
+    include: {
+      user: { select: { id: true, email: true, role: true } },
+    },
+  },
+  items: true,
+} satisfies Prisma.PrescriptionInclude;
+
+export type PrescriptionWithRelations = Prisma.PrescriptionGetPayload<{
+  include: typeof prescriptionWithRelationsInclude;
+}>;
 
 @Injectable()
 export class PrescriptionsService {
@@ -260,7 +279,10 @@ export class PrescriptionsService {
     return { exists: true, belongsToUser: false };
   }
 
-  async findOneById(id: string, user: JwtPayload): Promise<Prescription> {
+  async findOneById(
+    id: string,
+    user: JwtPayload,
+  ): Promise<PrescriptionWithRelations> {
     const { exists, belongsToUser } = await this.getOwnershipCheck(id, user);
     if (!exists) {
       throw new NotFoundException(
@@ -278,22 +300,16 @@ export class PrescriptionsService {
 
     const prescription = await this.prisma.prescription.findFirst({
       where,
-      include: {
-        author: {
-          include: {
-            user: { select: { id: true, email: true, role: true } },
-          },
-        },
-        patient: {
-          include: {
-            user: { select: { id: true, email: true, role: true } },
-          },
-        },
-        items: true,
-      },
+      include: prescriptionWithRelationsInclude,
     });
 
-    return prescription as Prescription;
+    if (!prescription) {
+      throw new NotFoundException(
+        'Prescription not found or you do not have permission to access it.',
+      );
+    }
+
+    return prescription;
   }
 
   async markAsConsumed(
@@ -323,7 +339,7 @@ export class PrescriptionsService {
     }
 
     if (raw.status === PrescriptionStatus.CONSUMED) {
-      throw new BadRequestException('Prescription already consumed');
+      throw new ConflictException('Prescription already consumed');
     }
 
     return this.prisma.$transaction(async tx => {

@@ -110,6 +110,19 @@ jobs:
       - name: Enforce OpenAPI/Postman drift protection
         run: git diff --exit-code -- openapi.json postman
 
+      - name: OpenAPI smoke contract
+        run: pnpm run test:openapi-contract
+
+      - name: OpenAPI breaking-change diff (vs main)
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'breaking-change')
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          git show origin/${{ github.base_ref }}:openapi.json > /tmp/openapi-base.json 2>/dev/null || {
+            echo "No openapi.json on base branch — skipping breaking diff."
+            exit 0
+          }
+          npx --yes oasdiff@latest breaking /tmp/openapi-base.json openapi.json --fail-on ERR
+
       - name: Start backend server
         run: |
           nohup node dist/src/main > server.log 2>&1 &

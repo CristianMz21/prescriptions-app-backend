@@ -8,8 +8,6 @@ import {
   UseGuards,
   UnauthorizedException,
   Req,
-  UseInterceptors,
-  ClassSerializerInterceptor,
   Logger,
   HttpCode,
   HttpStatus,
@@ -22,8 +20,6 @@ import {
   ApiOperation,
   ApiOkResponse,
   ApiCreatedResponse,
-  ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
   ApiCookieAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -31,12 +27,11 @@ import { UsersService } from '../users/users.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
-import { UserEntity } from '../users/entities/user.entity';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { LogoutResponseDto } from './dto/logout-response.dto';
 import { RefreshResponseDto } from './dto/refresh-response.dto';
 import { UserProfileResponseDto } from './dto/user-profile-response.dto';
-import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import { ApiStandardErrors } from '../common/swagger/api-standard-errors.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
 @ApiTags('Auth')
@@ -64,9 +59,9 @@ export class AuthController {
     type: LoginResponseDto,
     description: 'Login successful — access tokens set in cookies',
   })
-  @ApiBadRequestResponse({
-    type: ErrorResponseDto,
-    description: 'Bad Request — validation failed or invalid credentials',
+  @ApiStandardErrors({
+    400: 'Bad Request — validation failed or invalid credentials',
+    401: 'Unauthorized — invalid email or password',
   })
   async login(
     @Body() loginDto: LoginDto,
@@ -113,9 +108,8 @@ export class AuthController {
     type: RefreshResponseDto,
     description: 'Token refreshed — new access token set in cookie',
   })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: 'Unauthorized — refresh token missing or invalid',
+  @ApiStandardErrors({
+    401: 'Unauthorized — refresh token missing or invalid',
   })
   async refresh(
     @Req() request: Request,
@@ -156,10 +150,7 @@ export class AuthController {
     type: LogoutResponseDto,
     description: 'Logout successful — cookies cleared',
   })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
-  })
+  @ApiStandardErrors({ 401: true })
   logout(@Res({ passthrough: true }) response: Response): LogoutResponseDto {
     response.clearCookie('accessToken');
     response.clearCookie('refreshToken', { path: '/auth/refresh' });
@@ -167,18 +158,17 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(ClassSerializerInterceptor)
   @Get('profile')
   @ApiOperation({ summary: 'Get authenticated user profile' })
   @ApiOkResponse({
     type: UserProfileResponseDto,
     description: 'Returns the authenticated user profile',
   })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
-  })
-  async getProfile(@CurrentUser() user: JwtPayload): Promise<UserEntity> {
-    return this.usersService.findById(user.id);
+  @ApiStandardErrors({ 401: true })
+  async getProfile(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<UserProfileResponseDto> {
+    const entity = await this.usersService.findById(user.id);
+    return new UserProfileResponseDto(entity);
   }
 }

@@ -4,7 +4,7 @@
     "/": {
       "get": {
         "description": "Returns a static greeting string; useful for liveness probes and smoke checks.",
-        "operationId": "AppController_getHello",
+        "operationId": "App_getHello",
         "parameters": [],
         "responses": {
           "200": {
@@ -27,7 +27,7 @@
     },
     "/auth/login": {
       "post": {
-        "operationId": "AuthController_login",
+        "operationId": "Auth_login",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -59,6 +59,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized — invalid email or password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -74,7 +84,7 @@
     },
     "/auth/refresh": {
       "post": {
-        "operationId": "AuthController_refresh",
+        "operationId": "Auth_refresh",
         "parameters": [],
         "responses": {
           "200": {
@@ -111,7 +121,7 @@
     },
     "/auth/logout": {
       "post": {
-        "operationId": "AuthController_logout",
+        "operationId": "Auth_logout",
         "parameters": [],
         "responses": {
           "200": {
@@ -148,7 +158,7 @@
     },
     "/auth/profile": {
       "get": {
-        "operationId": "AuthController_getProfile",
+        "operationId": "Auth_getProfile",
         "parameters": [],
         "responses": {
           "200": {
@@ -185,7 +195,7 @@
     },
     "/users": {
       "post": {
-        "operationId": "UsersController_create",
+        "operationId": "Users_create",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -260,7 +270,7 @@
         ]
       },
       "get": {
-        "operationId": "UsersController_findAll",
+        "operationId": "Users_findAll",
         "parameters": [
           {
             "name": "page",
@@ -284,6 +294,16 @@
               "default": 10,
               "example": 10,
               "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive search by user email.",
+            "schema": {
+              "example": "patient@test.com",
+              "type": "string"
             }
           }
         ],
@@ -349,7 +369,7 @@
     },
     "/users/patients": {
       "get": {
-        "operationId": "UsersController_findAllPatients",
+        "operationId": "Users_findAllPatients",
         "parameters": [
           {
             "name": "page",
@@ -373,6 +393,16 @@
               "default": 10,
               "example": 10,
               "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive search by user email.",
+            "schema": {
+              "example": "patient@test.com",
+              "type": "string"
             }
           }
         ],
@@ -438,7 +468,7 @@
     },
     "/users/doctors": {
       "get": {
-        "operationId": "UsersController_findAllDoctors",
+        "operationId": "Users_findAllDoctors",
         "parameters": [
           {
             "name": "page",
@@ -462,6 +492,16 @@
               "default": 10,
               "example": 10,
               "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive search by user email.",
+            "schema": {
+              "example": "patient@test.com",
+              "type": "string"
             }
           }
         ],
@@ -527,7 +567,7 @@
     },
     "/users/me/theme": {
       "patch": {
-        "operationId": "UsersController_updateMyTheme",
+        "operationId": "Users_updateMyTheme",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -584,7 +624,7 @@
     },
     "/users/{id}": {
       "get": {
-        "operationId": "UsersController_findOne",
+        "operationId": "Users_findOne",
         "parameters": [
           {
             "name": "id",
@@ -652,7 +692,7 @@
     },
     "/prescriptions": {
       "post": {
-        "operationId": "PrescriptionsController_create",
+        "operationId": "Prescriptions_create",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -727,7 +767,7 @@
         ]
       },
       "get": {
-        "operationId": "PrescriptionsController_findAll",
+        "operationId": "Prescriptions_findAll",
         "parameters": [
           {
             "name": "page",
@@ -850,7 +890,7 @@
             "accessToken": []
           }
         ],
-        "summary": "List prescriptions (Paginated)",
+        "summary": "List prescriptions (Paginated). Role-scoped: Doctor sees own authored, Patient sees own received, Admin sees all.",
         "tags": [
           "Prescriptions"
         ]
@@ -858,7 +898,7 @@
     },
     "/prescriptions/{id}": {
       "get": {
-        "operationId": "PrescriptionsController_findOne",
+        "operationId": "Prescriptions_findOne",
         "parameters": [
           {
             "name": "id",
@@ -926,7 +966,7 @@
     },
     "/prescriptions/{id}/consume": {
       "patch": {
-        "operationId": "PrescriptionsController_markAsConsumed",
+        "operationId": "Prescriptions_markAsConsumed",
         "parameters": [
           {
             "name": "id",
@@ -960,16 +1000,6 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request — prescription already consumed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseDto"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthorized — valid access token required",
             "content": {
@@ -999,6 +1029,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Conflict — prescription has already been consumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1014,7 +1054,7 @@
     },
     "/prescriptions/{id}/pdf": {
       "get": {
-        "operationId": "PrescriptionsController_downloadPdf",
+        "operationId": "Prescriptions_downloadPdf",
         "parameters": [
           {
             "name": "id",
@@ -1083,7 +1123,7 @@
     },
     "/admin/prescriptions": {
       "get": {
-        "operationId": "AdminController_listPrescriptions",
+        "operationId": "Admin_listPrescriptions",
         "parameters": [
           {
             "name": "page",
@@ -1246,7 +1286,7 @@
     },
     "/admin/metrics": {
       "get": {
-        "operationId": "AdminController_getMetrics",
+        "operationId": "Admin_getMetrics",
         "parameters": [
           {
             "name": "from",
@@ -1326,7 +1366,7 @@
     },
     "/admin/metrics/stream": {
       "get": {
-        "operationId": "AdminController_streamMetrics",
+        "operationId": "Admin_streamMetrics",
         "parameters": [
           {
             "name": "once",
@@ -1340,7 +1380,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Server-Sent Events stream emitting MetricsStreamSnapshot every 5 seconds"
+            "description": "Server-Sent Events stream emitting one MetricsStreamSnapshot frame every 5 seconds (single frame when ?once=true)",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsStreamSnapshotDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized — valid access token required",
@@ -1378,7 +1425,7 @@
   "info": {
     "title": "Prescription Management API",
     "description": "API documentation for the MVP Prescription Management System.",
-    "version": "1.0",
+    "version": "0.0.1",
     "contact": {}
   },
   "tags": [],
@@ -2297,6 +2344,38 @@
         "required": [
           "pending",
           "consumed"
+        ]
+      },
+      "MetricsStreamSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "totals": {
+            "description": "Aggregate counts",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MetricsTotalsDto"
+              }
+            ]
+          },
+          "byStatus": {
+            "description": "Prescription counts by status",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MetricsByStatusDto"
+              }
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-05-13T10:30:00.000Z",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of the snapshot"
+          }
+        },
+        "required": [
+          "totals",
+          "byStatus",
+          "timestamp"
         ]
       },
       "MetricsByDayItemDto": {

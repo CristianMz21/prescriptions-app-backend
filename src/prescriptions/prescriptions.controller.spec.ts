@@ -3,7 +3,6 @@ import { PrescriptionsController } from './prescriptions.controller';
 import { PrescriptionsService } from './prescriptions.service';
 import { PdfService } from '../pdf/pdf.service';
 import { Role, PrescriptionStatus } from '@prisma/client';
-import type { Prescription } from '@prisma/client';
 import { StreamableFile } from '@nestjs/common';
 import type { Response } from 'express';
 
@@ -30,6 +29,33 @@ describe('PrescriptionsController', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     consumedAt: null,
+  };
+
+  const mockPrescriptionWithRelations = {
+    ...mockPrescription,
+    author: {
+      id: 'doctor-1',
+      userId: 'doctor-user-1',
+      specialty: 'Cardiology',
+      medicalId: 'MED-1',
+      signatureText: 'Dr. Test',
+      signatureImageUrl: null,
+      user: {
+        id: 'doctor-user-1',
+        email: 'doctor@clinic.com',
+        role: Role.DOCTOR,
+      },
+    },
+    patient: {
+      id: 'patient-1',
+      userId: 'patient-user-1',
+      birthDate: null,
+      user: {
+        id: 'patient-user-1',
+        email: 'patient@clinic.com',
+        role: Role.PATIENT,
+      },
+    },
   };
 
   beforeEach(async () => {
@@ -109,7 +135,9 @@ describe('PrescriptionsController', () => {
         email: 'patient@clinic.com',
         role: Role.PATIENT,
       };
-      prescriptionsService.findOneById.mockResolvedValue(mockPrescription);
+      prescriptionsService.findOneById.mockResolvedValue(
+        mockPrescriptionWithRelations,
+      );
 
       const result = await controller.findOne(user, mockPrescription.id);
 
@@ -117,7 +145,7 @@ describe('PrescriptionsController', () => {
         mockPrescription.id,
         user,
       );
-      expect(result).toEqual(mockPrescription);
+      expect(result).toEqual(mockPrescriptionWithRelations);
     });
   });
 
@@ -161,7 +189,9 @@ describe('PrescriptionsController', () => {
       const mockBuffer = Buffer.from('fake-pdf-content');
       const res = mockResponse();
 
-      prescriptionsService.findOneById.mockResolvedValue(mockPrescription);
+      prescriptionsService.findOneById.mockResolvedValue(
+        mockPrescriptionWithRelations,
+      );
       pdfService.generatePrescriptionPdf.mockResolvedValue(mockBuffer);
 
       const result = await controller.downloadPdf(
@@ -175,7 +205,7 @@ describe('PrescriptionsController', () => {
         user,
       );
       expect(pdfService.generatePrescriptionPdf).toHaveBeenCalledWith(
-        mockPrescription,
+        mockPrescriptionWithRelations,
       );
       expect(res.set).toHaveBeenCalledWith(
         expect.objectContaining({

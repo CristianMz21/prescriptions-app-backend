@@ -21,11 +21,6 @@ import {
   ApiParam,
   ApiOkResponse,
   ApiCreatedResponse,
-  ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
-  ApiForbiddenResponse,
-  ApiNotFoundResponse,
-  ApiUnprocessableEntityResponse,
   ApiExtraModels,
   ApiQuery,
 } from '@nestjs/swagger';
@@ -37,14 +32,13 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PdfService, PdfPrescriptionData } from '../pdf/pdf.service';
+import { PdfService } from '../pdf/pdf.service';
 import { PrescriptionResponseDto } from './dto/prescription-response.dto';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
 import { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
-import { ErrorResponseDto } from '../common/dto/error-response.dto';
 import { apiPaginatedOkResponse } from '../common/swagger/api-paginated-response.decorator';
+import { ApiStandardErrors } from '../common/swagger/api-standard-errors.decorator';
 import {
-  UNAUTHORIZED_DESC,
   BAD_REQUEST_QUERY_DESC,
   FORBIDDEN_DOCTOR_DESC,
 } from '../common/swagger/swagger-descriptions';
@@ -72,32 +66,24 @@ export class PrescriptionsController {
     type: PrescriptionResponseDto,
     description: 'Prescription created successfully',
   })
-  @ApiBadRequestResponse({
-    type: ErrorResponseDto,
-    description: 'Bad Request — invalid payload (DTO validation failed)',
-  })
-  @ApiUnprocessableEntityResponse({
-    type: ErrorResponseDto,
-    description:
-      'Unprocessable Entity — payload is well-formed but the referenced patientId does not exist',
-  })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
-  })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description: FORBIDDEN_DOCTOR_DESC,
+  @ApiStandardErrors({
+    400: 'Bad Request — invalid payload (DTO validation failed)',
+    401: true,
+    403: FORBIDDEN_DOCTOR_DESC,
+    422: 'Unprocessable Entity — payload is well-formed but the referenced patientId does not exist',
   })
   create(
     @CurrentUser() user: JwtPayload,
     @Body() createPrescriptionDto: CreatePrescriptionDto,
-  ) {
+  ): ReturnType<PrescriptionsService['create']> {
     return this.prescriptionsService.create(user.id, createPrescriptionDto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'List prescriptions (Paginated)' })
+  @ApiOperation({
+    summary:
+      'List prescriptions (Paginated). Role-scoped: Doctor sees own authored, Patient sees own received, Admin sees all.',
+  })
   @ApiQuery({
     name: 'q',
     required: false,
@@ -108,18 +94,14 @@ export class PrescriptionsController {
     PrescriptionResponseDto,
     'Returns paginated list of prescriptions based on user role',
   )
-  @ApiBadRequestResponse({
-    type: ErrorResponseDto,
-    description: BAD_REQUEST_QUERY_DESC,
-  })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
+  @ApiStandardErrors({
+    400: BAD_REQUEST_QUERY_DESC,
+    401: true,
   })
   findAll(
     @CurrentUser() user: JwtPayload,
     @Query() filterDto: PaginationFilterDto,
-  ) {
+  ): ReturnType<PrescriptionsService['findAll']> {
     return this.prescriptionsService.findAll(user, filterDto);
   }
 
@@ -134,22 +116,15 @@ export class PrescriptionsController {
     type: PrescriptionResponseDto,
     description: 'Returns the prescription detail',
   })
-  @ApiNotFoundResponse({
-    type: ErrorResponseDto,
-    description: 'Not Found — prescription does not exist or access forbidden',
-  })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
-  })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description: FORBIDDEN_PRESCRIPTION_DESC,
+  @ApiStandardErrors({
+    401: true,
+    403: FORBIDDEN_PRESCRIPTION_DESC,
+    404: 'Not Found — prescription does not exist or access forbidden',
   })
   findOne(
     @CurrentUser() user: JwtPayload,
     @Param('id') prescriptionId: string,
-  ) {
+  ): ReturnType<PrescriptionsService['findOneById']> {
     return this.prescriptionsService.findOneById(prescriptionId, user);
   }
 
@@ -165,29 +140,17 @@ export class PrescriptionsController {
     type: PrescriptionResponseDto,
     description: 'Prescription status updated to CONSUMED',
   })
-  @ApiBadRequestResponse({
-    type: ErrorResponseDto,
-    description: 'Bad Request — prescription already consumed',
-  })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
-  })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description:
-      'Forbidden — Patient role required or prescription does not belong to patient',
-  })
-  @ApiNotFoundResponse({
-    type: ErrorResponseDto,
-    description:
-      'Not Found — prescription not found or does not belong to patient',
+  @ApiStandardErrors({
+    401: true,
+    403: 'Forbidden — Patient role required or prescription does not belong to patient',
+    404: 'Not Found — prescription not found or does not belong to patient',
+    409: 'Conflict — prescription has already been consumed',
   })
   markAsConsumed(
     @CurrentUser() user: JwtPayload,
     @Param('id') prescriptionId: string,
     @Body() dto: ConsumePrescriptionDto,
-  ) {
+  ): ReturnType<PrescriptionsService['markAsConsumed']> {
     return this.prescriptionsService.markAsConsumed(
       user.id,
       prescriptionId,
@@ -211,18 +174,10 @@ export class PrescriptionsController {
       },
     },
   })
-  @ApiUnauthorizedResponse({
-    type: ErrorResponseDto,
-    description: UNAUTHORIZED_DESC,
-  })
-  @ApiForbiddenResponse({
-    type: ErrorResponseDto,
-    description: FORBIDDEN_PRESCRIPTION_DESC,
-  })
-  @ApiNotFoundResponse({
-    type: ErrorResponseDto,
-    description:
-      'Not Found — prescription not found or not authorized to download',
+  @ApiStandardErrors({
+    401: true,
+    403: FORBIDDEN_PRESCRIPTION_DESC,
+    404: 'Not Found — prescription not found or not authorized to download',
   })
   async downloadPdf(
     @CurrentUser() user: JwtPayload,
@@ -234,15 +189,11 @@ export class PrescriptionsController {
       user,
     );
 
-    const buffer = await this.pdfService.generatePrescriptionPdf(
-      prescription as unknown as PdfPrescriptionData,
-    );
+    const buffer = await this.pdfService.generatePrescriptionPdf(prescription);
 
-    const filenameKey =
-      (prescription as unknown as { code?: string }).code ?? prescription.id;
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="prescription-${filenameKey}.pdf"`,
+      'Content-Disposition': `attachment; filename="prescription-${prescription.code}.pdf"`,
     });
 
     return new StreamableFile(buffer);

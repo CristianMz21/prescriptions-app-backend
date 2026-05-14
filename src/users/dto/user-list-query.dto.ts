@@ -1,6 +1,6 @@
 /* Copyright (c) 2026. All rights reserved. */
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UserListQueryDto {
@@ -29,4 +29,14 @@ export class UserListQueryDto {
   @IsInt()
   @Min(1)
   limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Case-insensitive search by user email.',
+    example: 'patient@test.com',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  q?: string;
 }

@@ -1,6 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
+import {
+  buildSwaggerConfig,
+  swaggerDocumentOptions,
+} from '../src/common/swagger/swagger.config';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -10,21 +14,13 @@ async function exportOpenApi() {
   });
 
   const port = process.env.PORT ?? '3000';
-  const config = new DocumentBuilder()
-    .setTitle('Prescription Management API')
-    .setDescription(
-      'API documentation for the MVP Prescription Management System.',
-    )
-    .setVersion('1.0')
-    .addServer(`http://localhost:${port}`, 'Local development server')
-    .addCookieAuth('accessToken', {
-      type: 'apiKey',
-      in: 'cookie',
-      name: 'accessToken',
-    })
-    .build();
+  const config = buildSwaggerConfig(port);
 
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(
+    app,
+    config,
+    swaggerDocumentOptions,
+  );
 
   const outputPath = join(process.cwd(), 'openapi.json');
   writeFileSync(outputPath, JSON.stringify(document, null, 2), 'utf-8');
@@ -37,7 +33,7 @@ async function exportOpenApi() {
   await app.close();
 }
 
-exportOpenApi().catch((err) => {
+exportOpenApi().catch(err => {
   console.error('Failed to export OpenAPI spec:', err);
   process.exit(1);
 });

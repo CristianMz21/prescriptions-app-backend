@@ -363,6 +363,71 @@ describe('Auth & Users Endpoints (e2e)', () => {
     it('should return 401 without cookie', async () => {
       await request(app.getHttpServer()).get('/users/patients').expect(401);
     });
+
+    it('should filter by email when q param is provided', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/users/patients?q=admin&limit=50')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const body = res.body;
+      expect(body).toHaveProperty('data');
+      expect(body).toHaveProperty('meta');
+      const users = body.data as Array<{ email: string }>;
+      expect(Array.isArray(users)).toBe(true);
+      for (const user of users) {
+        expect(user.email.toLowerCase()).toContain('admin');
+      }
+    });
+
+    it('should be case-insensitive for q param', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/users/patients?q=ADMIN&limit=50')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const users = responseData<any>(res.body);
+      expect(Array.isArray(users)).toBe(true);
+    });
+
+    it('should return empty data when no patients match q', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/users/patients?q=nonexistent-email-xyz-123')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const body = res.body;
+      expect(body).toHaveProperty('data');
+      expect(body).toHaveProperty('meta');
+      expect(body.data).toEqual([]);
+      expect(body.meta).toHaveProperty('total');
+    });
+
+    it('should treat whitespace-only q as no filter', async () => {
+      const resWithSpaces = await request(app.getHttpServer())
+        .get('/users/patients?q=   ')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const resNoQ = await request(app.getHttpServer())
+        .get('/users/patients')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      expect(resWithSpaces.body.meta.total).toBe(resNoQ.body.meta.total);
+    });
+
+    it('should respect limit and page with q param', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/users/patients?q=admin&page=1&limit=2')
+        .set('Cookie', adminCookie)
+        .expect(200);
+
+      const body = res.body;
+      expect(body.data.length).toBeLessThanOrEqual(2);
+      expect(body.meta.limit).toBe(2);
+      expect(body.meta.page).toBe(1);
+    });
   });
 
   describe('GET /users/doctors', () => {
