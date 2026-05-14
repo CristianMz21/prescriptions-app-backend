@@ -157,10 +157,23 @@ export class UsersService {
     userId: string,
     themePreference: ThemePreference,
   ): Promise<UserEntity> {
+    return this.updateAndIncludeProfiles(userId, { themePreference });
+  }
+
+  /**
+   * Internal helper: runs prisma.user.update with the canonical doctor/patient
+   * include and translates Prisma's P2025 (record-not-found) into a domain
+   * NotFoundException. Centralized to avoid duplicating the include block +
+   * error mapping across `updateTheme` and `updateProfile`.
+   */
+  private async updateAndIncludeProfiles(
+    userId: string,
+    data: Prisma.UserUpdateInput,
+  ): Promise<UserEntity> {
     try {
       const user = await this.prisma.user.update({
         where: { id: userId },
-        data: { themePreference },
+        data,
         include: {
           doctor: {
             select: {
@@ -253,34 +266,7 @@ export class UsersService {
       return this.findById(userId);
     }
 
-    try {
-      const user = await this.prisma.user.update({
-        where: { id: userId },
-        data,
-        include: {
-          doctor: {
-            select: {
-              id: true,
-              specialty: true,
-              medicalId: true,
-              signatureText: true,
-              signatureImageUrl: true,
-            },
-          },
-          patient: { select: { id: true, birthDate: true } },
-        },
-      });
-      return new UserEntity(user);
-    } catch (err: unknown) {
-      if (
-        err instanceof Error &&
-        'code' in err &&
-        (err as { code: string }).code === 'P2025'
-      ) {
-        throw new NotFoundException('User not found');
-      }
-      throw err;
-    }
+    return this.updateAndIncludeProfiles(userId, data);
   }
 
   private async findUsersPaginated(
