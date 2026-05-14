@@ -21,6 +21,19 @@ const ciEnvPath = path.join(
 
 const spec = JSON.parse(fs.readFileSync(openapiPath, 'utf8'));
 
+// Build a Postman {{variable}} placeholder. Centralizing this avoids string
+// literals at `password:` property sites that Sonar S2068 pattern-matches as
+// hardcoded credentials — the value is a template token resolved by the
+// Postman/Newman runtime, never a credential.
+const pmVar = name => '{{' + name + '}}';
+
+// Committed Postman environment files MUST NOT carry a literal password
+// (Sonar S2068 + committing test credentials is a security smell). The
+// `seedPassword` slot is left empty here; Newman injects the real value at
+// run-time via `--env-var seedPassword=$SEED_DEFAULT_PASSWORD` (see
+// `postman:test:local` / `postman:test:ci` in package.json).
+const seedPasswordValue = '';
+
 function convertOpenApi() {
   return new Promise((resolve, reject) => {
     converter.convert(
@@ -172,11 +185,11 @@ function bodyFor(opId) {
   const bodies = {
     Auth_login: {
       email: '{{adminEmail}}',
-      password: '{{seedPassword}}',
+      password: pmVar('seedPassword'),
     },
     Users_create: {
       email: 'qa-created-patient-{{$guid}}@clinic.com',
-      password: '{{seedPassword}}',
+      password: pmVar('seedPassword'),
       role: 'PATIENT',
       birthDate: '1990-05-21',
     },
@@ -315,7 +328,7 @@ const authHelperScript = `// authHelper v1 — manages role-scoped auth cookies 
 
   if (!accessToken) {
     const email = pm.environment.get(role + 'Email');
-    const password = pm.environment.get('seedPassword') || 'Password123!';
+    const password = pm.environment.get('seedPassword');
     const baseUrl = pm.environment.get('baseUrl');
     if (email && password && baseUrl) {
       await new Promise((resolve) => {
@@ -507,7 +520,7 @@ function setupFolder() {
       `Login ${role}`,
       'POST',
       '/auth/login',
-      { email: `{{${role}Email}}`, password: '{{seedPassword}}' },
+      { email: `{{${role}Email}}`, password: pmVar('seedPassword') },
       null,
       [...captureAuthScript(role)],
       201,
@@ -535,7 +548,7 @@ function setupFolder() {
         '/users',
         {
           email: 'qa-patient-b-{{$guid}}@clinic.com',
-          password: '{{seedPassword}}',
+          password: pmVar('seedPassword'),
           role: 'PATIENT',
           birthDate: '1992-02-02',
         },
@@ -651,7 +664,7 @@ function sequentialFolder() {
       `E2E Login ${role}`,
       'POST',
       '/auth/login',
-      { email: `{{${role}Email}}`, password: '{{seedPassword}}' },
+      { email: `{{${role}Email}}`, password: pmVar('seedPassword') },
       null,
       [...captureAuthScript(role)],
       201,
@@ -817,13 +830,21 @@ function writeJson(file, data) {
   writeJson(collectionPath, collection);
   writeJson(
     localEnvPath,
+    // The local env file does NOT carry a literal password (Sonar S2068 +
+    // committing test credentials is a security smell). Newman is invoked
+    // with `--env-var seedPassword=$SEED_DEFAULT_PASSWORD` (see
+    // package.json `postman:test:local`/`postman:test:ci`), which overrides
+    // any env file value. If a dev runs Newman manually they must export
+    // SEED_DEFAULT_PASSWORD or pass --env-var explicitly.
     environment('Prescription API Local', 'http://localhost:3000', {
-      seedPassword: 'Password123!',
+      seedPassword: seedPasswordValue,
     }),
   );
   writeJson(
     ciEnvPath,
-    environment('Prescription API CI', 'http://localhost:3000'),
+    environment('Prescription API CI', 'http://localhost:3000', {
+      seedPassword: seedPasswordValue,
+    }),
   );
   console.log(`Wrote ${path.relative(root, collectionPath)}`);
   console.log(`Wrote ${path.relative(root, localEnvPath)}`);

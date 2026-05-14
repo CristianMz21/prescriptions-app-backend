@@ -1,0 +1,60 @@
+# Sensitive / never-shipped to image (Sonar S6470: scope what `COPY . .` brings).
+
+# Local env / secrets — runtime gets env vars from the platform.
+.env
+.env.*
+!.env.example
+
+# VCS / IDE / OS metadata
+.git
+.gitignore
+.github
+.gitleaks.toml
+.husky
+.vscode
+.idea
+.DS_Store
+
+# Dependencies (re-installed inside the build stage).
+node_modules
+.pnpm-store
+
+# Build artifacts (built inside the image).
+dist
+coverage
+.tsbuildinfo
+
+# Test + dev tooling not needed in the runtime image.
+test
+**/*.spec.ts
+**/*.e2e-spec.ts
+jest.config.*
+sonar-project.properties
+sonar-scanner.log
+.scannerwork
+.agents
+
+# Postman / Newman / CATS reports + sources (run separately, not at runtime).
+postman
+reports
+cats-report
+cats-headers.yml
+cats-headers.local.yml
+README-CATS.md
+
+# Documentation (served by docs.yml workflow, not by the API container).
+docs
+mkdocs.yml
+site
+opencode.json
+skills-lock.json
+
+# Local logs / scratch
+*.log
+server.log
+app.log
+*.pid
+
+# Containers / deployment manifests for other targets
+render.yaml
+DEPLOY.md

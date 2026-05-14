@@ -14,8 +14,7 @@ on:
       - 'mkdocs.yml'
       - '**/*.md'
 
-permissions:
-  contents: read
+# Per-job permissions (Sonar S8264).
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,6 +39,8 @@ jobs:
   postman-newman:
     name: OpenAPI Drift + Newman Suite
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     # Safety net: kill the job if Newman or any step hangs.
     # Newman + smoke contract + drift normally finish in <3 min total.
     timeout-minutes: 10
@@ -65,13 +66,14 @@ jobs:
           --health-timeout 3s
           --health-retries 20
     steps:
-      - uses: actions/checkout@v6
+      # Pin third-party actions to full commit SHAs (Sonar S7637).
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -118,10 +120,13 @@ jobs:
 
       - name: OpenAPI breaking-change diff (vs base branch)
         if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'breaking-change')
+        env:
+          # Map ${{ github.* }} to env vars to avoid script-injection (Sonar S8233).
+          BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
-          git fetch origin ${{ github.base_ref }} --depth=1
-          if ! git show origin/${{ github.base_ref }}:openapi.json > openapi-base.json 2>/dev/null; then
+          git fetch origin "$BASE_REF" --depth=1
+          if ! git show "origin/${BASE_REF}:openapi.json" > openapi-base.json 2>/dev/null; then
             echo "No openapi.json on base branch — skipping breaking diff."
             exit 0
           fi
@@ -152,14 +157,14 @@ jobs:
 
       - name: Upload Newman reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: newman-postman-reports
           path: reports/postman/
 
       - name: Upload server log
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: newman-server-log
           path: server.log

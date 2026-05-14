@@ -1,7 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<meta charset="utf-8" />
+<title>Architecture Diagrams (Mermaid → SVG)</title>
+<!--
+  CDN script pinned to an exact version + Subresource Integrity hash
+  (Sonar Web:S5725). To bump Mermaid:
+    curl -sS https://cdn.jsdelivr.net/npm/mermaid@<X.Y.Z>/dist/mermaid.min.js \
+      | openssl dgst -sha384 -binary | openssl base64 -A
+  …and replace both the URL version and the integrity= value below.
+-->
+<script
+  src="https://cdn.jsdelivr.net/npm/mermaid@10.9.6/dist/mermaid.min.js"
+  integrity="sha384-qX9VvWkP79m/O121ZE6sOYp0nf/pldQgtvWDbkpzi+3mUo4Wn4Ix4cFzNPay3VaB"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"></script>
 <style>
 body { background: #1e1e1e; padding: 20px; }
 pre { display: none; }

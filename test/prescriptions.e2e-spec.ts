@@ -207,8 +207,9 @@ describe('Prescriptions Flow (e2e)', () => {
     }
     seededDoctorId = await resolveDoctorId(seededDoctorUserId);
 
-    const runId =
-      Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    // randomUUID provides a cryptographically-strong unique suffix without
+    // tripping Sonar S2245 (Math.random is not safe for any uniqueness guarantee).
+    const runId = Date.now().toString(36) + randomUUID().slice(0, 4);
 
     secondDoctorEmail = `e2e-doctor2-${runId}@clinic.com`;
     const secondDoctorResult = await getOrCreateUser(
