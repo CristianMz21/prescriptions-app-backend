@@ -8,6 +8,7 @@
 | Users (CRUD + listados) | OK Listo | ADMIN, DOCTOR, PATIENT con Doctor/Patient tables |
 | Prescriptions (CRUD + consume + PDF) | OK Listo | Puppeteer + Handlebars, code RX- |
 | Admin (metricas + listado total) | OK Listo | Metrics con topDoctors + byDay |
+| Email (notificaciones SMTP) | OK Listo | No-op si SMTP no configurado |
 | Swagger /docs | OK Listo | withCredentials enabled |
 | Prisma migrations | OK Listo | Nunca synchronize: true |
 | Seed data | OK Listo | Upsert (re-runnable) |
@@ -45,6 +46,11 @@
 ### Admin
 - Listar todas las prescripciones (ADMIN)
 - Dashboard de metricas: totals + byStatus + byDay + topDoctors (ADMIN)
+
+### Email
+- Notificación al paciente cuando se crea una prescripción
+- No-op si SMTP no configurado (no bloquea creación)
+- Errores logueados, no lanzados
 
 ---
 

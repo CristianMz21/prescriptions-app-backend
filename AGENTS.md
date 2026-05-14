@@ -6,7 +6,7 @@
 - **Command order**: `lint → typecheck → test` (run lint/typecheck before tests)
 
 ## Architecture
-- Feature modules: `auth/`, `prescriptions/`, `admin/`, `users/`
+- Feature modules: `auth/`, `prescriptions/`, `admin/`, `users/`, `email/`
 - **Doctor/Patient as separate tables** — linked 1:1 to `User` via `userId`
 - Prisma schema is the **only** source of truth for data model
 - IDOR enforcement: `applyTenantBoundary()` in prescriptions service filters by `user.role` + `user.id`
@@ -44,12 +44,14 @@
 - `src/main.ts` — entry, ValidationPipe, global filters, Swagger setup, helmet, cookie-parser
 - `src/config/env.validation.ts` — strict env validation via `class-validator` (fast-fail on startup)
 - `src/common/filters/http-exception.filter.ts` — global error format
+- `src/email/email.service.ts` — SMTP notifications (no-op if SMTP_HOST not set)
 - `prisma/schema.prisma` — **authoritative** data model
 - `test/prescriptions.e2e-spec.ts` — example E2E test (auth + RBAC + validation)
 - `.opencode/rules/` — mandatory rules auto-loaded via `opencode.json`
 
 ## Gotchas
 - **Puppeteer** is a heavy dev dependency (used for PDF generation via `src/pdf/`)
+- **Email** is optional — `EmailService` is no-op if `SMTP_HOST` is not configured
 - No `@nestjs/throttler` in this project — rate limiting is not implemented
 - `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` are **strings** ("15m", "7d"), not numbers
 - Role enums are UPPERCASE in Prisma: `ADMIN`, `DOCTOR`, `PATIENT`

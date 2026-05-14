@@ -14,6 +14,12 @@ PORT=3000
 FRONTEND_URL="https://tu-frontend.com"
 NODE_ENV="production"
 SEED_DEFAULT_PASSWORD="Password123!"
+# Opcional: email via SMTP (descomentar si se necesita)
+# SMTP_HOST="smtp.example.com"
+# SMTP_PORT="587"
+# SMTP_USER="user"
+# SMTP_PASS="pass"
+# SMTP_FROM="no-reply@tu-clinica.com"
 ```
 
 ### Generar Secrets

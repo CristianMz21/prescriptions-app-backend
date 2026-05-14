@@ -93,10 +93,11 @@ Entry point. Configura:
 - ValidationPipe global
 - HttpExceptionFilter
 - Swagger/OpenAPI
+- `app.enableShutdownHooks()` para graceful shutdown
 
 ### src/config/env.validation.ts
 
-Valida todas las variables de entorno al iniciar. La app hace **fast-fail** si falta alguna.
+Valida todas las variables de entorno al iniciar. La app hace **fast-fail** si falta alguna (excepto SMTP que es opcional).
 
 ### src/common/filters/http-exception.filter.ts
 
@@ -109,6 +110,14 @@ Formateo consistente de errores JSON:
   "error": "Bad Request"
 }
 ```
+
+### src/email/email.service.ts
+
+Servicio de email via nodemailer. Si `SMTP_HOST` no está configurado, todas las operaciones son no-op (logdebug en vez de enviar). No lanza errores — solo loguea.
+
+### src/prisma/prisma.service.ts
+
+Extiende `PrismaClient`. Singleton inyectado globalmente. Solo una instancia — no crear más.
 
 ---
 
