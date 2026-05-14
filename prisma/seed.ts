@@ -18,7 +18,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@clinic.com' },
-    update: {},
+    update: { passwordHash: hashedPassword, role: Role.ADMIN },
     create: {
       email: 'admin@clinic.com',
       passwordHash: hashedPassword,
@@ -29,7 +29,7 @@ async function main() {
 
   const doctorUser = await prisma.user.upsert({
     where: { email: 'doctor@clinic.com' },
-    update: {},
+    update: { passwordHash: hashedPassword, role: Role.DOCTOR },
     create: {
       email: 'doctor@clinic.com',
       passwordHash: hashedPassword,
@@ -48,7 +48,7 @@ async function main() {
 
   const doctor2User = await prisma.user.upsert({
     where: { email: 'doctor2@clinic.com' },
-    update: {},
+    update: { passwordHash: hashedPassword, role: Role.DOCTOR },
     create: {
       email: 'doctor2@clinic.com',
       passwordHash: hashedPassword,
@@ -67,7 +67,7 @@ async function main() {
 
   const patientUser = await prisma.user.upsert({
     where: { email: 'patient@clinic.com' },
-    update: {},
+    update: { passwordHash: hashedPassword, role: Role.PATIENT },
     create: {
       email: 'patient@clinic.com',
       passwordHash: hashedPassword,

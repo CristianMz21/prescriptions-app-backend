@@ -7,6 +7,24 @@ Todos los endpoints requieren JWT cookie a menos que esté marcado **Publico**.
 
 ---
 
+## 0. Endpoint Raíz
+
+### GET /ping
+
+**Publico** — Health check sin autenticación.
+
+```yaml
+GET /ping
+```
+
+**Response 200:**
+
+```json
+{ "status": "ok" }
+```
+
+---
+
 ## 1. API de Auth
 
 ### POST /auth/login
@@ -65,11 +83,7 @@ Cookie: refreshToken=<token>
 
 ```json
 {
-  "user": {
-    "id": "uuid-...",
-    "email": "doctor@clinic.com",
-    "role": "DOCTOR"
-  }
+  "message": "Token refreshed"
 }
 ```
 
@@ -115,6 +129,8 @@ Cookie: accessToken=<token>
   "updatedAt": "2026-01-01T00:00:00.000Z"
 }
 ```
+
+> Usa `ClassSerializerInterceptor` — el response excluye `passwordHash`. Si el usuario tiene perfil Doctor/Patient asociado, incluye `doctor` o `patient` con sus datos.
 
 ---
 

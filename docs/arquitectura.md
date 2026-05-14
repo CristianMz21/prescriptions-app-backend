@@ -1,42 +1,38 @@
 # Arquitectura — Prescriptions App
 
+> Sistema de gestión de prescripciones médicas con autenticación cookie-based y RBAC.
+
+---
+
 ## 1. Visión General
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Doctor App  ·  Patient App  ·  Admin Dashboard           │
 └──────────────────────┬─────────────────────────────────────┘
-                         │ HTTPS (JWT HttpOnly cookies)
+                          │ HTTPS (JWT HttpOnly cookies)
 ┌───────────────────────▼────────────────────────────────────┐
 │                 NESTJS APPLICATION                          │
-│                                                         │
-│  ┌──────────────┐  ┌────────────────┐  ┌─────────────┐   │
-│  │  Helmet      │  │ ValidationPipe │  │    CORS    │   │
-│  │  (headers)  │  │ whitelist+     │  │ pinned to  │   │
-│  └──────────────┘  └────────────────┘  │ FRONTEND_URL │ │
-│                                        └─────────────┘   │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │   cookie-parser  ·  JwtAuthGuard  ·  RolesGuard │   │
-│  │   @CurrentUser()  @Roles()                       │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                         │
-│  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐  │
-│  │  Auth    │ │  Users   │ │Prescrip-  │ │  Admin   │  │
-│  │  Module  │ │  Module  │ │  tions    │ │  Module  │  │
-│  └──────────┘ └──────────┘ └───────────┘ └──────────┘  │
-│  ┌──────────┐                                            │
-│  │   PDF   │  (Puppeteer + Handlebars)                   │
-│  └──────────┘                                            │
+│  Helmet · ValidationPipe · CORS · cookie-parser           │
+│                                                          │
+│  JwtAuthGuard (cookie) → RolesGuard                      │
+│  @CurrentUser()  @Roles()                                │
+│                                                          │
+│  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐   │
+│  │  Auth    │ │  Users   │ │Prescrip-  │ │  Admin   │   │
+│  │  Module  │ │  Module  │ │  tions    │ │  Module  │   │
+│  └──────────┘ └──────────┘ └───────────┘ └──────────┘   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐               │
+│  │   PDF   │  │  Email   │  │  Prisma  │               │
+│  └──────────┘ └──────────┘ └──────────┘                │
 └──────────────────────────────┬──────────────────────────────┘
-                              │ Prisma Client
+                               │ Prisma Client
 ┌─────────────────────────────▼──────────────────────────────┐
 │                   POSTGRESQL DATABASE                        │
 │  User · Doctor · Patient · Prescription                    │
 │  PrescriptionItem · PrescriptionAuditLog                   │
 └─────────────────────────────────────────────────────────────┘
 ```
-
-![Arquitectura](diagrams/d01_arquitectura.png)
 
 ---
 
@@ -110,7 +106,7 @@ model Patient {
 
 model Prescription {
   id         String             @id @default(uuid())
-  code       String             @unique      // RX-XXXXXXXXXX
+  code       String             @unique    // RX-XXXXXXXXXX
   status     PrescriptionStatus @default(PENDING)
   notes      String?
   createdAt  DateTime           @default(now())
@@ -173,13 +169,25 @@ model PrescriptionAuditLog {
 - `Doctor` authored muchas `Prescription` (relación 1:N via `authorId`)
 - `Patient` recibe muchas `Prescription` (relación 1:N via `patientId`)
 - `Prescription` tiene muchos `PrescriptionItem` (tabla separada, no Json)
-- `PrescriptionAuditLog` registra cambios de estado con tracking de quién cambió
-
-![ER Diagram](diagrams/d02_er.png)
+- `PrescriptionAuditLog` registra cambios de estado con tracking de quién lo hizo
 
 ---
 
-## 3. Estructura de Carpetas
+## 3. Estructura de Módulos
+
+| Módulo | Responsabilidad |
+|--------|----------------|
+| **AuthModule** | Login, logout, refresh, profile |
+| **UsersModule** | User management + Doctor/Patient directory |
+| **PrescriptionsModule** | Prescription CRUD, consume, PDF |
+| **AdminModule** | Dashboard metrics, all prescriptions listing |
+| **PdfModule** | Puppeteer PDF generation |
+| **EmailModule** | SMTP email notifications (no-op si no está configurado) |
+| **PrismaModule** | Singleton PrismaClient |
+
+---
+
+## 4. Estructura de Carpetas
 
 ```
 backend/
@@ -222,6 +230,8 @@ backend/
 │   │       └── metrics-response.dto.ts
 │   ├── pdf/                         # Puppeteer PDF generation
 │   │   └── pdf.service.ts
+│   ├── email/                        # SMTP email notifications
+│   │   └── email.service.ts
 │   ├── prisma/                      # Singleton PrismaClient
 │   │   ├── prisma.module.ts
 │   │   └── prisma.service.ts
@@ -241,23 +251,50 @@ backend/
     └── *.e2e-spec.ts
 ```
 
-![Estructura de Carpetas](diagrams/d05_folder_structure.png)
+---
+
+## 5. Auth Architecture
+
+### JWT Payload
+
+```json
+{
+  "sub": "user-id-uuid",
+  "email": "doctor@clinic.com",
+  "role": "DOCTOR"
+}
+```
+
+### Token Architecture
+
+| Token | Vida util | Almacenamiento |
+|-------|-----------|----------------|
+| Access Token (JWT) | 15 min | HttpOnly cookie |
+| Refresh Token | 7 dias | HttpOnly cookie |
+
+- Tokens **nunca** van en Authorization header ni en body de respuesta
+- Login response: `{ message: "Login successful", user: { id, email, role } }`
+- Swagger UI configurado con `withCredentials: true`
 
 ---
 
-## 4. Decisiones Clave de Arquitectura
+## 6. Security Model
 
-### 4.1 Auth Cookie-Based
+### RBAC
 
-Los tokens JWT se almacenan en **HttpOnly cookies** — nunca expuestos a JavaScript.
+| Accion | ADMIN | DOCTOR | PATIENT |
+|--------|:-----:|:------:|:-------:|
+| Login | OK | OK | OK |
+| Ver propio perfil | OK | OK | OK |
+| Crear usuario | OK | NO | NO |
+| Listar pacientes | OK | OK | NO |
+| Listar doctores | OK | NO | NO |
+| Crear prescripcion | NO | OK | NO |
+| Ver propias | OK | las que autoro | las que recibio |
+| Consumir prescripcion | NO | NO | OK owner |
+| Ver metricas | OK | NO | NO |
 
-- `accessToken` — 15 min TTL
-- `refreshToken` — 7 dias TTL
-- No hay Bearer token en Authorization header
-- Login response body: `{ message: "Login successful", user: { id, email, role } }`
-- Swagger UI configurado con `withCredentials: true`
-
-### 4.2 IDOR Prevention
+### IDOR Prevention
 
 Los ownership checks viven en la **capa de servicio**, no en el controller. Se implementan via `applyTenantBoundary`:
 
@@ -272,7 +309,11 @@ private applyTenantBoundary(where: Prisma.PrescriptionWhereInput, user: JwtPaylo
 }
 ```
 
-### 4.3 Doctor/Patient como Tablas Separadas
+---
+
+## 7. Decisiones Clave de Arquitectura
+
+### 7.1 Doctor/Patient como Tablas Separadas
 
 `Doctor` y `Patient` son tablas separadas vinculadas 1:1 a `User` via `userId`.
 
@@ -280,13 +321,11 @@ private applyTenantBoundary(where: Prisma.PrescriptionWhereInput, user: JwtPaylo
 - Queries de listado filtran por `role` y luego join con la tabla correspondiente
 - Auth es un solo `User`, no múltiples perfiles
 
-### 4.4 PrescriptionItem como Tabla Relacional
+### 7.2 PrescriptionItem como Tabla Relacional
 
 `Prescription.items` es una relación a la tabla `PrescriptionItem` — no un campo Json. Cada item tiene `name`, `dosage`, `quantity`, `instructions`. Esto permite indexación y queries per-item.
 
----
-
-## 5. Middleware Global (main.ts)
+### 7.3 Middleware Global (main.ts)
 
 Todo request pasa por:
 
@@ -298,7 +337,33 @@ Todo request pasa por:
 
 ---
 
-## 6. Variables de Entorno
+## 8. Metrics Response
+
+`GET /admin/metrics` retorna:
+
+```json
+{
+  "totals": {
+    "doctors": 5,
+    "patients": 20,
+    "prescriptions": 100
+  },
+  "byStatus": {
+    "pending": 60,
+    "consumed": 40
+  },
+  "byDay": [
+    { "date": "2026-01-15", "count": 12 }
+  ],
+  "topDoctors": [
+    { "authorId": "uuid", "count": 15 }
+  ]
+}
+```
+
+---
+
+## 9. Variables de Entorno
 
 | Variable | Descripcion | Ejemplo |
 |----------|-------------|---------|
@@ -311,5 +376,10 @@ Todo request pasa por:
 | `FRONTEND_URL` | Origen CORS | `http://localhost:3001` |
 | `NODE_ENV` | Entorno | `development` |
 | `SEED_DEFAULT_PASSWORD` | Password para usuarios seed | `Password123!` |
+| `SMTP_HOST` | Servidor SMTP (opcional) | `smtp.example.com` |
+| `SMTP_PORT` | Puerto SMTP (default 587) | `587` |
+| `SMTP_USER` | Usuario SMTP (opcional) | `user` |
+| `SMTP_PASS` | Password SMTP (opcional) | `pass` |
+| `SMTP_FROM` | Dirección From (opcional) | `no-reply@clinic.local` |
 
 La app hace **fast-fail** al iniciar si falta alguna variable o está malformada (`src/config/env.validation.ts`).

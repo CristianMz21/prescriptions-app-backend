@@ -16,6 +16,7 @@ describe('UsersService', () => {
       create: jest.Mock;
       findUnique: jest.Mock;
       findMany: jest.Mock;
+      count: jest.Mock;
       update: jest.Mock;
     };
   };
@@ -35,6 +36,7 @@ describe('UsersService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         findMany: jest.fn(),
+        count: jest.fn(),
         update: jest.fn(),
       },
     };
@@ -171,12 +173,25 @@ describe('UsersService', () => {
   describe('findAllByRole', () => {
     it('should find all users by role', async () => {
       prismaService.user.findMany.mockResolvedValue([mockUser]);
+      prismaService.user.count.mockResolvedValue(1);
       const result = await service.findAllByRole(Role.PATIENT);
       expect(prismaService.user.findMany).toHaveBeenCalledWith({
         where: { role: Role.PATIENT },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
       });
-      expect(result.length).toBe(1);
-      expect(result[0].id).toEqual(mockUser.id);
+      expect(prismaService.user.count).toHaveBeenCalledWith({
+        where: { role: Role.PATIENT },
+      });
+      expect(result.data.length).toBe(1);
+      expect(result.data[0].id).toEqual(mockUser.id);
+      expect(result.meta).toEqual({
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+      });
     });
   });
 });

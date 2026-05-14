@@ -11,7 +11,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix --max-warnings=0",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -24,7 +24,11 @@
     "format:check": "prettier --check \"{src,test}/**/*.ts\"",
     "lint:check": "eslint \"{src,test}/**/*.ts\" --max-warnings=0",
     "export:openapi": "ts-node scripts/export-openapi.ts",
-    "test:integration": "jest --config ./test/jest-e2e.json --testPathPatterns=prescriptions.e2e-spec.ts"
+    "validate:openapi": "swagger-cli validate openapi.json",
+    "test:integration": "jest --config ./test/jest-e2e.json --testPathPatterns=prescriptions.e2e-spec.ts",
+    "postman:generate": "node scripts/postman/generate.cjs",
+    "postman:test:local": "mkdir -p reports/postman && newman run postman/prescription-api.postman_collection.json -e postman/prescription-api.local.postman_environment.json --env-var seedPassword=$SEED_DEFAULT_PASSWORD --reporters cli,junit --reporter-junit-export reports/postman/newman-local.xml",
+    "postman:test:ci": "mkdir -p reports/postman && newman run postman/prescription-api.postman_collection.json -e postman/prescription-api.ci.postman_environment.json --env-var seedPassword=$SEED_DEFAULT_PASSWORD --reporters cli,junit --reporter-junit-export reports/postman/newman-ci.xml"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -54,6 +58,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@apidevtools/swagger-cli": "^4.0.4",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@eslint/eslintrc": "^3.2.0",
@@ -77,6 +82,8 @@
     "husky": "^9.1.7",
     "jest": "^30.0.0",
     "lint-staged": "^17.0.4",
+    "newman": "^6.2.2",
+    "openapi-to-postmanv2": "^6.0.1",
     "prettier": "^3.4.2",
     "prisma": "^6.0.0",
     "source-map-support": "^0.5.21",

@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'bcrypt';
 import { UserEntity } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UserListQueryDto } from './dto/user-list-query.dto';
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -128,9 +129,11 @@ export class UsersService {
     return new UserEntity(user);
   }
 
-  async findAll(): Promise<UserEntity[]> {
-    const users = await this.prisma.user.findMany();
-    return users.map(user => new UserEntity(user));
+  async findAll(query: UserListQueryDto = {}): Promise<{
+    data: UserEntity[];
+    meta: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    return this.findUsersPaginated({}, query);
   }
 
   /**
@@ -170,11 +173,44 @@ export class UsersService {
     }
   }
 
-  async findAllByRole(role: Role): Promise<UserEntity[]> {
-    const users = await this.prisma.user.findMany({
-      where: { role },
-    });
+  async findAllByRole(
+    role: Role,
+    query: UserListQueryDto = {},
+  ): Promise<{
+    data: UserEntity[];
+    meta: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    return this.findUsersPaginated({ role }, query);
+  }
 
-    return users.map(user => new UserEntity(user));
+  private async findUsersPaginated(
+    where: Prisma.UserWhereInput,
+    query: UserListQueryDto,
+  ): Promise<{
+    data: UserEntity[];
+    meta: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const { page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: users.map(user => new UserEntity(user)),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

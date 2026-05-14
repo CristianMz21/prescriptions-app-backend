@@ -1,4 +1,4 @@
-%%{init: {"theme": "base", "themeVariables": {"fontSize": "14px", "fontFamily": "monospace"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "13px", "fontFamily": "monospace"}}}%%
 graph TD
     ROOT["backend/"]
 
@@ -14,6 +14,7 @@ graph TD
     SRC --> PRES["prescriptions/"]
     SRC --> ADMIN["admin/"]
     SRC --> PDF["pdf/"]
+    SRC --> EMAIL["email/"]
     SRC --> CONFIG["config/"]
     SRC --> COMMON["common/"]
     SRC --> PRISMA_SRC["prisma/"]
@@ -21,9 +22,10 @@ graph TD
     AUTH --> AUTH_MOD["auth.module.ts"]
     AUTH --> AUTH_CTRL["auth.controller.ts"]
     AUTH --> AUTH_SVC["auth.service.ts"]
-    AUTH --> AUTH_STRT["strategies/"]
+    AUTH --> AUTH_STRAT["strategies/"]
     AUTH --> AUTH_GRDS["guards/"]
     AUTH --> AUTH_DECO["decorators/"]
+    AUTH --> AUTH_DTO["dto/"]
 
     USERS --> USR_MOD["users.module.ts"]
     USERS --> USR_CTRL["users.controller.ts"]
@@ -43,21 +45,26 @@ graph TD
 
     PDF --> PDF_MOD["pdf.module.ts"]
     PDF --> PDF_SVC["pdf.service.ts"]
+    PDF --> PDF_TMPL["templates/"]
+
+    EMAIL --> EMAIL_MOD["email.module.ts"]
+    EMAIL --> EMAIL_SVC["email.service.ts"]
 
     CONFIG --> ENV_VAL["env.validation.ts"]
 
     COMMON --> FILTERS["filters/"]
-    COMMON --> GUARDS["guards/"]
-    COMMON --> DECO["decorators/"]
-    COMMON --> DTO["dto/"]
+    COMMON --> CONSTS["constants.ts"]
     COMMON --> INTF["interfaces/"]
     COMMON --> UTILS["utils/"]
 
     FILTERS --> HTTP_EXC["http-exception.filter.ts"]
-    GUARDS --> JWT_G["jwt-auth.guard.ts"]
-    GUARDS --> ROL_G["roles.guard.ts"]
-    DECO --> ROL_D["roles.decorator.ts"]
-    DECO --> CUR_U["current-user.decorator.ts"]
+
+    INTF --> JWT_PAY["jwt-payload.interface.ts"]
+
+    UTILS --> CODE_UTILS["code.utils.ts"]
+
+    PRISMA_SRC --> PR_MOD["prisma.module.ts"]
+    PRISMA_SRC --> PR_SVC["prisma.service.ts"]
 
     PRISMA --> SCHEMA["schema.prisma"]
     PRISMA --> SEED["seed.ts"]
@@ -67,11 +74,14 @@ graph TD
     DOCS --> CONTRATOS["contratos-api.md"]
     DOCS --> SEGURIDAD["seguridad.md"]
     DOCS --> DESPLIEGUE["despliegue.md"]
+    DOCS --> GUIA["guia-desarrollo.md"]
+    DOCS --> ROADMAP["roadmap.md"]
+    DOCS --> INDEX["index.md"]
     DOCS --> DIAGRAMS["diagrams/"]
 
     classDef folder fill:#1e1e1e,stroke:#6bcb77,color:#6bcb77
     classDef file fill:#1e1e1e,stroke:#ffd93d,color:#ffd93d
     classDef mainfile fill:#1e1e1e,stroke:#ff6b6b,color:#ff6b6b
 
-    class ROOT,TEST,PRISMA,DOCS,AUTH,USERS,PRES,ADMIN,PDF,CONFIG,COMMON,PRISMA_SRC,FILTERS,GUARDS,DECO,DTO,INTF,UTILS,STRAT,GRDS,DECO,DTO,ENT,STRT,GRDS,DECO folder
-    class MAIN,APP,AUTH_MOD,AUTH_CTRL,AUTH_SVC,AUTH_STRT,AUTH_GRDS,AUTH_DECO,USR_MOD,USR_CTRL,USR_SVC,USR_DTO,USR_ENT,PRES_MOD,PRES_CTRL,PRES_SVC,PRES_DTO,ADM_MOD,ADM_CTRL,ADM_SVC,ADM_DTO,PDF_MOD,PDF_SVC,ENV_VAL,HTTP_EXC,JWT_G,ROL_G,ROL_D,CUR_U,SCHEMA,SEED,ARCH,MODULOS,CONTRATOS,SEGURIDAD,DESPLIEGUE,DIAGRAMS file
+    class ROOT,TEST,PRISMA,DOCS,AUTH,USERS,PRES,ADMIN,PDF,EMAIL,CONFIG,COMMON,PRISMA_SRC,FILTERS,CONSTS,INTF,UTILS,STRAT,GRDS,DECO,DTO,ENT,STRT,GRDS,DECO,DTO,ENT,TMPL folder
+    class MAIN,APP,AUTH_MOD,AUTH_CTRL,AUTH_SVC,AUTH_STRAT,AUTH_GRDS,AUTH_DECO,AUTH_DTO,USR_MOD,USR_CTRL,USR_SVC,USR_DTO,USR_ENT,PRES_MOD,PRES_CTRL,PRES_SVC,PRES_DTO,ADM_MOD,ADM_CTRL,ADM_SVC,ADM_DTO,PDF_MOD,PDF_SVC,PDF_TMPL,EMAIL_MOD,EMAIL_SVC,ENV_VAL,HTTP_EXC,CONSTS,JWT_PAY,CODE_UTILS,PR_MOD,PR_SVC,SCHEMA,SEED,ARCH,MODULOS,CONTRATOS,SEGURIDAD,DESPLIEGUE,GUIA,ROADMAP,INDEX,DIAGRAMS file

@@ -51,6 +51,9 @@ describe('Auth & Users Endpoints (e2e)', () => {
 
   const uniqueSuffix = Date.now();
 
+  const responseData = <T>(body: { data?: T[] } | T[]): T[] =>
+    Array.isArray(body) ? body : (body.data ?? []);
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -162,7 +165,15 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.meta).toEqual(
+        expect.objectContaining({
+          page: 1,
+          limit: 10,
+          total: expect.any(Number),
+          totalPages: expect.any(Number),
+        }),
+      );
     });
 
     it('should return 403 as DOCTOR', async () => {
@@ -268,11 +279,12 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
-      if (res.body.length > 0) {
-        expect(res.body[0]).toHaveProperty('id');
-        expect(res.body[0]).toHaveProperty('email');
-        expect(res.body[0]).toHaveProperty('role');
+      const users = responseData<any>(res.body);
+      expect(Array.isArray(users)).toBe(true);
+      if (users.length > 0) {
+        expect(users[0]).toHaveProperty('id');
+        expect(users[0]).toHaveProperty('email');
+        expect(users[0]).toHaveProperty('role');
       }
     });
 
@@ -282,7 +294,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', doctorCookie)
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
+      expect(Array.isArray(responseData(res.body))).toBe(true);
     });
 
     it('should return 403 as PATIENT', async () => {
@@ -305,11 +317,12 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
-      if (res.body.length > 0) {
-        expect(res.body[0]).toHaveProperty('id');
-        expect(res.body[0]).toHaveProperty('email');
-        expect(res.body[0]).toHaveProperty('role');
+      const users = responseData<any>(res.body);
+      expect(Array.isArray(users)).toBe(true);
+      if (users.length > 0) {
+        expect(users[0]).toHaveProperty('id');
+        expect(users[0]).toHaveProperty('email');
+        expect(users[0]).toHaveProperty('role');
       }
     });
 
@@ -341,8 +354,9 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      if (res.body.length > 0) {
-        const userId = res.body[0].id;
+      const users = responseData<any>(res.body);
+      if (users.length > 0) {
+        const userId = users[0].id;
         const userRes = await request(app.getHttpServer())
           .get(`/users/${userId}`)
           .set('Cookie', adminCookie)
@@ -362,8 +376,9 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .expect(200);
       expect(res.status).toBe(200);
 
-      if (res.body.length > 0) {
-        const userId = res.body[0].id;
+      const users = responseData<any>(res.body);
+      if (users.length > 0) {
+        const userId = users[0].id;
         await request(app.getHttpServer())
           .get(`/users/${userId}`)
           .set('Cookie', doctorCookie)
@@ -378,8 +393,9 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .expect(200);
       expect(res.status).toBe(200);
 
-      if (res.body.length > 0) {
-        const userId = res.body[0].id;
+      const users = responseData<any>(res.body);
+      if (users.length > 0) {
+        const userId = users[0].id;
         await request(app.getHttpServer())
           .get(`/users/${userId}`)
           .set('Cookie', patientCookie)
@@ -393,8 +409,9 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      if (res.body.length > 0) {
-        const userId = res.body[0].id;
+      const users = responseData<any>(res.body);
+      if (users.length > 0) {
+        const userId = users[0].id;
         await request(app.getHttpServer()).get(`/users/${userId}`).expect(401);
       }
     });

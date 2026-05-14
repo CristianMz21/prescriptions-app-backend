@@ -3,6 +3,7 @@ sequenceDiagram
     participant C as Client
     participant AC as AuthController
     participant AS as AuthService
+    participant US as UsersService
     participant PR as PrismaService
     participant JWT as JwtService
     participant DB as PostgreSQL
@@ -11,42 +12,54 @@ sequenceDiagram
 
     C->>AC: POST /auth/login {email, password}
     AC->>AS: login(dto)
-    AS->>PR: user.findUnique({where: {email}})
+    AS->>US: findByEmail(email)
+    US->>PR: user.findUnique({where: {email}})
     PR->>DB: SELECT * FROM "User" WHERE email=?
     DB-->>PR: User | null
-    PR-->>AS: User
+    PR-->>US: User
+    US-->>AS: User
     alt User not found
         AS-->>C: 401 Credenciales invalidas
     end
-    AS->>AS: bcrypt.compare(password, hash)
+    AS->>AS: bcrypt.compare(password, passwordHash)
     alt Wrong password
         AS-->>C: 401 Credenciales invalidas
     end
-    AS->>JWT: sign(accessPayload, {expiresIn: 15m})
+    AS->>JWT: signAsync({sub, email, role}, JWT_ACCESS_SECRET, 15m)
     JWT-->>AS: accessToken
-    AS->>JWT: sign(refreshPayload, {expiresIn: 7d})
+    AS->>JWT: signAsync({sub, email, role}, JWT_REFRESH_SECRET, 7d)
     JWT-->>AS: refreshToken
-    AS-->>AC: Set-Cookie accessToken + Set-Cookie refreshToken
-    AC-->>C: 200 {user}
+    AS-->>AC: {accessToken, refreshToken, user}
+    AC->>AC: Set-Cookie accessToken (HttpOnly, SameSite=strict)
+    AC->>AC: Set-Cookie refreshToken (HttpOnly, Path=/auth/refresh)
+    AC-->>C: 200 {message: "Login successful", user: {id, email, role}}
 
     Note over C,DB: REFRESH FLOW
 
     C->>AC: POST /auth/refresh
     Note over AC: Cookie refreshToken=<jwt>
-    AC->>AS: refresh(refreshToken from cookie)
-    AS->>JWT: verify(refreshToken, JWT_REFRESH_SECRET)
+    AC->>AS: refresh()
+    AS->>JWT: verifyAsync(refreshToken, JWT_REFRESH_SECRET)
     alt Invalid or expired token
         AS-->>C: 401 Refresh token invalido
     end
-    AS->>JWT: sign(new accessPayload, {expiresIn: 15m})
+    AS->>JWT: signAsync({sub, email, role}, JWT_ACCESS_SECRET, 15m)
     JWT-->>AS: newAccessToken
-    AS-->>AC: Set-Cookie new accessToken
-    AC-->>C: 200 {user}
+    AS-->>AC: Set-Cookie new accessToken (HttpOnly)
+    AC-->>C: 200 {user: {id, email, role}}
 
     Note over C,DB: LOGOUT FLOW
 
     C->>AC: POST /auth/logout
     Note over AC: Cookie accessToken=<jwt>
     AC->>AS: logout()
-    AS-->>AC: Clear cookies
-    AC-->>C: 200 {message: Logged out successfully}
+    AS-->>AC: Clear accessToken + refreshToken cookies
+    AC-->>C: 200 {message: "Logged out successfully"}
+
+    Note over C,DB: PROFILE FLOW
+
+    C->>AC: GET /auth/profile
+    Note over AC: Cookie accessToken=<jwt>
+    AC->>AS: profile(currentUser)
+    AS-->>AC: {id, email, role, themePreference, createdAt, updatedAt}
+    AC-->>C: 200 User profile

@@ -36,6 +36,10 @@ El JWT contiene **3 claims**: `sub` (user ID), `email`, `role`. No incluye `name
 - `JWT_REFRESH_SECRET` — Secreto para refresh tokens
 - `JWT_ACCESS_TTL` — `"15m"`
 - `JWT_REFRESH_TTL` — `"7d"`
+- `SMTP_HOST` — Servidor SMTP (opcional; si no está, email disabled)
+- `SMTP_PORT` — Puerto SMTP (default 587)
+- `SMTP_USER` / `SMTP_PASS` — Credenciales SMTP (opcional)
+- `SMTP_FROM` — Dirección From (default `no-reply@clinic.local`)
 
 ---
 
@@ -154,3 +158,4 @@ Implementados via Helmet + custom middleware en `src/main.ts`.
 | A08 Data Integrity | OK | Prisma transacciones + audit log |
 | A09 Logging Failures | OK | Interceptor existe, logs disponibles |
 | A10 SSRF | N/A | No hay file upload |
+| **Email Injection** | OK | nodemailer sendMail — parámetros no controlados por usuario |

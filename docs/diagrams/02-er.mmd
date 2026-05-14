@@ -4,19 +4,37 @@ erDiagram
         string id PK
         string email UK
         string passwordHash
-        enum role "ADMIN|DOCTOR|PATIENT"
+        string role
+        string themePreference
         datetime createdAt
         datetime updatedAt
     }
 
+    DOCTOR {
+        string id PK
+        string userId UK
+        string specialty
+        string medicalId
+        string signatureText
+        string signatureImageUrl
+    }
+
+    PATIENT {
+        string id PK
+        string userId UK
+        datetime birthDate
+    }
+
     PRESCRIPTION {
         string id PK
-        enum status "PENDING|CONSUMED"
+        string code UK
+        string status
         string notes
         datetime createdAt
         datetime updatedAt
-        string doctorId FK
-        string patientId FK
+        datetime consumedAt
+        string authorId
+        string patientId
     }
 
     PRESCRIPTION_ITEM {
@@ -26,9 +44,23 @@ erDiagram
         int quantity
         string instructions
         datetime createdAt
-        string prescriptionId FK
+        string prescriptionId
     }
 
-    USER ||--o{ PRESCRIPTION : "doctor"
-    USER ||--o{ PRESCRIPTION : "patient"
+    PRESCRIPTION_AUDIT_LOG {
+        string id PK
+        string prescriptionId
+        string changedById
+        string fromStatus
+        string toStatus
+        string reason
+        datetime createdAt
+    }
+
+    USER ||--o| DOCTOR : "1:1"
+    USER ||--o| PATIENT : "1:1"
+    USER ||--o{ PRESCRIPTION_AUDIT_LOG : "changedBy"
+    DOCTOR ||--o{ PRESCRIPTION : "author"
+    PATIENT ||--o{ PRESCRIPTION : "receiver"
     PRESCRIPTION ||--o{ PRESCRIPTION_ITEM : "items"
+    PRESCRIPTION ||--o{ PRESCRIPTION_AUDIT_LOG : "audit"

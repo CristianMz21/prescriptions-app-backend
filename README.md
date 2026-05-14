@@ -150,6 +150,35 @@ http://localhost:3000/docs
 
 Use the Swagger UI "Try it out" feature with `withCredentials: true` enabled for cookie-based auth.
 
+## API Client Generation (Orval + TanStack Query)
+
+The frontend (`../frontend/prescriptions-app/`) consumes a single OpenAPI schema generated from this NestJS app and emits TanStack Query hooks via Orval. The schema is committed at `backend/openapi.json` (no manual edits).
+
+### Regenerate the schema (backend)
+
+```bash
+cd backend
+pnpm run export:openapi      # writes backend/openapi.json (deterministic, sorted)
+pnpm run validate:openapi    # validates against OpenAPI 3 with @apidevtools/swagger-cli
+```
+
+### Regenerate the frontend client
+
+```bash
+cd ../frontend/prescriptions-app
+pnpm run api:refresh         # = api:clean + api:gen
+pnpm run typecheck           # verify types still hold
+pnpm run test                # vitest sanity suite
+```
+
+**Generated artifacts**: `frontend/prescriptions-app/src/lib/api/generated/` (React Query hooks + raw fetchers + schemas).
+
+**Rule**: NEVER hand-edit the generated folder. If a hook is missing or shaped wrong, fix the upstream NestJS DTO/controller decorators and regenerate.
+
+### CI staleness guard
+
+The backend CI re-runs `export:openapi` + `validate:openapi` on every push (`Build + OpenAPI Validation` job in `.github/workflows/ci-security.yml`). The frontend CI (workflow `codegen.yml` in the frontend repo) downloads the published `openapi.json` from `main`, regenerates the client, and fails with `git diff --exit-code src/lib/api/generated` if the committed client is stale.
+
 ## Testing Commands
 
 ```bash

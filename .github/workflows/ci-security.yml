@@ -73,7 +73,7 @@ jobs:
       - name: Export OpenAPI
         run: pnpm run export:openapi
       - name: Validate OpenAPI schema
-        run: pnpm dlx @apidevtools/swagger-cli@4.0.4 validate openapi.json
+        run: pnpm run validate:openapi
       - name: Upload OpenAPI artifact
         uses: actions/upload-artifact@v7
         with:

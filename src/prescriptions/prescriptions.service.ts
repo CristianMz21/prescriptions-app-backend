@@ -65,8 +65,15 @@ export class PrescriptionsService {
         },
         include: {
           items: true,
+          author: {
+            include: {
+              user: { select: { id: true, email: true, role: true } },
+            },
+          },
           patient: {
-            select: { user: { select: { email: true } } },
+            include: {
+              user: { select: { id: true, email: true, role: true } },
+            },
           },
         },
       });
@@ -152,7 +159,19 @@ export class PrescriptionsService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { items: true },
+        include: {
+          author: {
+            include: {
+              user: { select: { id: true, email: true, role: true } },
+            },
+          },
+          patient: {
+            include: {
+              user: { select: { id: true, email: true, role: true } },
+            },
+          },
+          items: true,
+        },
       }),
       this.prisma.prescription.count({ where }),
     ]);
@@ -268,7 +287,19 @@ export class PrescriptionsService {
           status: PrescriptionStatus.CONSUMED,
           consumedAt: new Date(),
         },
-        include: { items: true },
+        include: {
+          author: {
+            include: {
+              user: { select: { id: true, email: true, role: true } },
+            },
+          },
+          patient: {
+            include: {
+              user: { select: { id: true, email: true, role: true } },
+            },
+          },
+          items: true,
+        },
       });
 
       await tx.prescriptionAuditLog.create({

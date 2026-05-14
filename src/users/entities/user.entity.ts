@@ -7,18 +7,19 @@ export class DoctorProfileSummary {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
-  @ApiPropertyOptional({ example: 'Cardiology' })
+  @ApiPropertyOptional({ example: 'Cardiology', nullable: true })
   specialty?: string | null;
 
-  @ApiPropertyOptional({ example: 'MED-12345' })
+  @ApiPropertyOptional({ example: 'MED-12345', nullable: true })
   medicalId?: string | null;
 
-  @ApiPropertyOptional({ example: 'Dr. Jane Doe' })
+  @ApiPropertyOptional({ example: 'Dr. Jane Doe', nullable: true })
   signatureText?: string | null;
 
   @ApiPropertyOptional({
     example: 'https://cdn.clinic.com/signatures/jane-doe.png',
     format: 'uri',
+    nullable: true,
   })
   signatureImageUrl?: string | null;
 }
@@ -28,8 +29,9 @@ export class PatientProfileSummary {
   id!: string;
 
   @ApiPropertyOptional({
-    example: '1990-05-21',
-    format: 'date',
+    example: '1990-05-21T00:00:00.000Z',
+    format: 'date-time',
+    nullable: true,
   })
   birthDate?: Date | null;
 }
@@ -82,10 +84,10 @@ export class UserEntity {
   })
   themePreference!: ThemePreference;
 
-  @ApiPropertyOptional({ type: () => DoctorProfileSummary })
+  @ApiPropertyOptional({ type: () => DoctorProfileSummary, nullable: true })
   doctor?: DoctorProfileSummary | null;
 
-  @ApiPropertyOptional({ type: () => PatientProfileSummary })
+  @ApiPropertyOptional({ type: () => PatientProfileSummary, nullable: true })
   patient?: PatientProfileSummary | null;
 
   constructor(partial: Partial<UserEntity>) {

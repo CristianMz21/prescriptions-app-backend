@@ -7,48 +7,53 @@ graph TD
     end
 
     subgraph NestJS["NestJS Application"]
-        D["Global Middleware<br/>(Helmet, CORS, cookie-parser)"]
-        E["JwtAuthGuard + RolesGuard"]
-        F["ValidationPipe"]
-        G["HttpExceptionFilter"]
+        D["cookie-parser"]
+        E["Helmet (security headers)"]
+        F["CORS (FRONTEND_URL)"]
+        G["JwtAuthGuard"]
+        H["RolesGuard"]
+        I["ValidationPipe"]
+        J["HttpExceptionFilter"]
 
         subgraph Modules["Modules"]
-            H["AuthModule"]
-            I["UsersModule"]
-            J["PrescriptionsModule"]
-            K["AdminModule"]
-            L["PDFModule"]
+            K["AuthModule"]
+            L["UsersModule"]
+            M["PrescriptionsModule"]
+            N["AdminModule"]
+            O["PdfModule"]
+            P["EmailModule"]
+            Q["PrismaModule"]
         end
     end
 
-    subgraph Prisma["Prisma + PostgreSQL"]
-        N["PrismaService"]
-        O["PostgreSQL"]
+    subgraph PostgreSQL["PostgreSQL"]
+        R["Prescriptions DB"]
     end
 
-    A -->|"HTTPS JWT HttpOnly Cookie"| D
-    B -->|"HTTPS JWT HttpOnly Cookie"| D
-    C -->|"HTTPS JWT HttpOnly Cookie"| D
+    A -->|"HTTPS · HttpOnly JWT Cookie"| D
+    B -->|"HTTPS · HttpOnly JWT Cookie"| D
+    C -->|"HTTPS · HttpOnly JWT Cookie"| D
 
-    D --> F
-    F --> E
-    E --> H
-    E --> I
-    E --> J
-    E --> K
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> K & L & M & N
 
-    H --> N
-    I --> N
-    J --> N
-    K --> N
-    L --> N
-    N --> O
+    K --> Q
+    L --> Q
+    M --> Q
+    N --> Q
+    O --> Q
+    P --> Q
+    Q --> R
 
-    G -.->|"Error 4xx/5xx"| A
-    G -.->|"Error 4xx/5xx"| B
-    G -.->|"Error 4xx/5xx"| C
+    J -.->|"Error 4xx/5xx"| A
+    J -.->|"Error 4xx/5xx"| B
+    J -.->|"Error 4xx/5xx"| C
 
-    class D,G fill:#2d2d2d,stroke:#ff6b6b,color:#fff
-    class E,F fill:#2d2d2d,stroke:#ffd93d,color:#fff
-    class H,I,J,K,L fill:#2d2d2d,stroke:#6bcb77,color:#fff
-    class N,O fill:#2d2d2d,stroke:#4d96ff,color:#fff
+    class D,E,F fill:#2d2d2d,stroke:#ff6b6b,color:#fff
+    class G,H,I fill:#2d2d2d,stroke:#ffd93d,color:#fff
+    class K,L,M,N,O,P,Q fill:#2d2d2d,stroke:#6bcb77,color:#fff
+    class R fill:#2d2d2d,stroke:#4d96ff,color:#fff

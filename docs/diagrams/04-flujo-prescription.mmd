@@ -1,4 +1,4 @@
-%%{init: {"theme": "base", "themeVariables": {"fontSize": "18px"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "16px"}}}%%
 sequenceDiagram
     participant D as Doctor
     participant PC as PrescriptionsController
@@ -6,51 +6,77 @@ sequenceDiagram
     participant PR as PrismaService
     participant DB as PostgreSQL
 
-    Note over D,DB: CREATE PRESCRIPTION FLOW
+    Note over D,DB: CREATE PRESCRIPTION
 
-    D->>PC: POST /prescriptions {patientId, items: [{name, dosage, quantity, instructions}], notes}
-    PC->>PS: create(dto, doctorId from JWT)
-    PS->>PR: user.findFirst({where: {id: patientId, role: PATIENT}})
-    PR->>DB: SELECT * FROM "User" WHERE id=? AND role=PATIENT
-    DB-->>PR: User | null
-    PR-->>PS: User
-    alt Patient not found
-        PS-->>D: 404 Paciente no encontrado
+    D->>PC: POST /prescriptions {patientId, items, notes}
+    PC->>PS: create(dto, currentUser)
+    PS->>PR: patient.findUnique(id: patientId)
+    PR->>DB: SELECT FROM "Patient"
+    DB-->>PR: Patient
+    alt not found
+        PS-->>D: 404
     end
-    PS->>PR: prescription.create with items: { create: [...] }
-    PR->>DB: INSERT INTO "Prescription" + INSERT INTO "PrescriptionItem"
-    DB-->>PR: Prescription + PrescriptionItems
-    PR-->>PS: Prescription
-    PS-->>D: Prescription 201
+    PS->>PR: prescription.create items
+    PR->>DB: INSERT prescription + items
+    DB-->>PR: done
+    PR-->>PS: prescription
+    PS-->>D: 201 code RX-
 
-    Note over D,DB: LIST PATIENT PRESCRIPTIONS
+    Note over D,DB: LIST (role-filtered)
 
     participant Pt as Patient
     participant PtC as PrescriptionsController
     participant PtS as PrescriptionsService
 
-    Pt->>PtC: GET /prescriptions?page&limit&status JWT role=PATIENT
+    Pt->>PtC: GET /prescriptions JWT
     PtC->>PtS: findAll pagination currentUser
-    PtS->>PR: prescription.findMany({ where: { patientId: currentUser.id }, include: { items: true } })
-    PR->>DB: SELECT * FROM "Prescription" WHERE patientId=? LIMIT ? OFFSET ?
-    DB-->>PR: Prescription list
-    PR-->>PtS: Prescription list with items
-    PtS-->>PtC: data and meta pagination
-    PtC-->>Pt: {data: [...], meta: {...}}
+    alt role=PATIENT
+        PtS->>PR: findMany patient.userId=currentUser.id
+    alt role=DOCTOR
+        PtS->>PR: findMany author.userId=currentUser.id
+    alt role=ADMIN
+        PtS->>PR: findMany all
+    end
+    PR->>DB: SELECT LIMIT OFFSET
+    DB-->>PR: list
+    PR-->>PtS: data
+    PtS-->>PtC: data + meta
+    PtC-->>Pt: 200 list
 
-    Note over D,DB: CONSUME PRESCRIPTION FLOW
+    Note over D,DB: CONSUME + AUDIT LOG
 
     Pt->>PtC: PATCH /prescriptions/:id/consume
-    PtC->>PtS: consume prescriptionId currentUser.id
-    PtS->>PR: prescription.findFirst({ where: { id: prescriptionId, patientId: currentUser.id } })
-    PR->>DB: SELECT * FROM "Prescription" WHERE id=? AND patientId=?
-    DB-->>PR: Prescription | null
-    alt Not found or not owner
-        PtS-->>Pt: 403 No tenes acceso a esta prescripcion
+    PtC->>PtS: consume id currentUser
+    PtS->>PR: findFirst id patient.userId=currentUser.id
+    PR->>DB: SELECT WHERE id + patient
+    DB-->>PR: prescription
+    alt not found
+        PtS-->>Pt: 403
     end
-    alt Already consumed
-        PtS-->>Pt: 400 Ya esta marcada como consumida
+    alt already consumed
+        PtS-->>Pt: 400
     end
-    PtS->>PR: prescription.update({ where: { id: prescriptionId }, data: { status: CONSUMED } })
-    PR->>DB: UPDATE "Prescription" SET status=CONSUMED
-    PtS-->>Pt: Prescription updated 200
+    PtS->>PR: update status=CONSUMED consumedAt=now
+    PtS->>PR: auditLog.create
+    PR->>DB: UPDATE + INSERT audit
+    PtS-->>Pt: 200 consumed
+
+    Note over D,DB: PDF DOWNLOAD
+
+    participant X as Downloader
+    participant PC2 as PrescriptionsController
+    participant PtS2 as PrescriptionsService
+    participant PDF as PdfService
+
+    X->>PC2: GET /prescriptions/:id/pdf
+    PC2->>PtS2: findOne id currentUser
+    PtS2->>PR: findFirst id
+    PR->>DB: SELECT
+    DB-->>PR: prescription
+    PtS2-->>PC2: prescription
+    PC2->>PDF: generatePdf prescription
+    PDF->>PDF: load template
+    PDF->>PDF: compile data
+    PDF->>PDF: puppeteer render
+    PDF-->>PC2: StreamableFile PDF
+    PC2-->>X: PDF stream

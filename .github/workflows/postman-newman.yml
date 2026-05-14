@@ -1,0 +1,136 @@
+name: Postman / Newman API QA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_VERSION: '24'
+  PNPM_VERSION: '11.1.1'
+  DATABASE_URL: postgresql://cats:cats@localhost:5433/test_db?schema=public
+  REDIS_URL: redis://localhost:6379
+  JWT_ACCESS_SECRET: test-jwt-access-secret-000-do-not-use-in-prod
+  JWT_REFRESH_SECRET: test-jwt-refresh-secret-000-do-not-use-in-prod
+  JWT_ACCESS_TTL: 15m
+  JWT_REFRESH_TTL: 7d
+  FRONTEND_URL: http://localhost:3000
+  NODE_ENV: test
+  PORT: 3000
+  SEED_DEFAULT_PASSWORD: test-seed-password-000-do-not-use-in-prod
+
+jobs:
+  postman-newman:
+    name: OpenAPI Drift + Newman Suite
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports: ['5433:5432']
+        env:
+          POSTGRES_USER: cats
+          POSTGRES_PASSWORD: cats
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd "pg_isready -U cats -d test_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Lint
+        run: pnpm run lint:check
+
+      - name: TypeScript typecheck
+        run: pnpm run typecheck
+
+      - name: Unit tests
+        run: pnpm exec jest --runInBand
+
+      - name: Build backend
+        run: pnpm run build
+
+      - name: Install Chrome for Puppeteer PDF endpoint
+        run: pnpm exec puppeteer browsers install chrome
+
+      - name: Migrate and seed database
+        run: |
+          pnpm exec prisma migrate deploy
+          pnpm run prisma:seed
+
+      - name: Export and validate OpenAPI
+        run: |
+          pnpm run export:openapi
+          pnpm run validate:openapi
+
+      - name: Generate Postman collection
+        run: pnpm run postman:generate
+
+      - name: Enforce OpenAPI/Postman drift protection
+        run: git diff --exit-code -- openapi.json postman
+
+      - name: Start backend server
+        run: |
+          nohup node dist/src/main > server.log 2>&1 &
+          echo $! > server.pid
+          for i in {1..60}; do
+            if curl -fsS http://localhost:${PORT}/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat server.log
+          exit 1
+
+      - name: Run Newman CI suite
+        run: |
+          mkdir -p reports/postman
+          pnpm run postman:test:ci
+
+      - name: Upload Newman reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: newman-postman-reports
+          path: reports/postman/
+
+      - name: Upload server log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: newman-server-log
+          path: server.log
+          if-no-files-found: ignore

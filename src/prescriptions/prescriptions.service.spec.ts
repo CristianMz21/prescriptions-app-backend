@@ -296,7 +296,7 @@ describe('PrescriptionsService', () => {
             status: PrescriptionStatus.CONSUMED,
             consumedAt: expect.any(Date),
           }),
-          include: { items: true },
+          include: expect.objectContaining({ items: true }),
         }),
       );
       expect(txAuditCreate).toHaveBeenCalledWith({

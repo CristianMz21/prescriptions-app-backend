@@ -255,6 +255,10 @@ async consume(prescriptionId: string, currentUser: JwtPayload) {
 }
 ```
 
+### Email Post-Create
+
+Al crear una prescripción exitosamente, `PrescriptionsService` envía un email de notificación al paciente (`sendPrescriptionCreatedEmail`). Si `SMTP_HOST` no está configurado, el email se跳过 — no falla la creación.
+
 ---
 
 ## AdminModule
@@ -337,6 +341,50 @@ pdf/
 - **Puppeteer** — Chrome headless (heavy dev dependency)
 - **Handlebars** — Template engine
 - CI requiere Chromium instalado en el runner
+
+---
+
+## EmailModule
+
+Notificaciones por email via SMTP (nodemailer). **Modo no-op si `SMTP_HOST` no está configurado** — la app funciona sin email.
+
+### Archivos
+
+```
+email/
+├── email.module.ts
+└── email.service.ts
+```
+
+### EmailService
+
+```typescript
+// Constructor — no-op si SMTP_HOST no está configurado
+constructor(private configService: ConfigService) {
+  const host = this.configService.get<string>('SMTP_HOST');
+  this.enabled = Boolean(host);
+}
+
+// Envía email con datos de la prescripción
+async sendPrescriptionCreatedEmail(
+  to: string,
+  payload: PrescriptionEmailPayload,  // { code, doctorEmail, itemNames }
+): Promise<void>
+```
+
+### Variables de Entorno
+
+| Variable | Requerido | Default |
+|----------|-----------|---------|
+| `SMTP_HOST` | No | — (disabled) |
+| `SMTP_PORT` | No | `587` |
+| `SMTP_USER` | No | — |
+| `SMTP_PASS` | No | — |
+| `SMTP_FROM` | No | `no-reply@clinic.local` |
+
+### Integración
+
+Cuando se crea una prescripción, `PrescriptionsService` inyecta `EmailService` y llama `sendPrescriptionCreatedEmail(to, payload)` — no bloquea la respuesta HTTP (async, errors logueados no lanzados).
 
 ---
 

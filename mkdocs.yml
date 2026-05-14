@@ -42,7 +42,6 @@ extra:
 nav:
   - Home: index.md
   - Arquitectura: arquitectura.md
-  - Architecture Roadmap: ARCHITECTURE_ROADMAP.md
   - Modulos: modulos.md
   - Contratos API: contratos-api.md
   - Seguridad: seguridad.md

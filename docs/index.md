@@ -4,8 +4,7 @@ Sistema de gestión de prescripciones médicas. Backend API construida con **Nes
 
 ## quick-navigation
 
-- [Arquitectura](arquitectura.md) — Vista general del sistema, modelo de datos, estructura de carpetas
-- [Architecture Roadmap](ARCHITECTURE_ROADMAP.md) — Diseño arquitectónico completo y roadmap
+- [Arquitectura](arquitectura.md) — Vista general del sistema, modelo de datos, estructura de módulos y carpetas
 - [Módulos](modulos.md) — Detalle de cada módulo: Auth, Users, Prescriptions, Admin, PDF
 - [Contratos API](contratos-api.md) — Endpoints, request/response examples
 - [Seguridad](seguridad.md) — JWT cookies, RBAC, headers HTTP, OWASP

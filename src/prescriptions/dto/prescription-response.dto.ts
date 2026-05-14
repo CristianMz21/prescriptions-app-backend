@@ -21,18 +21,21 @@ export class PrescriptionItemResponseDto {
   @ApiPropertyOptional({
     example: '500mg',
     description: 'Dosage of the medication',
+    nullable: true,
   })
   dosage?: string;
 
   @ApiPropertyOptional({
     example: 30,
     description: 'Quantity to dispense (number of units)',
+    nullable: true,
   })
   quantity?: number;
 
   @ApiPropertyOptional({
     example: 'Take 1 pill every 8 hours',
     description: 'Instructions for the patient',
+    nullable: true,
   })
   instructions?: string;
 }
@@ -63,18 +66,21 @@ export class PrescriptionAuthorSummaryDto {
   @ApiPropertyOptional({
     example: 'Cardiology',
     description: 'Medical specialty',
+    nullable: true,
   })
   specialty?: string;
 
   @ApiPropertyOptional({
     example: 'MED-12345',
     description: 'Medical license / registration number',
+    nullable: true,
   })
   medicalId?: string;
 
   @ApiPropertyOptional({
     example: 'Dr. Jane Doe',
     description: 'Text rendering of the doctor signature',
+    nullable: true,
   })
   signatureText?: string;
 
@@ -82,6 +88,7 @@ export class PrescriptionAuthorSummaryDto {
     example: 'https://cdn.clinic.com/signatures/jane-doe.png',
     description: 'URL to the doctor signature image',
     format: 'uri',
+    nullable: true,
   })
   signatureImageUrl?: string;
 
@@ -101,9 +108,10 @@ export class PrescriptionPatientSummaryDto {
   id!: string;
 
   @ApiPropertyOptional({
-    example: '1990-05-21',
-    description: 'Patient date of birth (ISO-8601 date)',
-    format: 'date',
+    example: '1990-05-21T00:00:00.000Z',
+    description: 'Patient date of birth (ISO-8601 timestamp)',
+    format: 'date-time',
+    nullable: true,
   })
   birthDate?: Date;
 
@@ -145,6 +153,7 @@ export class PrescriptionResponseDto {
   @ApiPropertyOptional({
     example: 'Follow up in 2 weeks',
     description: 'Additional notes from the doctor',
+    nullable: true,
   })
   notes?: string;
 
@@ -166,6 +175,7 @@ export class PrescriptionResponseDto {
     description: 'ISO 8601 timestamp when the prescription was consumed',
     example: '2026-01-16T08:45:00.000Z',
     format: 'date-time',
+    nullable: true,
   })
   consumedAt?: Date;
 

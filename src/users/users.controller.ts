@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
   UseInterceptors,
   ClassSerializerInterceptor,
@@ -33,6 +34,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateThemeDto } from './dto/update-theme.dto';
 import { UserEntity } from './entities/user.entity';
 import { UserResponseDto } from './dto/user-response.dto';
+import { UserListQueryDto } from './dto/user-list-query.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
@@ -93,8 +95,8 @@ export class UsersController {
     type: ErrorResponseDto,
     description: FORBIDDEN_ADMIN_DESC,
   })
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query() query: UserListQueryDto) {
+    return this.usersService.findAll(query);
   }
 
   @Get('patients')
@@ -109,8 +111,8 @@ export class UsersController {
     type: ErrorResponseDto,
     description: FORBIDDEN_ADMIN_OR_DOCTOR_DESC,
   })
-  findAllPatients() {
-    return this.usersService.findAllByRole(Role.PATIENT);
+  findAllPatients(@Query() query: UserListQueryDto) {
+    return this.usersService.findAllByRole(Role.PATIENT, query);
   }
 
   @Get('doctors')
@@ -125,8 +127,8 @@ export class UsersController {
     type: ErrorResponseDto,
     description: FORBIDDEN_ADMIN_DESC,
   })
-  findAllDoctors() {
-    return this.usersService.findAllByRole(Role.DOCTOR);
+  findAllDoctors(@Query() query: UserListQueryDto) {
+    return this.usersService.findAllByRole(Role.DOCTOR, query);
   }
 
   @Patch('me/theme')

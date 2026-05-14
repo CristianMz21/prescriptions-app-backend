@@ -1,7 +1,15 @@
 /* Copyright (c) 2026. All rights reserved. */
 import { Controller, Get, Query, Sse, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { Observable, from, interval, map, startWith, switchMap } from 'rxjs';
+import {
+  Observable,
+  from,
+  interval,
+  map,
+  startWith,
+  switchMap,
+  take,
+} from 'rxjs';
 import {
   ApiTags,
   ApiOperation,
@@ -12,6 +20,7 @@ import {
   ApiCookieAuth,
   ApiExtraModels,
   ApiProduces,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -95,6 +104,13 @@ export class AdminController {
     summary: 'Stream live admin metrics over Server-Sent Events (Admin Only)',
   })
   @ApiProduces('text/event-stream')
+  @ApiQuery({
+    name: 'once',
+    required: false,
+    type: Boolean,
+    description:
+      'When true, emits one metrics event and closes the stream. Useful for automated API checks.',
+  })
   @ApiOkResponse({
     description:
       'Server-Sent Events stream emitting MetricsStreamSnapshot every 5 seconds',
@@ -107,11 +123,14 @@ export class AdminController {
     type: ErrorResponseDto,
     description: FORBIDDEN_ADMIN_DESC,
   })
-  streamMetrics(): Observable<{ data: MetricsStreamSnapshot }> {
-    return interval(SSE_TICK_MS).pipe(
+  streamMetrics(
+    @Query('once') once?: string,
+  ): Observable<{ data: MetricsStreamSnapshot }> {
+    const stream = interval(SSE_TICK_MS).pipe(
       startWith(0),
       switchMap(() => from(this.adminService.getStreamSnapshot())),
       map(snapshot => ({ data: snapshot })),
     );
+    return once === 'true' ? stream.pipe(take(1)) : stream;
   }
 }

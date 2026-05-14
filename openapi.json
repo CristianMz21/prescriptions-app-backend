@@ -3,15 +3,25 @@
   "paths": {
     "/": {
       "get": {
+        "description": "Returns a static greeting string; useful for liveness probes and smoke checks.",
         "operationId": "AppController_getHello",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Service is reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "example": "Hello World!"
+                }
+              }
+            }
           }
         },
+        "summary": "Service heartbeat",
         "tags": [
-          "App"
+          "Health"
         ]
       }
     },
@@ -251,7 +261,32 @@
       },
       "get": {
         "operationId": "UsersController_findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-indexed)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Returns paginated list of all users",
@@ -315,7 +350,32 @@
     "/users/patients": {
       "get": {
         "operationId": "UsersController_findAllPatients",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-indexed)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Returns paginated list of all patients",
@@ -379,7 +439,32 @@
     "/users/doctors": {
       "get": {
         "operationId": "UsersController_findAllDoctors",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-indexed)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Returns paginated list of all doctors",
@@ -1232,7 +1317,17 @@
     "/admin/metrics/stream": {
       "get": {
         "operationId": "AdminController_streamMetrics",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "once",
+            "required": false,
+            "in": "query",
+            "description": "When true, emits one metrics event and closes the stream. Useful for automated API checks.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Server-Sent Events stream emitting MetricsStreamSnapshot every 5 seconds"
@@ -1448,20 +1543,24 @@
           },
           "specialty": {
             "type": "object",
-            "example": "Cardiology"
+            "example": "Cardiology",
+            "nullable": true
           },
           "medicalId": {
             "type": "object",
-            "example": "MED-12345"
+            "example": "MED-12345",
+            "nullable": true
           },
           "signatureText": {
             "type": "object",
-            "example": "Dr. Jane Doe"
+            "example": "Dr. Jane Doe",
+            "nullable": true
           },
           "signatureImageUrl": {
             "type": "object",
             "example": "https://cdn.clinic.com/signatures/jane-doe.png",
-            "format": "uri"
+            "format": "uri",
+            "nullable": true
           }
         },
         "required": [
@@ -1477,8 +1576,9 @@
           },
           "birthDate": {
             "type": "object",
-            "example": "1990-05-21",
-            "format": "date"
+            "example": "1990-05-21T00:00:00.000Z",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "required": [
@@ -1531,10 +1631,22 @@
             ]
           },
           "doctor": {
-            "$ref": "#/components/schemas/DoctorProfileSummary"
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoctorProfileSummary"
+              }
+            ]
           },
           "patient": {
-            "$ref": "#/components/schemas/PatientProfileSummary"
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PatientProfileSummary"
+              }
+            ]
           }
         },
         "required": [
@@ -1583,7 +1695,7 @@
           "data": {
             "type": "array",
             "items": {
-              "type": "array"
+              "type": "object"
             }
           },
           "meta": {
@@ -1641,10 +1753,22 @@
             ]
           },
           "doctor": {
-            "$ref": "#/components/schemas/DoctorProfileSummary"
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoctorProfileSummary"
+              }
+            ]
           },
           "patient": {
-            "$ref": "#/components/schemas/PatientProfileSummary"
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PatientProfileSummary"
+              }
+            ]
           }
         },
         "required": [
@@ -1761,10 +1885,22 @@
             ]
           },
           "doctor": {
-            "$ref": "#/components/schemas/DoctorProfileSummary"
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoctorProfileSummary"
+              }
+            ]
           },
           "patient": {
-            "$ref": "#/components/schemas/PatientProfileSummary"
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PatientProfileSummary"
+              }
+            ]
           }
         },
         "required": [
@@ -1818,17 +1954,20 @@
           "dosage": {
             "type": "string",
             "example": "500mg",
-            "description": "Dosage of the medication"
+            "description": "Dosage of the medication",
+            "nullable": true
           },
           "quantity": {
             "type": "number",
             "example": 30,
-            "description": "Quantity to dispense (number of units)"
+            "description": "Quantity to dispense (number of units)",
+            "nullable": true
           },
           "instructions": {
             "type": "string",
             "example": "Take 1 pill every 8 hours",
-            "description": "Instructions for the patient"
+            "description": "Instructions for the patient",
+            "nullable": true
           }
         },
         "required": [
@@ -1876,23 +2015,27 @@
           "specialty": {
             "type": "string",
             "example": "Cardiology",
-            "description": "Medical specialty"
+            "description": "Medical specialty",
+            "nullable": true
           },
           "medicalId": {
             "type": "string",
             "example": "MED-12345",
-            "description": "Medical license / registration number"
+            "description": "Medical license / registration number",
+            "nullable": true
           },
           "signatureText": {
             "type": "string",
             "example": "Dr. Jane Doe",
-            "description": "Text rendering of the doctor signature"
+            "description": "Text rendering of the doctor signature",
+            "nullable": true
           },
           "signatureImageUrl": {
             "type": "string",
             "example": "https://cdn.clinic.com/signatures/jane-doe.png",
             "description": "URL to the doctor signature image",
-            "format": "uri"
+            "format": "uri",
+            "nullable": true
           },
           "user": {
             "description": "Doctor account",
@@ -1918,10 +2061,11 @@
             "format": "uuid"
           },
           "birthDate": {
-            "format": "date",
+            "format": "date-time",
             "type": "string",
-            "example": "1990-05-21",
-            "description": "Patient date of birth (ISO-8601 date)"
+            "example": "1990-05-21T00:00:00.000Z",
+            "description": "Patient date of birth (ISO-8601 timestamp)",
+            "nullable": true
           },
           "user": {
             "description": "Patient account",
@@ -1970,7 +2114,8 @@
           "notes": {
             "type": "string",
             "example": "Follow up in 2 weeks",
-            "description": "Additional notes from the doctor"
+            "description": "Additional notes from the doctor",
+            "nullable": true
           },
           "createdAt": {
             "format": "date-time",
@@ -1988,7 +2133,8 @@
             "format": "date-time",
             "type": "string",
             "description": "ISO 8601 timestamp when the prescription was consumed",
-            "example": "2026-01-16T08:45:00.000Z"
+            "example": "2026-01-16T08:45:00.000Z",
+            "nullable": true
           },
           "authorId": {
             "type": "string",

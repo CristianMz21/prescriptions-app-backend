@@ -14,6 +14,7 @@ describe('UsersController', () => {
 
   beforeEach(async () => {
     const mockUsersService = {
+      findAll: jest.fn(),
       findAllByRole: jest.fn(),
       findById: jest.fn(),
     };
@@ -34,8 +35,8 @@ describe('UsersController', () => {
   describe('findAllPatients', () => {
     it('should return a list of patients', async () => {
       usersService.findAllByRole.mockResolvedValue(mockUsers as any);
-      const result = await controller.findAllPatients();
-      expect(usersService.findAllByRole).toHaveBeenCalledWith(Role.PATIENT);
+      const result = await controller.findAllPatients({});
+      expect(usersService.findAllByRole).toHaveBeenCalledWith(Role.PATIENT, {});
       expect(result).toEqual(mockUsers);
     });
   });
@@ -43,8 +44,8 @@ describe('UsersController', () => {
   describe('findAllDoctors', () => {
     it('should return a list of doctors', async () => {
       usersService.findAllByRole.mockResolvedValue(mockUsers as any);
-      const result = await controller.findAllDoctors();
-      expect(usersService.findAllByRole).toHaveBeenCalledWith(Role.DOCTOR);
+      const result = await controller.findAllDoctors({});
+      expect(usersService.findAllByRole).toHaveBeenCalledWith(Role.DOCTOR, {});
       expect(result).toEqual(mockUsers);
     });
   });

@@ -80,9 +80,8 @@ async function getOrCreateUser(
       .get('/users')
       .set('Cookie', adminCookie)
       .expect(200);
-    const foundUser = usersRes.body.find(
-      (u: PersistedUser) => u.email === email,
-    );
+    const users = (usersRes.body.data ?? usersRes.body) as PersistedUser[];
+    const foundUser = users.find((u: PersistedUser) => u.email === email);
     if (!foundUser?.id) {
       throw new Error(
         `getOrCreateUser: 409 conflict but could not find user ${email} via admin /users`,
