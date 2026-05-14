@@ -40,6 +40,9 @@ jobs:
   postman-newman:
     name: OpenAPI Drift + Newman Suite
     runs-on: ubuntu-latest
+    # Safety net: kill the job if Newman or any step hangs.
+    # Newman + smoke contract + drift normally finish in <3 min total.
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16-alpine

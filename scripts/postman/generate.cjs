@@ -128,10 +128,10 @@ function operations() {
 
 function urlFor(route, opId) {
   const replacements = {
-    UsersController_findOne: '{{adminUserId}}',
-    PrescriptionsController_findOne: '{{prescriptionId}}',
-    PrescriptionsController_markAsConsumed: '{{prescriptionId}}',
-    PrescriptionsController_downloadPdf: '{{prescriptionId}}',
+    Users_findOne: '{{adminUserId}}',
+    Prescriptions_findOne: '{{prescriptionId}}',
+    Prescriptions_markAsConsumed: '{{prescriptionId}}',
+    Prescriptions_downloadPdf: '{{prescriptionId}}',
   };
   const replaced = route.replace(
     /\{id\}/g,
@@ -142,46 +142,46 @@ function urlFor(route, opId) {
 
 function queryFor(opId) {
   const defaults = {
-    UsersController_findAll: [
+    Users_findAll: [
       { key: 'page', value: '1' },
       { key: 'limit', value: '10' },
     ],
-    UsersController_findAllPatients: [
+    Users_findAllPatients: [
       { key: 'page', value: '1' },
       { key: 'limit', value: '10' },
     ],
-    UsersController_findAllDoctors: [
+    Users_findAllDoctors: [
       { key: 'page', value: '1' },
       { key: 'limit', value: '10' },
     ],
-    PrescriptionsController_findAll: [
+    Prescriptions_findAll: [
       { key: 'page', value: '1' },
       { key: 'limit', value: '10' },
     ],
-    AdminController_listPrescriptions: [
+    Admin_listPrescriptions: [
       { key: 'page', value: '1' },
       { key: 'limit', value: '10' },
     ],
-    AdminController_getMetrics: [],
-    AdminController_streamMetrics: [{ key: 'once', value: 'true' }],
+    Admin_getMetrics: [],
+    Admin_streamMetrics: [{ key: 'once', value: 'true' }],
   };
   return defaults[opId] || [];
 }
 
 function bodyFor(opId) {
   const bodies = {
-    AuthController_login: {
+    Auth_login: {
       email: '{{adminEmail}}',
       password: '{{seedPassword}}',
     },
-    UsersController_create: {
+    Users_create: {
       email: 'qa-created-patient-{{$guid}}@clinic.com',
       password: '{{seedPassword}}',
       role: 'PATIENT',
       birthDate: '1990-05-21',
     },
-    UsersController_updateMyTheme: { themePreference: 'DARK' },
-    PrescriptionsController_create: {
+    Users_updateMyTheme: { themePreference: 'DARK' },
+    Prescriptions_create: {
       patientId: '{{patientId}}',
       items: [
         {
@@ -193,7 +193,7 @@ function bodyFor(opId) {
       ],
       notes: 'Postman/Newman generated E2E prescription',
     },
-    PrescriptionsController_markAsConsumed: {
+    Prescriptions_markAsConsumed: {
       reason: 'Consumed by Postman/Newman E2E flow',
     },
   };
@@ -201,24 +201,24 @@ function bodyFor(opId) {
 }
 
 function roleFor(opId) {
-  if (opId === 'AppController_getHello' || opId === 'AuthController_login')
+  if (opId === 'App_getHello' || opId === 'Auth_login')
     return null;
-  if (opId === 'AuthController_refresh') return 'ADMIN_REFRESH_ONLY';
-  if (opId.startsWith('AdminController_')) return 'ADMIN';
+  if (opId === 'Auth_refresh') return 'ADMIN_REFRESH_ONLY';
+  if (opId.startsWith('Admin_')) return 'ADMIN';
   if (
-    opId === 'UsersController_create' ||
-    opId === 'UsersController_findAll' ||
-    opId === 'UsersController_findAllDoctors' ||
-    opId === 'UsersController_findOne'
+    opId === 'Users_create' ||
+    opId === 'Users_findAll' ||
+    opId === 'Users_findAllDoctors' ||
+    opId === 'Users_findOne'
   )
     return 'ADMIN';
-  if (opId === 'UsersController_findAllPatients') return 'DOCTOR';
-  if (opId === 'PrescriptionsController_create') return 'DOCTOR';
-  if (opId === 'PrescriptionsController_markAsConsumed') return 'PATIENT';
+  if (opId === 'Users_findAllPatients') return 'DOCTOR';
+  if (opId === 'Prescriptions_create') return 'DOCTOR';
+  if (opId === 'Prescriptions_markAsConsumed') return 'PATIENT';
   // findAll / findOne / downloadPdf default to ADMIN so they "just work" out of the
   // box — admin sees every prescription regardless of author/patient. Switch via
   // the roleOverride env var to test patient/doctor perspectives without editing scripts.
-  if (opId.startsWith('PrescriptionsController_')) return 'ADMIN';
+  if (opId.startsWith('Prescriptions_')) return 'ADMIN';
   return 'ADMIN';
 }
 
@@ -228,7 +228,7 @@ function requestFor(row) {
     {
       key: 'Accept',
       value:
-        opId === 'AdminController_streamMetrics'
+        opId === 'Admin_streamMetrics'
           ? 'text/event-stream'
           : 'application/json',
     },
@@ -372,26 +372,26 @@ function commonTests(opId, expectedStatus, schema) {
   }
   if (
     opId.includes('findAll') ||
-    opId === 'AdminController_listPrescriptions'
+    opId === 'Admin_listPrescriptions'
   ) {
     lines.push(
       "pm.test('response has pagination metadata', function () { const json = pm.response.json(); pm.expect(json.data).to.be.an('array'); pm.expect(json.meta).to.include.keys(['page','limit','total','totalPages']); pm.expect(json.meta.page).to.be.a('number'); pm.expect(json.meta.limit).to.be.a('number'); });",
     );
   }
-  if (opId === 'AuthController_login')
+  if (opId === 'Auth_login')
     lines.push(...captureAuthScript('admin'));
-  if (opId === 'AuthController_refresh')
+  if (opId === 'Auth_refresh')
     lines.push(...captureAccessFromSetCookie('admin'));
-  if (opId === 'AuthController_getProfile')
+  if (opId === 'Auth_getProfile')
     lines.push(
       "pm.test('profile has UUID user id', function () { pm.expect(pm.response.json().id).to.match(new RegExp(pm.collectionVariables.get('uuidRegex'))); });",
     );
-  if (opId === 'UsersController_create') {
+  if (opId === 'Users_create') {
     lines.push(
       "const createdUser = pm.response.json(); pm.environment.set('createdUserId', createdUser.id);",
     );
   }
-  if (opId === 'PrescriptionsController_create') {
+  if (opId === 'Prescriptions_create') {
     lines.push(
       "const prescription = pm.response.json(); pm.environment.set('prescriptionId', prescription.id); pm.environment.set('prescriptionCode', prescription.code);",
     );
@@ -399,17 +399,17 @@ function commonTests(opId, expectedStatus, schema) {
       "pm.test('prescription fields have expected formats', function () { const p = pm.response.json(); pm.expect(p.id).to.match(new RegExp(pm.collectionVariables.get('uuidRegex'))); pm.expect(p.code).to.match(/^RX-[A-Za-z0-9_-]{10}$/); pm.expect(p.createdAt).to.match(new RegExp(pm.collectionVariables.get('isoDateTimeRegex'))); });",
     );
   }
-  if (opId === 'PrescriptionsController_markAsConsumed') {
+  if (opId === 'Prescriptions_markAsConsumed') {
     lines.push(
       "pm.test('prescription is consumed', function () { const p = pm.response.json(); pm.expect(p.status).to.equal('CONSUMED'); pm.expect(p.consumedAt).to.match(new RegExp(pm.collectionVariables.get('isoDateTimeRegex'))); });",
     );
   }
-  if (opId === 'PrescriptionsController_downloadPdf') {
+  if (opId === 'Prescriptions_downloadPdf') {
     lines.push(
       "pm.test('PDF content type is returned', function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'); });",
     );
   }
-  if (opId === 'AdminController_streamMetrics') {
+  if (opId === 'Admin_streamMetrics') {
     lines.push(
       "pm.test('SSE response emits metrics data', function () { pm.expect(pm.response.text()).to.include('data:'); });",
     );
