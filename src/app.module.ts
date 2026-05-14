@@ -1,5 +1,6 @@
 /* Copyright (c) 2026. All rights reserved. */
-import { Module } from '@nestjs/common';
+import { ClassSerializerInterceptor, Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -24,6 +25,15 @@ import { validate } from './config/env.validation';
     EmailModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Global response serializer: applies @Exclude/@Expose from class-transformer
+    // to every controller response that returns a class instance. Critical for
+    // stripping sensitive fields like UserEntity.passwordHash.
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ClassSerializerInterceptor,
+    },
+  ],
 })
 export class AppModule {}
