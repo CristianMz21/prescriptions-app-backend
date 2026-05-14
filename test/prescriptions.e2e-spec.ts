@@ -300,6 +300,40 @@ describe('Prescriptions Flow (e2e)', () => {
           expect(res.body.error).toEqual('Bad Request');
         });
     });
+
+    it('returns 400 when item quantity is less than 1', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', secondDoctorCookie)
+        .send({
+          patientId: secondPatientId,
+          items: [{ name: 'Test', dosage: '5mg', quantity: 0 }],
+        })
+        .expect(400);
+      expect(res.body.error).toEqual('Bad Request');
+      expect(res.body.message).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/quantity must not be less than 1/i),
+        ]),
+      );
+    });
+
+    it('returns 400 when item quantity is a non-numeric string', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', secondDoctorCookie)
+        .send({
+          patientId: secondPatientId,
+          items: [{ name: 'Test', dosage: '5mg', quantity: 'not-a-number' }],
+        })
+        .expect(400);
+      expect(res.body.error).toEqual('Bad Request');
+      expect(res.body.message).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/quantity must be an integer/i),
+        ]),
+      );
+    });
   });
 
   describe('GET /prescriptions/:id — Contract: ownership', () => {
@@ -596,6 +630,42 @@ describe('Prescriptions Flow (e2e)', () => {
       await request(app.getHttpServer())
         .get(`/prescriptions/${prescriptionId}/pdf`)
         .expect(401);
+    });
+
+    it('returns 403 when a doctor downloads another doctor prescription PDF', async () => {
+      // Created by secondDoctor for secondPatient; the seeded `doctor` is a
+      // different author and must not be allowed to download it.
+      const prescriptionRes = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', secondDoctorCookie)
+        .send({
+          patientId: secondPatientId,
+          items: [{ name: 'IDOR', dosage: '1mg', quantity: 1 }],
+        })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionRes.body.id}/pdf`)
+        .set('Cookie', doctorCookie)
+        .expect(403);
+      expect(res.body).toMatchObject({ statusCode: 403 });
+    });
+
+    it('returns 403 when a patient downloads another patient prescription PDF', async () => {
+      const prescriptionRes = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', secondDoctorCookie)
+        .send({
+          patientId: secondPatientId,
+          items: [{ name: 'IDOR', dosage: '1mg', quantity: 1 }],
+        })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get(`/prescriptions/${prescriptionRes.body.id}/pdf`)
+        .set('Cookie', patientCookie)
+        .expect(403);
+      expect(res.body).toMatchObject({ statusCode: 403 });
     });
 
     it('should return 404 when prescription does not exist', async () => {

@@ -88,14 +88,14 @@ export class AuthController {
     response.cookie('accessToken', authResult.accessToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: this.accessCookieMaxAge,
     });
 
     response.cookie('refreshToken', authResult.refreshToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/auth/refresh',
       maxAge: this.refreshCookieMaxAge,
     });
@@ -135,7 +135,7 @@ export class AuthController {
       response.cookie('accessToken', authResult.accessToken, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: this.accessCookieMaxAge,
       });
 

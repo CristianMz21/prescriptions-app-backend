@@ -114,6 +114,61 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .expect(400);
       expect(_res.status).toBe(400);
     });
+
+    it('attaches HttpOnly + SameSite flags to access/refresh cookies', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'admin@clinic.com', password: TEST_PASSWORD })
+        .expect(201);
+      const cookies = res.headers['set-cookie'] as unknown as string[];
+      const accessCookie = cookies.find(c => c.startsWith('accessToken='));
+      const refreshCookie = cookies.find(c => c.startsWith('refreshToken='));
+      expect(accessCookie).toBeDefined();
+      expect(refreshCookie).toBeDefined();
+      // HttpOnly prevents JS access; SameSite=Lax mitigates CSRF for
+      // unsafe (POST/PUT/PATCH/DELETE) cross-site requests while still
+      // allowing top-level GET navigations to carry the cookie.
+      expect(accessCookie).toMatch(/HttpOnly/i);
+      expect(accessCookie).toMatch(/SameSite=Lax/i);
+      expect(refreshCookie).toMatch(/HttpOnly/i);
+      expect(refreshCookie).toMatch(/SameSite=Lax/i);
+      // Secure is only set under NODE_ENV=production; in this test env
+      // (NODE_ENV=test) it must NOT be set so local dev (http) works.
+      expect(accessCookie).not.toMatch(/;\s*Secure/i);
+      expect(refreshCookie).not.toMatch(/;\s*Secure/i);
+    });
+  });
+
+  describe('POST /auth/refresh', () => {
+    it('issues a new accessToken when given a valid refresh cookie', async () => {
+      const login = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'admin@clinic.com', password: TEST_PASSWORD })
+        .expect(201);
+      const refreshCookie = extractRefreshCookie(login.headers['set-cookie']);
+
+      const res = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', refreshCookie)
+        .expect(200);
+      const newCookies = res.headers['set-cookie'] as unknown as string[];
+      expect(newCookies.some(c => c.startsWith('accessToken='))).toBe(true);
+    });
+
+    it('returns 401 when the refresh cookie is missing', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .expect(401);
+      expect(res.body).toMatchObject({ statusCode: 401 });
+    });
+
+    it('returns 401 when the refresh cookie is malformed', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', 'refreshToken=not-a-jwt')
+        .expect(401);
+      expect(res.body).toMatchObject({ statusCode: 401 });
+    });
   });
 
   describe('GET /auth/profile', () => {
@@ -423,6 +478,23 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(404);
       expect(_res.status).toBe(404);
+    });
+
+    it('should return 403 when a patient reads another user profile', async () => {
+      // Resolve any existing user id via the admin listing.
+      const list = await request(app.getHttpServer())
+        .get('/users')
+        .set('Cookie', adminCookie)
+        .expect(200);
+      const users = responseData<{ id: string }>(list.body);
+      expect(users.length).toBeGreaterThan(0);
+      const otherUserId = users[0].id;
+
+      const res = await request(app.getHttpServer())
+        .get(`/users/${otherUserId}`)
+        .set('Cookie', patientCookie)
+        .expect(403);
+      expect(res.body).toMatchObject({ statusCode: 403 });
     });
   });
 
