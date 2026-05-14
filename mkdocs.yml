@@ -1,0 +1,59 @@
+site_name: Prescriptions App Wiki
+site_url: https://CristianMz21.github.io/prescriptions-app-backend/
+repo_name: CristianMz21/prescriptions-app-backend
+repo_url: https://github.com/CristianMz21/prescriptions-app-backend
+edit_uri: blob/main/docs/
+docs_dir: docs
+
+theme:
+  name: material
+  language: es
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      primary: green
+      accent: light green
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      primary: green
+      accent: light green
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/CristianMz21
+
+nav:
+  - Home: index.md
+  - Arquitectura: arquitectura.md
+  - Contratos API: contratos-api.md
+  - Seguridad: seguridad.md
+  - Roadmap: ROADMAP_IMPLEMENTACION.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - admonition
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+
+plugins:
+  - search:

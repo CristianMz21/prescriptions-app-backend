@@ -42,13 +42,13 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
-![Arquitectura General](diagrams/arquitectura.png)
+![Arquitectura General](diagrams/d01_arquitectura.png)
 
 ---
 
 ## 2. Estructura de Carpetas
 
-![Estructura de Carpetas](diagrams/estructura-carpetas.png)
+![Estructura de Carpetas](diagrams/d05_folder_structure.png)
 
 ```
 backend/
@@ -232,7 +232,7 @@ model RefreshToken {
 
 ## 4. Diagrama Entidad-Relación
 
-![ER Diagrama](diagrams/er-diagrama.png)
+![ER Diagrama](diagrams/d02_er.png)
 
 ---
 
@@ -289,19 +289,19 @@ model RefreshToken {
 
 ## 6. Flujo de Autenticación
 
-![Flujo de Auth](diagrams/flujo-auth.png)
+![Flujo de Auth](diagrams/d03_flujo_auth.png)
 
 ---
 
 ## 7. Flujo de Prescripción
 
-![Flujo de Prescripción](diagrams/flujo-prescripcion.png)
+![Flujo de Prescripción](diagrams/d04_flujo_prescription.png)
 
 ---
 
 ## 8. Matriz RBAC
 
-![Matriz RBAC](diagrams/matriz-rbac.png)
+![Matriz RBAC](diagrams/d06_rbac_matrix.png)
 
 | Acción | admin | doctor | patient |
 |--------|:-----:|:------:|:-------:|
