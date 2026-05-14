@@ -25,6 +25,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateThemeDto } from './dto/update-theme.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from './entities/user.entity';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserListQueryDto } from './dto/user-list-query.dto';
@@ -118,6 +119,25 @@ export class UsersController {
     @Body() dto: UpdateThemeDto,
   ): Promise<UserEntity> {
     return this.usersService.updateTheme(user.id, dto.themePreference);
+  }
+
+  @Patch('me')
+  @ApiOperation({
+    summary: 'Update the authenticated user profile (name and/or phone)',
+  })
+  @ApiOkResponse({
+    type: UserResponseDto,
+    description: 'Profile updated; returns the refreshed user.',
+  })
+  @ApiStandardErrors({
+    400: 'Bad Request — invalid name/phone payload',
+    401: true,
+  })
+  updateMe(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateUserDto,
+  ): ReturnType<UsersService['updateProfile']> {
+    return this.usersService.updateProfile(user.id, dto);
   }
 
   @Get(':id')

@@ -308,9 +308,9 @@
             "name": "q",
             "required": false,
             "in": "query",
-            "description": "Case-insensitive substring search on user email (and doctor specialty/medicalId on /users/doctors).",
+            "description": "Case-insensitive substring search across user.email AND user.name.",
             "schema": {
-              "example": "patient@test.com",
+              "example": "jane",
               "type": "string"
             }
           },
@@ -462,9 +462,9 @@
             "name": "q",
             "required": false,
             "in": "query",
-            "description": "Case-insensitive substring search on user email (and doctor specialty/medicalId on /users/doctors).",
+            "description": "Case-insensitive substring search across user.email AND user.name.",
             "schema": {
-              "example": "patient@test.com",
+              "example": "jane",
               "type": "string"
             }
           },
@@ -660,9 +660,9 @@
             "name": "q",
             "required": false,
             "in": "query",
-            "description": "Case-insensitive substring search on user email (and doctor specialty/medicalId on /users/doctors).",
+            "description": "Case-insensitive substring search across user.email AND user.name.",
             "schema": {
-              "example": "patient@test.com",
+              "example": "jane",
               "type": "string"
             }
           },
@@ -848,6 +848,63 @@
           }
         ],
         "summary": "Update the current user UI theme preference",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/me": {
+      "patch": {
+        "operationId": "Users_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated; returns the refreshed user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — invalid name/phone payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Update the authenticated user profile (name and/or phone)",
         "tags": [
           "Users"
         ]
@@ -2050,6 +2107,17 @@
             "example": "doctor@clinic.com",
             "format": "email"
           },
+          "name": {
+            "type": "string",
+            "description": "Display name shown in the UI.",
+            "example": "Jane Doe"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Optional contact phone (canonical contact field).",
+            "example": "+54 11 1234-5678",
+            "nullable": true
+          },
           "role": {
             "description": "User role for RBAC",
             "example": "DOCTOR",
@@ -2102,6 +2170,7 @@
         "required": [
           "id",
           "email",
+          "name",
           "role",
           "createdAt",
           "updatedAt",
@@ -2172,6 +2241,17 @@
             "example": "doctor@clinic.com",
             "format": "email"
           },
+          "name": {
+            "type": "string",
+            "description": "Display name shown in the UI.",
+            "example": "Jane Doe"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Optional contact phone (canonical contact field).",
+            "example": "+54 11 1234-5678",
+            "nullable": true
+          },
           "role": {
             "description": "User role for RBAC",
             "example": "DOCTOR",
@@ -2224,6 +2304,7 @@
         "required": [
           "id",
           "email",
+          "name",
           "role",
           "createdAt",
           "updatedAt",
@@ -2243,6 +2324,19 @@
             "type": "string",
             "example": "***REDACTED-DEV-PASSWORD***",
             "description": "User password (minimum 6 characters)"
+          },
+          "name": {
+            "type": "string",
+            "example": "Jane Doe",
+            "description": "Full display name (UI). Required.",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "example": "+54 11 1234-5678",
+            "description": "Optional contact phone (E.164-ish, free-form up to 32 chars).",
+            "maxLength": 32
           },
           "role": {
             "description": "User role (ADMIN, DOCTOR, PATIENT)",
@@ -2286,6 +2380,7 @@
         "required": [
           "email",
           "password",
+          "name",
           "role"
         ]
       },
@@ -2303,6 +2398,17 @@
             "description": "User email address",
             "example": "doctor@clinic.com",
             "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name shown in the UI.",
+            "example": "Jane Doe"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Optional contact phone (canonical contact field).",
+            "example": "+54 11 1234-5678",
+            "nullable": true
           },
           "role": {
             "description": "User role for RBAC",
@@ -2356,6 +2462,7 @@
         "required": [
           "id",
           "email",
+          "name",
           "role",
           "createdAt",
           "updatedAt",
@@ -2375,6 +2482,7 @@
           "createdAt",
           "updatedAt",
           "email",
+          "name",
           "role"
         ]
       },
@@ -2394,6 +2502,24 @@
         "required": [
           "themePreference"
         ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Jane Doe Updated",
+            "description": "New display name (UI).",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "example": "+54 11 9999-0000",
+            "description": "New contact phone (free-form up to 32 chars). Send empty string to clear (currently treated as set-to-empty; not nullified).",
+            "maxLength": 32
+          }
+        }
       },
       "PrescriptionStatus": {
         "type": "string",
@@ -2660,7 +2786,13 @@
           "quantity": {
             "type": "number",
             "example": 30,
-            "description": "Quantity to dispense (number of units)"
+            "description": "Quantity to dispense (number of units of `unit`)"
+          },
+          "unit": {
+            "type": "string",
+            "example": "cápsulas",
+            "description": "Unit of measure that gives `quantity` meaning (mg, ml, cápsulas, comprimidos, gotas, ...). Required.",
+            "maxLength": 32
           },
           "instructions": {
             "type": "string",
@@ -2669,7 +2801,8 @@
           }
         },
         "required": [
-          "name"
+          "name",
+          "unit"
         ]
       },
       "CreatePrescriptionDto": {
@@ -2693,6 +2826,12 @@
             "type": "string",
             "example": "Follow up in 2 weeks",
             "description": "Additional notes from the doctor"
+          },
+          "expiryDate": {
+            "type": "string",
+            "example": "2026-12-31",
+            "description": "Optional date past which the prescription is considered invalid; independent of consumedAt.",
+            "format": "date"
           }
         },
         "required": [

@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'bcrypt';
 import { UserEntity } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserListQueryDto, UserSortBy } from './dto/user-list-query.dto';
 import { DoctorListQueryDto } from './dto/doctor-list-query.dto';
 import { PatientListQueryDto } from './dto/patient-list-query.dto';
@@ -75,6 +76,8 @@ export class UsersService {
         data: {
           email: createUserDto.email,
           passwordHash: hashedPassword,
+          name: createUserDto.name,
+          phone: createUserDto.phone,
           role: createUserDto.role,
           doctor: this.buildDoctorCreate(createUserDto),
           patient: this.buildPatientCreate(createUserDto),
@@ -236,6 +239,50 @@ export class UsersService {
     return this.findUsersPaginated(baseWhere, query);
   }
 
+  /**
+   * Patches the authenticated user's own profile (name/phone). No role/email/password
+   * mutation here — those flow through admin endpoints or a dedicated password route.
+   */
+  async updateProfile(userId: string, dto: UpdateUserDto): Promise<UserEntity> {
+    const data: Prisma.UserUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.phone !== undefined) data.phone = dto.phone;
+
+    if (Object.keys(data).length === 0) {
+      // Idempotent: return current state without hitting the writer.
+      return this.findById(userId);
+    }
+
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data,
+        include: {
+          doctor: {
+            select: {
+              id: true,
+              specialty: true,
+              medicalId: true,
+              signatureText: true,
+              signatureImageUrl: true,
+            },
+          },
+          patient: { select: { id: true, birthDate: true } },
+        },
+      });
+      return new UserEntity(user);
+    } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2025'
+      ) {
+        throw new NotFoundException('User not found');
+      }
+      throw err;
+    }
+  }
+
   private async findUsersPaginated(
     where: Prisma.UserWhereInput,
     query: UserListQueryDto,
@@ -255,11 +302,14 @@ export class UsersService {
     } = query;
     const skip = (page - 1) * limit;
 
-    const emailFilter = caseInsensitiveContains(q);
+    const qFilter = caseInsensitiveContains(q);
     const createdAtFilter = dateRangeFilter(createdFromDate, createdToDate);
 
     const composedWhere: Prisma.UserWhereInput = { ...where };
-    if (emailFilter) composedWhere.email = emailFilter;
+    if (qFilter) {
+      // Top-level OR is AND-combined with the rest of the where clause by Prisma.
+      composedWhere.OR = [{ email: qFilter }, { name: qFilter }];
+    }
     if (createdAtFilter) composedWhere.createdAt = createdAtFilter;
     if (themePreference) composedWhere.themePreference = themePreference;
 

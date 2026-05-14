@@ -92,11 +92,15 @@ export class PrescriptionsService {
           patientId: resolvedPatientId,
           notes: createPrescriptionDto.notes,
           status: PrescriptionStatus.PENDING,
+          expiryDate: createPrescriptionDto.expiryDate
+            ? new Date(createPrescriptionDto.expiryDate)
+            : null,
           items: {
             create: createPrescriptionDto.items.map(item => ({
               name: item.name,
               dosage: item.dosage,
               quantity: item.quantity,
+              unit: item.unit,
               instructions: item.instructions,
             })),
           },

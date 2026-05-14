@@ -179,6 +179,7 @@ describe('AuthController', () => {
       };
       const fullUserEntity = {
         ...requestUser,
+        name: 'Test Patient',
         createdAt: new Date(),
         updatedAt: new Date(),
         passwordHash: 'hash',
