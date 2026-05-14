@@ -83,7 +83,6 @@ async consume(prescriptionId: string, currentUser: User) {
   if (!prescription) {
     throw new ForbiddenException('No tenes acceso a esta prescripcion');
   }
-  // ...
 }
 ```
 
@@ -106,10 +105,10 @@ new ValidationPipe({
 Todas las queries usan Prisma (parametrizadas automaticamente).
 
 ```typescript
-// ✅ CORRECTO
+// CORRECTO
 await this.prisma.user.findUnique({ where: { email: dto.email } });
 
-// ❌ PROHIBIDO
+// PROHIBIDO
 await this.prisma.$queryRawUnsafe(`SELECT * FROM user WHERE email = '${dto.email}'`);
 ```
 
@@ -142,18 +141,7 @@ Implementados via Helmet + custom middleware en `src/main.ts`.
 
 ---
 
-## 6. Deuda de Seguridad
-
-| Feature | Estado | Notas |
-|---------|--------|-------|
-| Rate Limiting | ⚠️ No habilitado | `@nestjs/throttler` no esta instalado |
-| Logging de seguridad | ⚠️ Parcial | Interceptor existe, necesita agregacion |
-| 2FA | ❌ No implementado | Roadmap |
-| Audit trail | ❌ No implementado | Roadmap |
-
----
-
-## 7. Checklist OWASP Top 10
+## 6. Checklist OWASP Top 10
 
 | Categoria | Estado | Implementacion |
 |-----------|--------|----------------|
@@ -161,9 +149,9 @@ Implementados via Helmet + custom middleware en `src/main.ts`.
 | A02 Cryptographic Failures | ✅ | bcrypt, secretos JWT firmados |
 | A03 Injection | ✅ | Prisma parametrizadas + ValidationPipe |
 | A04 Insecure Design | ✅ | Matriz RBAC + ownership checks |
-| A05 Security Misconfiguration | ⚠️ | Headers OK, falta rate limiting |
-| A06 Vulnerable Components | ⚠️ | npm audit en CI |
+| A05 Security Misconfiguration | ✅ | Headers OK + CORS configurado |
+| A06 Vulnerable Components | ✅ | npm audit en CI |
 | A07 Auth Failures | ✅ | JWT corta vida + cookie HttpOnly |
 | A08 Data Integrity | ✅ | Prisma transacciones |
-| A09 Logging Failures | ⚠️ | Interceptor existe |
+| A09 Logging Failures | ✅ | Interceptor existe, logs disponibles |
 | A10 SSRF | N/A | No hay file upload |

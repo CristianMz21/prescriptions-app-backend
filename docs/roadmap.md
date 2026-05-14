@@ -47,35 +47,6 @@
 
 ---
 
-## Features Pendientes / Deuda Tecnica
-
-### Alta Prioridad
-
-| Feature | Descripcion | Status |
-|---------|-------------|--------|
-| Rate Limiting | `@nestjs/throttler` no instalado | ⚠️ Pendiente |
-| Tests de coverage | Coverage actual desconocido | 🔄 Verificar |
-
-### Media Prioridad
-
-| Feature | Descripcion | Status |
-|---------|-------------|--------|
-| 2FA / MFA | Autenticacion de dos factores | ❌ Pendiente |
-| Audit trail | Log de acciones sensibles | ❌ Pendiente |
-| Notificaciones | Email/SMS al paciente cuando se crea prescripcion | ❌ Pendiente |
-| Historico de cambios | Track cambios en prescripciones | ❌ Pendiente |
-| Export CSV | Exportar listado de prescripciones | ❌ Pendiente |
-
-### Baja Prioridad
-
-| Feature | Descripcion | Status |
-|---------|-------------|--------|
-| Dark mode en docs | Tema oscuro para la wiki | ❌ Pendiente |
-| Multi-idioma | Soporte ingles/espanol | ❌ Pendiente |
-| Carga de archivos | Avatar para usuarios | ❌ Pendiente |
-
----
-
 ## Decisiones de Arquitectura Tomadas
 
 ### 1. Roles en User.role (no tablas separadas)

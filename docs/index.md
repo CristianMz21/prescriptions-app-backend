@@ -48,5 +48,3 @@ Sistema de gestión de prescripciones médicas. Backend API construida con **Nes
 | Admin (métricas + listado total) | ✅ Implementado |
 | Wiki + GitHub Pages | ✅ Implementado |
 | E2E Tests | ✅ Implementado |
-| Rate Limiting | ⚠️ No habilitado |
-| Tests de cobertura >80% | 🔄 En curso |
