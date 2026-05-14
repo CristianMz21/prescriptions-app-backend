@@ -60,11 +60,19 @@ COPY --from=builder /app/prisma ./prisma
 # Copy the start script
 COPY --from=builder /app/start.sh ./
 
-# Install ONLY production dependencies to keep the image size minimal
-RUN npm install -g pnpm@11.1.1 && pnpm install --prod --frozen-lockfile
+# Install ONLY production dependencies to keep the image size minimal.
+# --ignore-scripts skips the root `prepare` hook (husky) which is dev-only
+# tooling and not present in --prod installs. Package install scripts for
+# native deps (bcrypt, prisma engines, puppeteer) are already disabled
+# via the `allowBuilds: false` block in pnpm-workspace.yaml, so skipping
+# all scripts here is safe.
+# Install the prisma CLI globally so start.sh's `npx prisma migrate
+# deploy` runs without fetching on every cold start.
+RUN npm install -g pnpm@11.1.1 prisma@6 && \
+    pnpm install --prod --frozen-lockfile --ignore-scripts
 
-# Generate Prisma Client again for the production stage
-RUN npx prisma generate
+# Generate Prisma Client (engine binary) for the runtime image
+RUN prisma generate
 
 # Ensure the start script is executable
 RUN chmod +x ./start.sh
