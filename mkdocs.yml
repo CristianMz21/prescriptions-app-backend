@@ -42,9 +42,12 @@ extra:
 nav:
   - Home: index.md
   - Arquitectura: arquitectura.md
+  - Modulos: modulos.md
   - Contratos API: contratos-api.md
   - Seguridad: seguridad.md
-  - Roadmap: ROADMAP_IMPLEMENTACION.md
+  - Despliegue: despliegue.md
+  - Guia de Desarrollo: guia-desarrollo.md
+  - Roadmap: roadmap.md
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -56,4 +59,4 @@ markdown_extensions:
   - md_in_html
 
 plugins:
-  - search:
+  - search

@@ -16,14 +16,30 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiCookieAuth,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { UserEntity } from '../users/entities/user.entity';
+import { LoginResponseDto } from './dto/login-response.dto';
+import { LogoutResponseDto } from './dto/logout-response.dto';
+import { RefreshResponseDto } from './dto/refresh-response.dto';
+import { UserProfileResponseDto } from './dto/user-profile-response.dto';
+import { ErrorResponseDto } from '../common/dto/error-response.dto';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
+@ApiTags('Auth')
+@ApiCookieAuth('accessToken')
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
@@ -35,10 +51,19 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @ApiOperation({ summary: 'Authenticate user and obtain access tokens' })
+  @ApiCreatedResponse({
+    type: LoginResponseDto,
+    description: 'Login successful — access tokens set in cookies',
+  })
+  @ApiBadRequestResponse({
+    type: ErrorResponseDto,
+    description: 'Bad Request — validation failed or invalid credentials',
+  })
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<{ message: string; user: Omit<JwtPayload, 'passwordHash'> }> {
+  ): Promise<LoginResponseDto> {
     const user = await this.authService.validateUser(
       loginDto.email,
       loginDto.password,
@@ -74,10 +99,20 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token using refresh token cookie' })
+  @ApiOkResponse({
+    type: RefreshResponseDto,
+    description: 'Token refreshed — new access token set in cookie',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Unauthorized — refresh token missing or invalid',
+  })
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<{ message: string }> {
+  ): Promise<RefreshResponseDto> {
     const cookies = request.cookies as Record<string, string | undefined>;
     const refreshToken = cookies.refreshToken;
     if (!refreshToken) {
@@ -108,7 +143,16 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  logout(@Res({ passthrough: true }) response: Response): { message: string } {
+  @ApiOperation({ summary: 'Log out and clear access/refresh token cookies' })
+  @ApiOkResponse({
+    type: LogoutResponseDto,
+    description: 'Logout successful — cookies cleared',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Unauthorized — valid access token required',
+  })
+  logout(@Res({ passthrough: true }) response: Response): LogoutResponseDto {
     response.clearCookie('accessToken');
     response.clearCookie('refreshToken', { path: '/auth/refresh' });
     return { message: 'Logged out successfully' };
@@ -117,6 +161,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)
   @Get('profile')
+  @ApiOperation({ summary: 'Get authenticated user profile' })
+  @ApiOkResponse({
+    type: UserProfileResponseDto,
+    description: 'Returns the authenticated user profile',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Unauthorized — valid access token required',
+  })
   async getProfile(@CurrentUser() user: JwtPayload): Promise<UserEntity> {
     return this.usersService.findById(user.id);
   }

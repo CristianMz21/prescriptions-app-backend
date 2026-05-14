@@ -1,6 +1,9 @@
-# Contratos de API — App de Prescripciones MVP
+# Contratos API — Prescriptions App
 
-> **OpenAPI 3.0.3 spec** | Todos los endpoints requieren JWT Bearer a menos que esté marcado **Público**
+> **OpenAPI 3.0.3 spec** | Autenticación via **HttpOnly cookies** (no Bearer header)
+> Usa `withCredentials: true` en el cliente HTTP para enviar cookies cross-origin.
+
+Todos los endpoints requieren JWT cookie a menos que esté marcado **Publico**.
 
 ---
 
@@ -8,17 +11,15 @@
 
 ### POST /auth/login
 
-**Público** — Sin autenticación requerida.
-
-**Request:**
+**Publico**
 
 ```yaml
 POST /auth/login
 Content-Type: application/json
 
 {
-  "email": "doctor@test.com",
-  "password": "Doctor123*"
+  "email": "doctor@clinic.com",
+  "password": "Password123!"
 }
 ```
 
@@ -26,25 +27,25 @@ Content-Type: application/json
 
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "a1b2c3d4e5f6...",
   "user": {
-    "id": "cld1...",
-    "email": "doctor@test.com",
-    "name": "Dr. Juan Pérez",
-    "role": "doctor",
-    "doctorId": "cld2...",
-    "patientId": null
+    "id": "uuid-...",
+    "email": "doctor@clinic.com",
+    "name": "Dr. Juan Perez",
+    "role": "DOCTOR"
   }
 }
 ```
+
+Cookies seteadas:
+- `accessToken` — HttpOnly, 15 min
+- `refreshToken` — HttpOnly, 7 dias
 
 **Response 401:**
 
 ```json
 {
   "statusCode": 401,
-  "message": "Credenciales inválidas",
+  "message": "Credenciales invalidas",
   "error": "Unauthorized"
 }
 ```
@@ -53,35 +54,23 @@ Content-Type: application/json
 
 ### POST /auth/refresh
 
-**Público** — Requiere `refreshToken` en body.
-
-**Request:**
+**Publico** — Cookie `refreshToken` enviada automaticamente por el navegador.
 
 ```yaml
 POST /auth/refresh
-Content-Type: application/json
-
-{
-  "refreshToken": "a1b2c3d4e5f6..."
-}
+Cookie: refreshToken=<token>
 ```
 
 **Response 200:**
 
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "nuevo-refresh-token..."
-}
-```
-
-**Response 401:**
-
-```json
-{
-  "statusCode": 401,
-  "message": "Refresh token inválido o expirado",
-  "error": "Unauthorized"
+  "user": {
+    "id": "uuid-...",
+    "email": "doctor@clinic.com",
+    "name": "Dr. Juan Perez",
+    "role": "DOCTOR"
+  }
 }
 ```
 
@@ -89,18 +78,11 @@ Content-Type: application/json
 
 ### POST /auth/logout
 
-**Auth requerida.**
-
-**Request:**
+**Auth requerida**
 
 ```yaml
 POST /auth/logout
-Authorization: Bearer <accessToken>
-Content-Type: application/json
-
-{
-  "refreshToken": "a1b2c3d4e5f6..."
-}
+Cookie: accessToken=<token>
 ```
 
 **Response 200:**
@@ -113,27 +95,23 @@ Content-Type: application/json
 
 ---
 
-### GET /auth/me
+### GET /auth/profile
 
-**Auth requerida.**
-
-**Request:**
+**Auth requerida**
 
 ```yaml
-GET /auth/me
-Authorization: Bearer <accessToken>
+GET /auth/profile
+Cookie: accessToken=<token>
 ```
 
 **Response 200:**
 
 ```json
 {
-  "id": "cld1...",
-  "email": "doctor@test.com",
-  "name": "Dr. Juan Pérez",
-  "role": "doctor",
-  "doctorId": "cld2...",
-  "patientId": null
+  "id": "uuid-...",
+  "email": "doctor@clinic.com",
+  "name": "Dr. Juan Perez",
+  "role": "DOCTOR"
 }
 ```
 
@@ -143,33 +121,18 @@ Authorization: Bearer <accessToken>
 
 ### POST /users
 
-**Auth requerida** — Solo rol `admin`.
-
-**Request:**
+**Auth requerida** — Solo rol `ADMIN`.
 
 ```yaml
 POST /users
-Authorization: Bearer <accessToken>
+Cookie: accessToken=<token>
 Content-Type: application/json
 
 {
-  "email": "nuevopaciente@test.com",
-  "password": "Patient123*",
-  "name": "María López",
-  "role": "patient",
-  "birthDate": "1985-08-22"
-}
-```
-
-Para un doctor:
-
-```json
-{
-  "email": "nuevodoctor@test.com",
-  "password": "Doctor123*",
-  "name": "Dra. Ana García",
-  "role": "doctor",
-  "specialty": "Dermatología"
+  "email": "nuevopaciente@clinic.com",
+  "password": "Password123!",
+  "name": "Maria Lopez",
+  "role": "PATIENT"
 }
 ```
 
@@ -177,38 +140,32 @@ Para un doctor:
 
 ```json
 {
-  "id": "cld3...",
-  "email": "nuevopaciente@test.com",
-  "name": "María López",
-  "role": "patient",
-  "doctorId": null,
-  "patientId": "cld4..."
+  "id": "uuid-...",
+  "email": "nuevopaciente@clinic.com",
+  "name": "Maria Lopez",
+  "role": "PATIENT"
 }
 ```
 
-**Response 409** (email ya existe):
+**Response 409** (email duplicado):
 
 ```json
 {
   "statusCode": 409,
-  "message": "El email ya está registrado",
+  "message": "El email ya esta registrado",
   "error": "Conflict"
 }
 ```
 
 ---
 
-## 3. API de Patients
+### GET /users
 
-### GET /patients
-
-**Auth requerida** — Roles `admin`, `doctor`.
-
-**Request:**
+**Auth requerida** — Solo `ADMIN`.
 
 ```yaml
-GET /patients
-Authorization: Bearer <accessToken>
+GET /users
+Cookie: accessToken=<token>
 ```
 
 **Response 200:**
@@ -216,100 +173,29 @@ Authorization: Bearer <accessToken>
 ```json
 [
   {
-    "id": "cld5...",
-    "birthDate": "1990-05-15T00:00:00.000Z",
-    "user": {
-      "id": "cld6...",
-      "email": "patient@test.com",
-      "name": "Carlos García",
-      "role": "patient"
-    },
-    "prescriptions": [
-      {
-        "id": "cld7...",
-        "code": "PRESC-ABC123",
-        "status": "pending",
-        "createdAt": "2026-05-13T10:00:00.000Z"
-      }
-    ]
-  }
-]
-```
-
----
-
-### GET /patients/:id
-
-**Auth requerida** — Roles `admin`, `doctor`.
-
-**Request:**
-
-```yaml
-GET /patients/cld5...
-Authorization: Bearer <accessToken>
-```
-
-**Response 200:**
-
-```json
-{
-  "id": "cld5...",
-  "birthDate": "1990-05-15T00:00:00.000Z",
-  "user": {
-    "id": "cld6...",
-    "email": "patient@test.com",
-    "name": "Carlos García",
-    "role": "patient"
+    "id": "uuid-...",
+    "email": "admin@clinic.com",
+    "name": "Admin",
+    "role": "ADMIN"
   },
-  "prescriptions": [
-    {
-      "id": "cld7...",
-      "code": "PRESC-ABC123",
-      "status": "pending",
-      "notes": "Tomar con comida",
-      "createdAt": "2026-05-13T10:00:00.000Z",
-      "updatedAt": "2026-05-13T10:00:00.000Z",
-      "consumedAt": null,
-      "items": [
-        {
-          "id": "cld8...",
-          "name": "Aspirina 100mg",
-          "dosage": "1 tableta",
-          "quantity": 30,
-          "instructions": "Una vez al día por la mañana"
-        }
-      ],
-      "author": {
-        "user": { "name": "Dr. Juan Pérez" }
-      }
-    }
-  ]
-}
-```
-
-**Response 404:**
-
-```json
-{
-  "statusCode": 404,
-  "message": "Paciente no encontrado",
-  "error": "Not Found"
-}
+  {
+    "id": "uuid-...",
+    "email": "doctor@clinic.com",
+    "name": "Dr. Juan Perez",
+    "role": "DOCTOR"
+  }
+]
 ```
 
 ---
 
-## 4. API de Doctors
+### GET /users/patients
 
-### GET /doctors
-
-**Auth requerida** — Solo rol `admin`.
-
-**Request:**
+**Auth requerida** — Roles `ADMIN`, `DOCTOR`.
 
 ```yaml
-GET /doctors
-Authorization: Bearer <accessToken>
+GET /users/patients
+Cookie: accessToken=<token>
 ```
 
 **Response 200:**
@@ -317,108 +203,125 @@ Authorization: Bearer <accessToken>
 ```json
 [
   {
-    "id": "cld9...",
-    "specialty": "Cardiología",
-    "user": {
-      "id": "cld10...",
-      "email": "doctor@test.com",
-      "name": "Dr. Juan Pérez",
-      "role": "doctor"
-    },
-    "prescriptions": [
-      {
-        "id": "cld7...",
-        "code": "PRESC-ABC123",
-        "status": "pending",
-        "createdAt": "2026-05-13T10:00:00.000Z"
-      }
-    ]
+    "id": "uuid-...",
+    "email": "patient@clinic.com",
+    "name": "Carlos Garcia",
+    "role": "PATIENT"
   }
 ]
 ```
 
 ---
 
-### GET /doctors/:id
+### GET /users/doctors
 
-**Auth requerida** — Solo rol `admin`.
-
-**Request:**
+**Auth requerida** — Solo `ADMIN`.
 
 ```yaml
-GET /doctors/cld9...
-Authorization: Bearer <accessToken>
+GET /users/doctors
+Cookie: accessToken=<token>
+```
+
+**Response 200:**
+
+```json
+[
+  {
+    "id": "uuid-...",
+    "email": "doctor@clinic.com",
+    "name": "Dr. Juan Perez",
+    "role": "DOCTOR"
+  }
+]
 ```
 
 ---
 
-## 5. API de Prescriptions
+### GET /users/:id
+
+**Auth requerida** — Roles `ADMIN`, `DOCTOR`.
+
+```yaml
+GET /users/:id
+Cookie: accessToken=<token>
+```
+
+**Response 200:**
+
+```json
+{
+  "id": "uuid-...",
+  "email": "patient@clinic.com",
+  "name": "Carlos Garcia",
+  "role": "PATIENT"
+}
+```
+
+---
+
+## 3. API de Prescriptions
 
 ### POST /prescriptions
 
-**Auth requerida** — Solo rol `doctor`. `authorId` se infiere del JWT.
-
-**Request:**
+**Auth requerida** — Solo rol `DOCTOR`. `doctorId` se infiere del JWT.
 
 ```yaml
 POST /prescriptions
-Authorization: Bearer <accessToken>
+Cookie: accessToken=<token>
 Content-Type: application/json
 
 {
-  "patientId": "cld5...",
+  "patientId": "uuid-paciente...",
   "notes": "Tomar con comida. Evitar alcohol.",
   "items": [
     {
       "name": "Aspirina 100mg",
       "dosage": "1 tableta",
-      "quantity": "30",
-      "instructions": "Una vez al día por la mañana"
+      "instructions": "Una vez al dia por la manana"
     },
     {
       "name": "Omeprazol 20mg",
-      "dosage": "1 cápsula",
-      "quantity": "14",
+      "dosage": "1 capsula",
       "instructions": "Antes del desayuno"
     }
   ]
 }
 ```
 
-O por email del paciente (en lugar de patientId):
-
-```json
-{
-  "patientEmail": "patient@test.com",
-  "notes": "Tratamiento de 30 días",
-  "items": [...]
-}
-```
+Tambien acepta `patientEmail` en lugar de `patientId`.
 
 **Response 201:**
 
 ```json
 {
-  "id": "cld11...",
+  "id": "uuid-...",
   "code": "PRESC-M3XK9P",
-  "status": "pending",
+  "status": "PENDING",
   "notes": "Tomar con comida. Evitar alcohol.",
   "createdAt": "2026-05-13T12:00:00.000Z",
   "updatedAt": "2026-05-13T12:00:00.000Z",
   "consumedAt": null,
-  "patientId": "cld5...",
-  "authorId": "cld9...",
+  "patientId": "uuid-paciente...",
+  "doctorId": "uuid-doctor...",
   "items": [
     {
-      "id": "cld12...",
       "name": "Aspirina 100mg",
       "dosage": "1 tableta",
-      "quantity": 30,
-      "instructions": "Una vez al día por la mañana"
+      "instructions": "Una vez al dia por la manana"
     }
   ],
-  "patient": { "user": { "name": "Carlos García" } },
-  "author": { "user": { "name": "Dr. Juan Pérez" } }
+  "patient": {
+    "id": "uuid-paciente...",
+    "email": "patient@clinic.com",
+    "name": "Carlos Garcia",
+    "role": "PATIENT"
+  },
+  "doctor": {
+    "id": "uuid-doctor...",
+    "email": "doctor@clinic.com",
+    "name": "Dr. Juan Perez",
+    "role": "DOCTOR"
+  }
 }
 ```
 
@@ -436,37 +339,19 @@ O por email del paciente (en lugar de patientId):
 
 ### GET /prescriptions
 
-**Auth requerida** — Filtrado automático por rol.
+**Auth requerida** — Filtrado automatico por rol (Doctor ve las que autoro, Patient las que recibio, Admin ve todas).
 
-**Parámetros de query:**
+**Query params:**
 
-| Parámetro | Tipo | Default | Descripción |
-|-----------|------|---------|-------------|
-| `page` | integer | `1` | Número de página |
-| `limit` | integer | `10` | Items por página (max 100) |
-| `status` | string | — | Filtrar por `pending` o `consumed` |
-| `from` | string (fecha) | — | Filtrar desde fecha (ISO) |
-| `to` | string (fecha) | — | Filtrar hasta fecha (ISO) |
+| Param | Tipo | Default | Descripcion |
+|-------|------|---------|-------------|
+| `page` | integer | `1` | Numero de pagina |
+| `limit` | integer | `10` | Items por pagina (max 100) |
+| `status` | string | — | `PENDING` o `CONSUMED` |
+| `from` | ISO date | — | Filtrar desde fecha |
+| `to` | ISO date | — | Filtrar hasta fecha |
 | `sort` | string | `createdAt` | Campo de ordenamiento |
 | `order` | string | `desc` | `asc` o `desc` |
-
-**Doctor request:**
-
-```yaml
-GET /prescriptions?page=1&limit=10&status=pending
-Authorization: Bearer <accessToken>
-```
-
-→ Retorna solo las prescripciones que el doctor autorizó.
-
-**Patient request:**
-
-```yaml
-GET /prescriptions?status=pending&sort=createdAt&order=desc
-Authorization: Bearer <accessToken>
-```
-
-→ Retorna solo las prescripciones recibidas por el paciente.
 
 **Response 200:**
 
@@ -474,15 +359,15 @@ Authorization: Bearer <accessToken>
 {
   "data": [
     {
-      "id": "cld11...",
+      "id": "uuid-...",
       "code": "PRESC-M3XK9P",
-      "status": "pending",
+      "status": "PENDING",
       "notes": "Tomar con comida",
       "createdAt": "2026-05-13T12:00:00.000Z",
       "consumedAt": null,
       "items": [...],
-      "patient": { "user": { "name": "Carlos García" } },
-      "author": { "user": { "name": "Dr. Juan Pérez" } }
+      "patient": { "id": "...", "email": "...", "name": "...", "role": "PATIENT" },
+      "doctor": { "id": "...", "email": "...", "name": "...", "role": "DOCTOR" }
     }
   ],
   "meta": {
@@ -498,7 +383,7 @@ Authorization: Bearer <accessToken>
 
 ### GET /prescriptions/:id
 
-**Auth requerida** — Dueño (doctor autor o patient dueño) o `admin`.
+**Auth requerida** — Dueño (doctor autor o patient dueño) o `ADMIN`.
 
 **Response 200:** Igual que POST response con todos los detalles.
 
@@ -507,7 +392,7 @@ Authorization: Bearer <accessToken>
 ```json
 {
   "statusCode": 403,
-  "message": "No tenés acceso a esta prescripción",
+  "message": "No tenes acceso a esta prescripcion",
   "error": "Forbidden"
 }
 ```
@@ -516,22 +401,20 @@ Authorization: Bearer <accessToken>
 
 ### PATCH /prescriptions/:id/consume
 
-**Auth requerida** — Solo rol `patient`, debe ser el dueño de la prescripción.
-
-**Request:**
+**Auth requerida** — Solo rol `PATIENT`, debe ser el dueño de la prescripcion.
 
 ```yaml
-PATCH /prescriptions/cld11.../consume
-Authorization: Bearer <accessToken>
+PATCH /prescriptions/:id/consume
+Cookie: accessToken=<token>
 ```
 
 **Response 200:**
 
 ```json
 {
-  "id": "cld11...",
+  "id": "uuid-...",
   "code": "PRESC-M3XK9P",
-  "status": "consumed",
+  "status": "CONSUMED",
   "consumedAt": "2026-05-13T15:00:00.000Z",
   ...
 }
@@ -542,7 +425,7 @@ Authorization: Bearer <accessToken>
 ```json
 {
   "statusCode": 400,
-  "message": "Ya está marcada como consumida",
+  "message": "Ya esta marcada como consumida",
   "error": "Bad Request"
 }
 ```
@@ -551,13 +434,11 @@ Authorization: Bearer <accessToken>
 
 ### GET /prescriptions/:id/pdf
 
-**Auth requerida** — Dueño o `admin`.
-
-**Request:**
+**Auth requerida** — Dueño o `ADMIN`.
 
 ```yaml
-GET /prescriptions/cld11.../pdf
-Authorization: Bearer <accessToken>
+GET /prescriptions/:id/pdf
+Cookie: accessToken=<token>
 ```
 
 **Response 200:**
@@ -571,17 +452,23 @@ Content-Disposition: attachment; filename="prescription-PRESC-M3XK9P.pdf"
 
 ---
 
-## 6. API de Metrics
+## 4. API de Admin
 
-### GET /metrics
+### GET /admin/prescriptions
 
-**Auth requerida** — Solo rol `admin`.
+**Auth requerida** — Solo `ADMIN`. Mismos query params que `GET /prescriptions`.
 
-**Request:**
+**Response 200:** Misma estructura, pero lista todas sin filtro de rol.
+
+---
+
+### GET /admin/metrics
+
+**Auth requerida** — Solo `ADMIN`.
 
 ```yaml
-GET /metrics
-Authorization: Bearer <accessToken>
+GET /admin/metrics
+Cookie: accessToken=<token>
 ```
 
 **Response 200:**
@@ -592,44 +479,27 @@ Authorization: Bearer <accessToken>
   "totalDoctors": 2,
   "totalPrescriptions": 35,
   "prescriptionsByStatus": {
-    "pending": 20,
-    "consumed": 15
+    "PENDING": 20,
+    "CONSUMED": 15
   },
   "prescriptionsByDay": [
     { "date": "2026-05-10", "total": 5 },
-    { "date": "2026-05-11", "total": 3 },
-    { "date": "2026-05-12", "total": 8 },
-    { "date": "2026-05-13", "total": 2 }
+    { "date": "2026-05-11", "total": 3 }
   ]
 }
 ```
 
 ---
 
-## 7. Formato de Respuesta de Error
+## 5. Codigos HTTP
 
-Todos los errores siguen RFC 7807:
-
-```json
-{
-  "statusCode": 400,
-  "message": "Mensaje legible",
-  "error": "Error Type",
-  "timestamp": "2026-05-13T12:00:00.000Z",
-  "path": "/prescriptions"
-}
-```
-
-### Códigos HTTP Comunes
-
-| Código | Significado |
+| Codigo | Significado |
 |--------|-------------|
-| 200 | Éxito |
+| 200 | Exito |
 | 201 | Creado |
-| 400 | Bad Request (validación, regla de negocio) |
-| 401 | Unauthorized (token faltante/inválido) |
+| 400 | Bad Request (validacion, regla de negocio) |
+| 401 | Unauthorized (token faltante/invalido/expirado) |
 | 403 | Forbidden (rol insuficiente o no es dueño) |
 | 404 | No encontrado |
 | 409 | Conflict (email duplicado) |
-| 429 | Demasiadas solicitudes (rate limited) |
 | 500 | Error interno del servidor |

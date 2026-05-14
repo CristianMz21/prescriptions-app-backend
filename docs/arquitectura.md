@@ -1,68 +1,129 @@
-# Arquitectura del Backend — App de Prescripciones MVP
+# Arquitectura — Prescriptions App
 
-> **Idioma:** Español
-> **Estado:** MVP v1.0
-> **Stack:** NestJS + TypeScript + Prisma 7 + PostgreSQL
-
----
-
-## 1. Visión General de la Arquitectura
+## 1. Visión General
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        CLIENTES                            │
-│   App Doctor  ·  App Paciente  ·  Dashboard Admin          │
-└──────────────────────┬────────────────────────────────────┘
-                       │ HTTPS (JWT Bearer)
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
+│  Doctor App  ·  Patient App  ·  Admin Dashboard           │
+└──────────────────────┬─────────────────────────────────┘
+                         │ HTTPS (JWT HttpOnly cookies)
+┌───────────────────────▼─────────────────────────────────┐
 │                    NESTJS APPLICATION                      │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐    │
-│  │   Global    │  │   Global    │  │    Global       │    │
-│  │ Middleware  │  │ ValidationPipe│  │ ThrottlerGuard │    │
-│  └─────────────┘  └─────────────┘  └─────────────────┘    │
-│  ┌─────────────────────────────────────────────────────┐  │
-│  │                    CAPA DE AUTENTICACIÓN               │  │
-│  │  JwtAuthGuard → RolesGuard → @Roles / @CurrentUser    │  │
-│  └─────────────────────────────────────────────────────┘  │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐   │
-│  │  Auth    │ │  Users   │ │Patients  │ │  Doctors  │   │
-│  │  Module  │ │  Module  │ │  Module  │ │  Module   │   │
-│  └──────────┘ └──────────┘ └──────────┘ └────────────┘   │
-│  ┌──────────────┐ ┌───────────────┐ ┌───────────────┐    │
-│  │Prescriptions │ │   Metrics     │ │    Prisma     │    │
-│  │   Module    │ │    Module     │ │   Module      │    │
-│  └──────────────┘ └───────────────┘ └───────────────┘    │
-└────────────────────────────┬────────────────────────────────┘
-                             │ Prisma Pg Adapter
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    POSTGRESQL DATABASE                     │
-│  User · Doctor · Patient · Prescription · RefreshToken    │
-└─────────────────────────────────────────────────────────────┘
+│                                                         │
+│  ┌──────────────┐  ┌────────────────┐  ┌─────────────┐  │
+│  │  Helmet      │  │ ValidationPipe  │  │    CORS     │  │
+│  │  (headers)   │  │ whitelist+      │  │ pinned to   │  │
+│  └──────────────┘  └────────────────┘  │ FRONTEND_URL │  │
+│                                        └─────────────┘  │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │     JwtAuthGuard (cookie) → RolesGuard            │   │
+│  │     @CurrentUser()  @Roles()                       │   │
+│  └──────────────────────────────────────────────────┘   │
+│                                                         │
+│  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐  │
+│  │  Auth    │ │  Users   │ │Prescrip-  │ │  Admin   │  │
+│  │  Module  │ │  Module  │ │  tions    │ │  Module  │  │
+│  └──────────┘ └──────────┘ └───────────┘ └──────────┘  │
+│  ┌──────────┐                                           │
+│  │   PDF   │  (Puppeteer + Handlebars)                  │
+│  └──────────┘                                           │
+└─────────────────────────────┬─────────────────────────────┘
+                             │ Prisma Client
+┌─────────────────────────────▼───────────────────────────┐
+│                    POSTGRESQL DATABASE                   │
+│  User · Prescription                                    │
+└─────────────────────────────────────────────────────────┘
 ```
 
-![Arquitectura General](diagrams/d01_arquitectura.png)
+![Arquitectura](diagrams/d01_arquitectura.png)
 
 ---
 
-## 2. Estructura de Carpetas
+## 2. Modelo de Datos
 
-![Estructura de Carpetas](diagrams/d05_folder_structure.png)
+El schema Prisma es la **única fuente de verdad** del modelo de datos. No existen tablas Doctor, Patient, RefreshToken ni PrescriptionItem separadas.
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  PATIENT
+}
+
+enum PrescriptionStatus {
+  PENDING
+  CONSUMED
+}
+
+model User {
+  id             String         @id @default(uuid())
+  email          String         @unique
+  passwordHash   String
+  role           Role
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  prescriptionsAsDoctor   Prescription[] @relation("DoctorPrescriptions")
+  prescriptionsAsPatient Prescription[] @relation("PatientPrescriptions")
+
+  @@index([email])
+}
+
+model Prescription {
+  id          String             @id @default(uuid())
+  status      PrescriptionStatus @default(PENDING)
+
+  items       Json
+
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  doctorId    String
+  doctor      User @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+
+  patientId   String
+  patient     User @relation("PatientPrescriptions", fields: [patientId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([doctorId])
+  @@index([patientId])
+}
+```
+
+### Relaciones
+
+- Un `User` con rol `DOCTOR` puede authored无数 `Prescription` (relación `prescriptionsAsDoctor`)
+- Un `User` con rol `PATIENT` puede recibir无数 `Prescription` (relación `prescriptionsAsPatient`)
+- Los roles `ADMIN`, `DOCTOR`, `PATIENT` viven en `User.role` — no hay tabla separada
+- Los items de la prescripción se almacenan como `Json` — array de `{name, dosage, instructions}`
+
+![ER Diagram](diagrams/d02_er.png)
+
+---
+
+## 3. Estructura de Carpetas
 
 ```
 backend/
 ├── src/
-│   ├── main.ts                     # Entry point, ValidationPipe, listen()
-│   ├── app.module.ts               # Root module
+│   ├── main.ts                       # Entry point, ValidationPipe, Swagger
+│   ├── app.module.ts                 # Root module
 │   │
-│   ├── auth/
+│   ├── auth/                         # Login, logout, refresh, profile
 │   │   ├── auth.module.ts
-│   │   ├── auth.controller.ts    # /auth/*
-│   │   ├── auth.service.ts        # login/refresh/logout/getMe
-│   │   ├── dto/
-│   │   │   ├── login.dto.ts
-│   │   │   └── refresh-token.dto.ts
+│   │   ├── auth.controller.ts
+│   │   ├── auth.service.ts
 │   │   ├── strategies/
 │   │   │   ├── jwt.strategy.ts
 │   │   │   └── refresh-token.strategy.ts
@@ -73,313 +134,112 @@ backend/
 │   │       ├── roles.decorator.ts
 │   │       └── current-user.decorator.ts
 │   │
-│   ├── users/
+│   ├── users/                        # User management + patient/doctor listing
 │   │   ├── users.module.ts
-│   │   ├── users.controller.ts     # POST /users
-│   │   ├── users.service.ts       # create with doctor/patient profile
-│   │   └── dto/
-│   │       └── create-user.dto.ts
+│   │   ├── users.controller.ts
+│   │   └── users.service.ts
 │   │
-│   ├── patients/
-│   │   ├── patients.module.ts
-│   │   ├── patients.controller.ts # GET /patients, GET /patients/:id
-│   │   └── patients.service.ts
-│   │
-│   ├── doctors/
-│   │   ├── doctors.module.ts
-│   │   ├── doctors.controller.ts  # GET /doctors, GET /doctors/:id
-│   │   └── doctors.service.ts
-│   │
-│   ├── prescriptions/
+│   ├── prescriptions/                 # Prescription CRUD + consume + PDF
 │   │   ├── prescriptions.module.ts
-│   │   ├── prescriptions.controller.ts  # /prescriptions/*
-│   │   ├── prescriptions.service.ts     # CRUD + PDF generation
-│   │   └── dto/
-│   │       ├── create-prescription.dto.ts
-│   │       └── pagination.dto.ts
+│   │   ├── prescriptions.controller.ts
+│   │   └── prescriptions.service.ts
 │   │
-│   ├── metrics/
-│   │   ├── metrics.module.ts
-│   │   ├── metrics.controller.ts # GET /metrics
-│   │   └── metrics.service.ts     # Aggregated queries
+│   ├── admin/                         # Admin-only: metrics + all prescriptions
+│   │   ├── admin.module.ts
+│   │   ├── admin.controller.ts
+│   │   └── admin.service.ts
 │   │
-│   ├── prisma/
-│   │   ├── prisma.module.ts       # @Global()
-│   │   └── prisma.service.ts      # Singleton PrismaClient
+│   ├── pdf/                          # Puppeteer PDF generation
+│   │   └── pdf.service.ts
+│   │
+│   ├── prisma/                       # Singleton PrismaClient
+│   │   ├── prisma.module.ts
+│   │   └── prisma.service.ts
+│   │
+│   ├── config/
+│   │   └── env.validation.ts
 │   │
 │   └── common/
-│       ├── guards/
-│       │   └── http-exception.filter.ts
-│       └── interceptors/
-│           └── logging.interceptor.ts
+│       └── filters/
+│           └── http-exception.filter.ts
 │
 ├── prisma/
 │   ├── schema.prisma
-│   └── seed.ts                    # 3 usuarios + prescripciones ejemplo
+│   └── seed.ts
 │
-├── docs/
-│   └── diagrams/                   # Diagramas PNG generados
-│
-├── package.json
-├── tsconfig.json
-├── nest-cli.json
-└── .gitignore
+└── test/
+    └── *.e2e-spec.ts
 ```
 
+![Estructura de Carpetas](diagrams/d05_folder_structure.png)
+
 ---
 
-## 3. Modelo de Datos (Schema Prisma)
+## 4. Decisiones Clave de Arquitectura
 
-```prisma
-generator client {
-  provider     = "prisma-client"
-  output       = "../generated/prisma"
-  moduleFormat = "cjs"
-}
+### 4.1 Auth Cookie-Based
 
-datasource db {
-  provider = "postgresql"
-}
+Los tokens JWT se almacenan en **HttpOnly cookies** — nunca expuestos a JavaScript.
 
-enum Role {
-  admin
-  doctor
-  patient
-}
+- `accessToken` — 15 min TTL
+- `refreshToken` — 7 dias TTL
+- No hay Bearer token en Authorization header
+- Swagger UI configurado con `withCredentials: true`
 
-enum PrescriptionStatus {
-  pending
-  consumed
-}
+### 4.2 IDOR Prevention
 
-model User {
-  id            String          @id @default(cuid())
-  email         String          @unique
-  password      String
-  name          String
-  role          Role
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+Los ownership checks viven en la **capa de servicio**, no en el controller.
 
-  doctor        Doctor?
-  patient       Patient?
-  refreshTokens RefreshToken[]
-
-  @@index([role])
-}
-
-model Doctor {
-  id             String          @id @default(cuid())
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String          @unique
-  specialty      String?
-  prescriptions Prescription[]  @relation("AuthoredBy")
-}
-
-model Patient {
-  id             String          @id @default(cuid())
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String          @unique
-  birthDate      DateTime?
-  prescriptions Prescription[]
-}
-
-model Prescription {
-  id          String              @id @default(cuid())
-  code        String              @unique
-  status      PrescriptionStatus  @default(pending)
-  notes       String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  consumedAt  DateTime?
-
-  patient     Patient            @relation(fields: [patientId], references: [id])
-  patientId   String
-  author      Doctor             @relation("AuthoredBy", fields: [authorId], references: [id])
-  authorId    String
-  items       PrescriptionItem[]
-
-  @@index([status, createdAt])
-  @@index([patientId])
-  @@index([authorId])
-  @@index([createdAt])
-}
-
-model PrescriptionItem {
-  id             String        @id @default(cuid())
-  prescription   Prescription  @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
-  prescriptionId String
-  name           String
-  dosage         String?
-  quantity       Int?
-  instructions   String?
-}
-
-model RefreshToken {
-  id         String    @id @default(cuid())
-  tokenHash  String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String
-  revokedAt  DateTime?
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
-
-  @@index([userId])
-}
+```typescript
+const prescription = await this.prisma.prescription.findFirst({
+  where: {
+    id: prescriptionId,
+    ...(role === 'PATIENT' ? { patientId: currentUser.id } : {}),
+    ...(role === 'DOCTOR'  ? { doctorId: currentUser.id } : {}),
+  },
+});
 ```
 
----
+Se usa `findFirst` (no `findUnique`) porque no existe unique constraint en patientId+doctorId.
 
-## 4. Diagrama Entidad-Relación
+### 4.3 No Separate Doctor/Patient Tables
 
-![ER Diagrama](diagrams/d02_er.png)
+Los roles viven en `User.role`. Esto simplifica:
+- No hay join entre User y Doctor/Patient
+- Auth es un solo `User`, no múltiples perfiles
+- Queries más simples en Prisma
 
----
+### 4.4 Items as Json
 
-## 5. Endpoints de la API
-
-### 5.1 Auth
-
-| Método | Ruta | Descripción | Auth |
-|--------|------|-------------|------|
-| `POST` | `/auth/login` | Login email/password | Público |
-| `POST` | `/auth/refresh` | Rotar access token | Público* |
-| `POST` | `/auth/logout` | Revocar refresh token | JWT |
-| `GET` | `/auth/me` | Perfil usuario actual | JWT |
-
-> `*` Público = requiere refresh token en body, no JWT
-
-### 5.2 Users
-
-| Método | Ruta | Descripción | Auth |
-|--------|------|-------------|------|
-| `POST` | `/users` | Crear usuario | admin |
-
-### 5.3 Patients
-
-| Método | Ruta | Descripción | Auth |
-|--------|------|-------------|------|
-| `GET` | `/patients` | Listar todos | admin, doctor |
-| `GET` | `/patients/:id` | Detalle | admin, doctor |
-
-### 5.4 Doctors
-
-| Método | Ruta | Descripción | Auth |
-|--------|------|-------------|------|
-| `GET` | `/doctors` | Listar médicos | admin |
-| `GET` | `/doctors/:id` | Detalle | admin |
-
-### 5.5 Prescriptions
-
-| Método | Ruta | Descripción | Auth |
-|--------|------|-------------|------|
-| `POST` | `/prescriptions` | Crear prescripción | doctor |
-| `GET` | `/prescriptions` | Listar (filtro+paginación) | por rol |
-| `GET` | `/prescriptions/:id` | Detalle | dueño o admin |
-| `PATCH` | `/prescriptions/:id/consume` | Marcar como consumida | patient dueño |
-| `GET` | `/prescriptions/:id/pdf` | Descargar PDF | dueño o admin |
-
-### 5.6 Metrics
-
-| Método | Ruta | Descripción | Auth |
-|--------|------|-------------|------|
-| `GET` | `/metrics` | Analytics agregados | admin |
+`Prescription.items` es un campo `Json` — array de objetos `{name, dosage, instructions}`. No hay catálogo de productos.
 
 ---
 
-## 6. Flujo de Autenticación
+## 5. Middleware Global (main.ts)
 
-![Flujo de Auth](diagrams/d03_flujo_auth.png)
+Todo request pasa por:
 
----
-
-## 7. Flujo de Prescripción
-
-![Flujo de Prescripción](diagrams/d04_flujo_prescription.png)
-
----
-
-## 8. Matriz RBAC
-
-![Matriz RBAC](diagrams/d06_rbac_matrix.png)
-
-| Acción | admin | doctor | patient |
-|--------|:-----:|:------:|:-------:|
-| Login | ✓ | ✓ | ✓ |
-| Ver propio perfil | ✓ | ✓ | ✓ |
-| Crear usuario | ✓ | ✗ | ✗ |
-| Listar pacientes | ✓ | ✓ | ✗ |
-| Detalle paciente | ✓ | ✓ | ✗ |
-| Listar médicos | ✓ | ✗ | ✗ |
-| Crear prescripción | ✗ | ✓ | ✗ |
-| Listar propias | ✗ | las que autoró | las que recibió |
-| Detalle prescripción | ✓ | si es autor | si es dueño |
-| Marcar consumida | ✗ | ✗ | ✓ (dueño) |
-| Descargar PDF | ✓ | si autor | si dueño |
-| Ver métricas | ✓ | ✗ | ✗ |
+1. **Helmet** — Security headers (X-Frame-Options DENY, nosniff, XSS, etc.)
+2. **Custom securityHeadersMiddleware** — no-store cache control
+3. **cookieParser** — Parseo de cookies para auth
+4. **CORS** — Origen pinned a `FRONTEND_URL` con `credentials: true`
+5. **ValidationPipe** — `whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`
+6. **HttpExceptionFilter** — JSON error format consistente
 
 ---
 
-## 9. Paginación y Filtros
+## 6. Variables de Entorno
 
-```
-GET /prescriptions?page=1&limit=10&status=pending&from=2026-05-01&to=2026-05-13&sort=createdAt&order=desc
-```
-
-**Valores por defecto:** `page=1`, `limit=10`, `sort=createdAt`, `order=desc`
-
-**Respuesta:**
-
-```json
-{
-  "data": [...],
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "total": 35,
-    "totalPages": 4
-  }
-}
-```
-
----
-
-## 10. Variables de Entorno
-
-| Variable | Descripción | Default |
+| Variable | Descripcion | Ejemplo |
 |----------|-------------|---------|
-| `DATABASE_URL` | Connection string PostgreSQL | `postgresql://...` |
-| `JWT_SECRET` | Secreto para firmar access tokens | `changeme` |
-| `JWT_REFRESH_SECRET` | Secreto para refresh tokens | `changeme-refresh` |
-| `PORT` | Puerto HTTP del servidor | `3000` |
+| `DATABASE_URL` | PostgreSQL connection string (puerto 5433) | `postgresql://...` |
+| `JWT_ACCESS_SECRET` | Secreto para access tokens | `openssl rand -base64 32` |
+| `JWT_REFRESH_SECRET` | Secreto para refresh tokens | `openssl rand -base64 32` |
+| `JWT_ACCESS_TTL` | TTL access token (string) | `"15m"` |
+| `JWT_REFRESH_TTL` | TTL refresh token (string) | `"7d"` |
+| `PORT` | Puerto HTTP | `3000` |
+| `FRONTEND_URL` | Origen CORS | `http://localhost:3001` |
+| `NODE_ENV` | Entorno | `development` |
+| `SEED_DEFAULT_PASSWORD` | Password para usuarios seed | `Password123!` |
 
----
-
-## 11. Dependencias de Producción
-
-| Paquete | Versión | Propósito |
-|---------|---------|-----------|
-| `@nestjs/core` | ^11 | Framework core |
-| `@nestjs/jwt` | ^11 | Módulo JWT |
-| `@nestjs/passport` | ^11 | Soporte estrategias auth |
-| `@prisma/client` | ^7 | Cliente de base de datos |
-| `@prisma/adapter-pg` | ^7 | Adapter PostgreSQL |
-| `passport-jwt` | ^4 | Estrategia JWT para passport |
-| `bcrypt` | ^5 | Hashing de passwords |
-| `pdfkit` | ^0.18 | Generación de PDF |
-| `class-validator` | ^0.14 | Validación de DTOs |
-| `class-transformer` | ^0.5 | Transformación de objetos |
-
----
-
-## 12. Fases de Implementación
-
-| Fase | Nombre | Días | Entregable |
-|------|--------|------|-------------|
-| **Fase 1** | Infraestructura | 1 | NestJS scaffold + Prisma + DB |
-| **Fase 2** | Modelo de Datos | 1 | Schema aplicado + seed data |
-| **Fase 3** | Capa de Auth | 2 | JWT + refresh + guards + decorators |
-| **Fase 4** | Lógica de Negocio | 3 | Users, Patients, Doctors, Prescriptions |
-| **Fase 5** | PDF y Métricas | 1 | Generación PDF + admin metrics |
-| **Fase 6** | Testing | 2 | Unit tests + E2E |
-| **Fase 7** | Deploy | 2 | Railway/Render + CI/CD |
+La app hace **fast-fail** al iniciar si falta alguna variable o está malformada (`src/config/env.validation.ts`).

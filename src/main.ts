@@ -26,13 +26,9 @@ const securityHeadersMiddleware = (
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Safely extract validated configuration variables
   const configService = app.get(ConfigService);
   const frontendUrl = configService.get<string>('FRONTEND_URL');
 
-  // Security: Apply Helmet to set various HTTP headers for app security
-  // Disable default X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
-  // because we set them via securityHeadersMiddleware (with no-store)
   app.use(
     helmet({
       frameguard: false,
@@ -52,21 +48,16 @@ async function bootstrap() {
     }),
   );
 
-  // Security: Strict cache-control and security headers on all responses
   app.use(securityHeadersMiddleware);
-
-  // Security: Use cookie-parser to handle HttpOnly cookies
   app.use(cookieParser());
 
-  // Security: Configure CORS using the validated environment variable
   app.enableCors({
     origin: frontendUrl,
-    credentials: true, // Essential for receiving HttpOnly cookies from the frontend
+    credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
-  // Validation: Global validation pipe for strict DTO checking
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -75,10 +66,8 @@ async function bootstrap() {
     }),
   );
 
-  // Exception Handling: Global exception filter for consistent JSON error response formats
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // OpenAPI / Swagger Setup
   const port = configService.get<number>('PORT') ?? 3000;
   const config = new DocumentBuilder()
     .setTitle('Prescription Management API')

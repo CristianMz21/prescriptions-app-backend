@@ -1,9 +1,11 @@
 import {
   IsArray,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  Min,
   ValidateNested,
   ArrayMinSize,
 } from 'class-validator';
@@ -24,10 +26,13 @@ export class PrescriptionItemDto {
   @IsNotEmpty()
   dosage!: string;
 
-  @ApiProperty({ example: '30', description: 'Quantity to dispense' })
-  @IsString()
-  @IsNotEmpty()
-  quantity!: string;
+  @ApiProperty({
+    example: 30,
+    description: 'Quantity to dispense (number of units)',
+  })
+  @IsInt()
+  @Min(1)
+  quantity!: number;
 
   @ApiPropertyOptional({
     example: 'Take 1 pill every 8 hours',
@@ -42,6 +47,7 @@ export class CreatePrescriptionDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
     description: 'UUID of the patient',
+    format: 'uuid',
   })
   @IsUUID()
   @IsNotEmpty()
@@ -50,6 +56,7 @@ export class CreatePrescriptionDto {
   @ApiProperty({
     type: [PrescriptionItemDto],
     description: 'List of medications in the prescription',
+    minItems: 1,
   })
   @IsArray()
   @ArrayMinSize(1, { message: 'Items array must not be empty' })
