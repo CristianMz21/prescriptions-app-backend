@@ -10,7 +10,7 @@ WORKDIR /app
 RUN npm install -g pnpm@11.1.1
 
 # Copy package.json and lock files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy Prisma schema before installing dependencies so `prisma generate` can run automatically if configured,
 # or we run it explicitly right after.
 COPY prisma ./prisma/
@@ -54,7 +54,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Copy necessary files from the builder stage
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 # Copy the start script
