@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';

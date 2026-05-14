@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Module } from '@nestjs/common';
 import { PdfService } from './pdf.service';
 

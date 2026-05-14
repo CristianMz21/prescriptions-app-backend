@@ -1,67 +1,82 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { Role, PrescriptionStatus, Prisma, Prescription } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminListPrescriptionsDto } from './dto/admin-list-prescriptions.dto';
 
-/**
- * Servicio de Administración.
- *
- * Provee métricas agregadas para el dashboard administrativo:
- * - Conteo de doctores, pacientes y prescripciones totales
- * - Conteo por status (pending/consumed)
- * - Serie temporal de prescripciones por día (últimos 30 días)
- *
- * @security Solo accesible por usuarios con rol ADMIN.
- *          El RolesGuard valida el rol antes de invocar cualquier método.
- */
+export interface AggregateMetrics {
+  totals: { doctors: number; patients: number; prescriptions: number };
+  byStatus: { pending: number; consumed: number };
+  byDay: Array<{ date: string; count: number }>;
+}
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Agrega métricas globales del sistema para el dashboard admin.
-   *
-   * @returns Objeto con:
-   *   - totals: contadores de doctores, pacientes y prescripciones
-   *   - byStatus: contadores de prescripciones por estado (pending/consumed)
-   *   - byDay: array de objetos { date, count } con prescripciones por día (últimos 30 días)
-   *
-   * @performance
-   * - Conteos simples se ejecutan en paralelo (Promise.all)
-   * - Serie temporal usa SQL puro via $queryRaw (Prisma no soporta DATE_TRUNC en ORM)
-   *
-   * @note Los raw queries usan DATE_TRUNC de PostgreSQL para grouping temporal.
-   *       Los bigints del COUNT se convierten a Number para evitar errores de serialización JSON.
-   */
-  async getDashboardMetrics() {
+  private parseDate(value: string, label: string): Date {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException(`Invalid ${label} date`);
+    }
+    return parsed;
+  }
+
+  private parseOptionalDate(value: string | undefined, fallback: Date): Date {
+    if (!value) {
+      return fallback;
+    }
+    return new Date(value);
+  }
+
+  private buildDateRangeWhere(
+    from?: string,
+    to?: string,
+  ): Prisma.PrescriptionWhereInput {
+    const where: Prisma.PrescriptionWhereInput = {};
+    if (from || to) {
+      where.createdAt = {};
+      if (from) {
+        (where.createdAt as Prisma.DateTimeFilter).gte = this.parseDate(
+          from,
+          'from',
+        );
+      }
+      if (to) {
+        (where.createdAt as Prisma.DateTimeFilter).lte = this.parseDate(
+          to,
+          'to',
+        );
+      }
+    }
+    return where;
+  }
+
+  private async fetchAggregateMetrics(
+    where: Prisma.PrescriptionWhereInput,
+    byDayQuery: Promise<Array<{ date: Date; count: bigint }>>,
+  ): Promise<AggregateMetrics> {
     const [
       doctorsCount,
       patientsCount,
       totalPrescriptions,
       pendingPrescriptions,
       consumedPrescriptions,
+      byDayRaw,
     ] = await Promise.all([
       this.prisma.user.count({ where: { role: Role.DOCTOR } }),
       this.prisma.user.count({ where: { role: Role.PATIENT } }),
-      this.prisma.prescription.count(),
+      this.prisma.prescription.count({ where }),
       this.prisma.prescription.count({
-        where: { status: PrescriptionStatus.PENDING },
+        where: { ...where, status: PrescriptionStatus.PENDING },
       }),
       this.prisma.prescription.count({
-        where: { status: PrescriptionStatus.CONSUMED },
+        where: { ...where, status: PrescriptionStatus.CONSUMED },
       }),
+      byDayQuery,
     ]);
 
-    const byDayRaw: Array<{ date: Date; count: bigint }> = await this.prisma
-      .$queryRaw<Array<{ date: Date; count: bigint }>>`
-      SELECT DATE_TRUNC('day', "createdAt") as date, COUNT(id) as count
-      FROM "Prescription"
-      WHERE "createdAt" >= NOW() - INTERVAL '30 days'
-      GROUP BY DATE_TRUNC('day', "createdAt")
-      ORDER BY date ASC;
-    `;
-
-    const byDay = byDayRaw.map((row) => ({
+    const byDay = byDayRaw.map(row => ({
       date: row.date.toISOString().split('T')[0],
       count: Number(row.count),
     }));
@@ -80,47 +95,34 @@ export class AdminService {
     };
   }
 
-  async getDashboardMetricsFiltered(from?: string, to?: string) {
-    const where: Prisma.PrescriptionWhereInput = {};
-    if (from || to) {
-      where.createdAt = {};
-      if (from) {
-        const parsed = new Date(from);
-        if (isNaN(parsed.getTime()))
-          throw new BadRequestException('Invalid from date');
-        (where.createdAt as Prisma.DateTimeFilter).gte = parsed;
-      }
-      if (to) {
-        const parsed = new Date(to);
-        if (isNaN(parsed.getTime()))
-          throw new BadRequestException('Invalid to date');
-        (where.createdAt as Prisma.DateTimeFilter).lte = parsed;
-      }
+  async getDashboardMetrics(): Promise<AggregateMetrics> {
+    const byDayQuery = this.prisma.$queryRaw<
+      Array<{ date: Date; count: bigint }>
+    >`
+      SELECT DATE_TRUNC('day', "createdAt") as date, COUNT(id) as count
+      FROM "Prescription"
+      WHERE "createdAt" >= NOW() - INTERVAL '30 days'
+      GROUP BY DATE_TRUNC('day', "createdAt")
+      ORDER BY date ASC;
+    `;
+    return this.fetchAggregateMetrics({}, byDayQuery);
+  }
+
+  async getDashboardMetricsFiltered(
+    from?: string,
+    to?: string,
+  ): Promise<
+    AggregateMetrics & {
+      topDoctors: Array<{ doctorId: string; count: number }>;
     }
+  > {
+    const where = this.buildDateRangeWhere(from, to);
+    const fromDate = this.parseOptionalDate(from, new Date('1970-01-01'));
+    const toDate = this.parseOptionalDate(to, new Date('2100-01-01'));
 
-    const [
-      doctorsCount,
-      patientsCount,
-      totalPrescriptions,
-      pendingPrescriptions,
-      consumedPrescriptions,
-    ] = await Promise.all([
-      this.prisma.user.count({ where: { role: Role.DOCTOR } }),
-      this.prisma.user.count({ where: { role: Role.PATIENT } }),
-      this.prisma.prescription.count({ where }),
-      this.prisma.prescription.count({
-        where: { ...where, status: PrescriptionStatus.PENDING },
-      }),
-      this.prisma.prescription.count({
-        where: { ...where, status: PrescriptionStatus.CONSUMED },
-      }),
-    ]);
-
-    const fromDate = from ? new Date(from) : new Date('1970-01-01');
-    const toDate = to ? new Date(to) : new Date('2100-01-01');
-
-    const byDayRaw: Array<{ date: Date; count: bigint }> = await this.prisma
-      .$queryRaw<Array<{ date: Date; count: bigint }>>`
+    const byDayQuery = this.prisma.$queryRaw<
+      Array<{ date: Date; count: bigint }>
+    >`
       SELECT DATE_TRUNC('day', "createdAt") as date, COUNT(id) as count
       FROM "Prescription"
       WHERE "createdAt" >= ${fromDate}
@@ -129,13 +131,9 @@ export class AdminService {
       ORDER BY date ASC;
     `;
 
-    const byDay = byDayRaw.map((row) => ({
-      date: row.date.toISOString().split('T')[0],
-      count: Number(row.count),
-    }));
-
-    const topDoctorsRaw: Array<{ doctorId: string; count: bigint }> = await this
-      .prisma.$queryRaw<Array<{ doctorId: string; count: bigint }>>`
+    const [base, topDoctorsRaw] = await Promise.all([
+      this.fetchAggregateMetrics(where, byDayQuery),
+      this.prisma.$queryRaw<Array<{ doctorId: string; count: bigint }>>`
         SELECT "doctorId", COUNT(*) as count
         FROM "Prescription"
         WHERE "createdAt" >= ${fromDate}
@@ -143,26 +141,15 @@ export class AdminService {
         GROUP BY "doctorId"
         ORDER BY count DESC
         LIMIT 5;
-      `;
+      `,
+    ]);
 
-    const topDoctors = topDoctorsRaw.map((row) => ({
+    const topDoctors = topDoctorsRaw.map(row => ({
       doctorId: row.doctorId,
       count: Number(row.count),
     }));
 
-    return {
-      totals: {
-        doctors: doctorsCount,
-        patients: patientsCount,
-        prescriptions: totalPrescriptions,
-      },
-      byStatus: {
-        pending: pendingPrescriptions,
-        consumed: consumedPrescriptions,
-      },
-      byDay,
-      topDoctors,
-    };
+    return { ...base, topDoctors };
   }
 
   async findAllPrescriptions(filter: AdminListPrescriptionsDto): Promise<{
@@ -179,24 +166,15 @@ export class AdminService {
       to,
     } = filter;
 
-    const where: Prisma.PrescriptionWhereInput = {};
-    if (status) where.status = status;
-    if (doctorId) where.doctorId = doctorId;
-    if (patientId) where.patientId = patientId;
-    if (from || to) {
-      where.createdAt = {};
-      if (from) {
-        const parsed = new Date(from);
-        if (isNaN(parsed.getTime()))
-          throw new BadRequestException('Invalid from date');
-        (where.createdAt as Prisma.DateTimeFilter).gte = parsed;
-      }
-      if (to) {
-        const parsed = new Date(to);
-        if (isNaN(parsed.getTime()))
-          throw new BadRequestException('Invalid to date');
-        (where.createdAt as Prisma.DateTimeFilter).lte = parsed;
-      }
+    const where = this.buildDateRangeWhere(from, to);
+    if (status) {
+      where.status = status;
+    }
+    if (doctorId) {
+      where.doctorId = doctorId;
+    }
+    if (patientId) {
+      where.patientId = patientId;
     }
 
     const skip = (page - 1) * limit;

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';

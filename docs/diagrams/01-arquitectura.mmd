@@ -7,7 +7,7 @@ graph TD
     end
 
     subgraph NestJS["NestJS Application"]
-        D["Global Middleware"]
+        D["Global Middleware<br/>(Helmet, CORS, cookie-parser)"]
         E["JwtAuthGuard + RolesGuard"]
         F["ValidationPipe"]
         G["HttpExceptionFilter"]

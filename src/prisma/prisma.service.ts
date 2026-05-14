@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 

@@ -7,7 +7,7 @@ sequenceDiagram
     participant JWT as JwtService
     participant DB as PostgreSQL
 
-    Note over C,DB: FLUJO DE LOGIN
+    Note over C,DB: LOGIN FLOW
 
     C->>AC: POST /auth/login {email, password}
     AC->>AS: login(dto)
@@ -15,38 +15,38 @@ sequenceDiagram
     PR->>DB: SELECT * FROM "User" WHERE email=?
     DB-->>PR: User | null
     PR-->>AS: User
-    alt Usuario no existe
+    alt User not found
         AS-->>C: 401 Credenciales invalidas
     end
     AS->>AS: bcrypt.compare(password, hash)
-    alt Contrasena incorrecta
+    alt Wrong password
         AS-->>C: 401 Credenciales invalidas
     end
     AS->>JWT: sign(accessPayload, {expiresIn: 15m})
     JWT-->>AS: accessToken
     AS->>JWT: sign(refreshPayload, {expiresIn: 7d})
     JWT-->>AS: refreshToken
-    AS-->>AC: user + Set-Cookie accessToken + refreshToken
+    AS-->>AC: Set-Cookie accessToken + Set-Cookie refreshToken
     AC-->>C: 200 {user}
 
-    Note over C,DB: FLUJO DE REFRESH
+    Note over C,DB: REFRESH FLOW
 
     C->>AC: POST /auth/refresh
-    Note over AC: Cookie refreshToken=<token>
+    Note over AC: Cookie refreshToken=<jwt>
     AC->>AS: refresh(refreshToken from cookie)
     AS->>JWT: verify(refreshToken, JWT_REFRESH_SECRET)
-    alt Token invalido o expirado
+    alt Invalid or expired token
         AS-->>C: 401 Refresh token invalido
     end
     AS->>JWT: sign(new accessPayload, {expiresIn: 15m})
     JWT-->>AS: newAccessToken
-    AS-->>AC: user + Set-Cookie new accessToken
+    AS-->>AC: Set-Cookie new accessToken
     AC-->>C: 200 {user}
 
-    Note over C,DB: FLUJO DE LOGOUT
+    Note over C,DB: LOGOUT FLOW
 
     C->>AC: POST /auth/logout
-    Note over AC: Cookie accessToken=<token>
+    Note over AC: Cookie accessToken=<jwt>
     AC->>AS: logout()
     AS-->>AC: Clear cookies
     AC-->>C: 200 {message: Logged out successfully}

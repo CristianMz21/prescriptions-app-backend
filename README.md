@@ -78,7 +78,7 @@ All seeded users share the same password, read from `SEED_DEFAULT_PASSWORD` (see
 | `doctor2@clinic.com` | DOCTOR | Secondary doctor account |
 | `patient@clinic.com` | PATIENT | Access own prescriptions |
 
-> `patient2@clinic.com` is created dynamically by e2e test setup and is not seeded by default.
+> All seeded users share the same password, controlled by `SEED_DEFAULT_PASSWORD` (see Environment Variables). `Password123!` is used as example value in docs but the actual password is set via env var.
 
 ## Main API Endpoints
 
@@ -172,5 +172,5 @@ npm run test:e2e -- prescriptions.e2e-spec.ts
 
 - Users have role `ADMIN`, `DOCTOR`, or `PATIENT`
 - Prescriptions belong to one doctor and one patient
-- Prescription items stored as JSON (array of `{name, dosage, instructions}` objects)
-- Prisma schema is the authoritative data model — no intermediate entities
+- Prescription items stored in separate `PrescriptionItem` table (not Json)
+- Prisma schema is the authoritative data model

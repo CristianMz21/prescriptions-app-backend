@@ -48,11 +48,12 @@ export class PdfService {
       const frontendUrl = this.configService.get<string>('FRONTEND_URL');
       const appOrigin = this.configService.get<string>('APP_ORIGIN');
       const qrBaseUrl = frontendUrl ?? appOrigin;
-      const qrData =
-        prescription.qrCodeUrl ??
-        (qrBaseUrl
-          ? `${qrBaseUrl}/patient/prescriptions/${prescription.id}`
-          : `/patient/prescriptions/${prescription.id}`);
+      const qrPath = `/patient/prescriptions/${prescription.id}`;
+      let defaultQrUrl = qrPath;
+      if (qrBaseUrl) {
+        defaultQrUrl = `${qrBaseUrl}${qrPath}`;
+      }
+      const qrData = prescription.qrCodeUrl ?? defaultQrUrl;
 
       const qrCodeDataUrl = await toDataURL(qrData, {
         errorCorrectionLevel: 'H',

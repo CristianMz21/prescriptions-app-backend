@@ -18,7 +18,7 @@ Sistema de gestión de prescripciones médicas. Backend API construida con **Nes
 |-----------|------------|
 | Framework | NestJS + TypeScript |
 | ORM | Prisma 6 |
-| Base de datos | PostgreSQL (puerto 5433) |
+| Base de datos | PostgreSQL |
 | Auth | JWT access (15m) + refresh (7d) en HttpOnly cookies |
 | Authorization | RBAC — ADMIN, DOCTOR, PATIENT |
 | Docs API | Swagger/OpenAPI en `/docs` |
@@ -34,8 +34,9 @@ Sistema de gestión de prescripciones médicas. Backend API construida con **Nes
 
 | Email | Role | Password |
 |-------|------|----------|
-| `admin@clinic.com` | ADMIN | `Password123!` |
+| `admin@clinic.com` | ADMIN | `Password123!` (example; real password via `SEED_DEFAULT_PASSWORD` env var) |
 | `doctor@clinic.com` | DOCTOR | `Password123!` |
+| `doctor2@clinic.com` | DOCTOR | `Password123!` |
 | `patient@clinic.com` | PATIENT | `Password123!` |
 
 ## Estado del Proyecto

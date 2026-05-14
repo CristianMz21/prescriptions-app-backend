@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginationMetaDto } from './pagination-meta.dto';
 

@@ -16,7 +16,7 @@ const extractAccessCookie = (
     : setCookieHeader
       ? [setCookieHeader]
       : [];
-  const accessCookie = cookies.find((cookie) =>
+  const accessCookie = cookies.find(cookie =>
     cookie.startsWith('accessToken='),
   );
   if (!accessCookie) {
@@ -33,7 +33,7 @@ const extractRefreshCookie = (
     : setCookieHeader
       ? [setCookieHeader]
       : [];
-  const refreshCookie = cookies.find((cookie) =>
+  const refreshCookie = cookies.find(cookie =>
     cookie.startsWith('refreshToken='),
   );
   if (!refreshCookie) {
@@ -89,24 +89,27 @@ describe('Auth & Users Endpoints (e2e)', () => {
 
   describe('POST /auth/login', () => {
     it('should return 401 with invalid credentials', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email: 'admin@clinic.com', password: 'wrongpassword' })
         .expect(401);
+      expect(_res.status).toBe(401);
     });
 
     it('should return 401 with non-existent email', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email: 'nonexistent@clinic.com', password: TEST_PASSWORD })
         .expect(401);
+      expect(_res.status).toBe(401);
     });
 
     it('should return 400 with missing fields', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email: 'admin@clinic.com' })
         .expect(400);
+      expect(_res.status).toBe(400);
     });
   });
 
@@ -141,7 +144,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
       expect(setCookie).toBeDefined();
 
       const clearCookies = Array.isArray(setCookie) ? setCookie : [setCookie];
-      const accessCleared = clearCookies.some((c) =>
+      const accessCleared = clearCookies.some(c =>
         c.startsWith('accessToken=;'),
       );
       expect(accessCleared).toBe(true);
@@ -163,17 +166,19 @@ describe('Auth & Users Endpoints (e2e)', () => {
     });
 
     it('should return 403 as DOCTOR', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/users')
         .set('Cookie', doctorCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 403 as PATIENT', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/users')
         .set('Cookie', patientCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 401 without cookie', async () => {
@@ -196,7 +201,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
     });
 
     it('should return 403 as DOCTOR', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .post('/users')
         .set('Cookie', doctorCookie)
         .send({
@@ -205,10 +210,11 @@ describe('Auth & Users Endpoints (e2e)', () => {
           role: Role.PATIENT,
         })
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 403 as PATIENT', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .post('/users')
         .set('Cookie', patientCookie)
         .send({
@@ -217,18 +223,20 @@ describe('Auth & Users Endpoints (e2e)', () => {
           role: Role.PATIENT,
         })
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 400 with invalid payload', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .post('/users')
         .set('Cookie', adminCookie)
         .send({ email: 'not-an-email', role: 'INVALID_ROLE' })
         .expect(400);
+      expect(_res.status).toBe(400);
     });
 
     it('should return 409 duplicate email', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .post('/users')
         .set('Cookie', adminCookie)
         .send({
@@ -237,10 +245,11 @@ describe('Auth & Users Endpoints (e2e)', () => {
           role: Role.ADMIN,
         })
         .expect(409);
+      expect(_res.status).toBe(409);
     });
 
     it('should return 401 without cookie', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .post('/users')
         .send({
           email: `nocookie_${uniqueSuffix}@clinic.com`,
@@ -248,6 +257,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
           role: Role.PATIENT,
         })
         .expect(401);
+      expect(_res.status).toBe(401);
     });
   });
 
@@ -276,10 +286,11 @@ describe('Auth & Users Endpoints (e2e)', () => {
     });
 
     it('should return 403 as PATIENT', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/users/patients')
         .set('Cookie', patientCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 401 without cookie', async () => {
@@ -303,17 +314,19 @@ describe('Auth & Users Endpoints (e2e)', () => {
     });
 
     it('should return 403 as DOCTOR', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/users/doctors')
         .set('Cookie', doctorCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 403 as PATIENT', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/users/doctors')
         .set('Cookie', patientCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 401 without cookie', async () => {
@@ -347,6 +360,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .get('/users')
         .set('Cookie', adminCookie)
         .expect(200);
+      expect(res.status).toBe(200);
 
       if (res.body.length > 0) {
         const userId = res.body[0].id;
@@ -362,6 +376,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .get('/users')
         .set('Cookie', adminCookie)
         .expect(200);
+      expect(res.status).toBe(200);
 
       if (res.body.length > 0) {
         const userId = res.body[0].id;
@@ -386,33 +401,37 @@ describe('Auth & Users Endpoints (e2e)', () => {
 
     it('should return 404 for non-existent user', async () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get(`/users/${nonExistentId}`)
         .set('Cookie', adminCookie)
         .expect(404);
+      expect(_res.status).toBe(404);
     });
   });
 
   describe('Admin access cross-check', () => {
     it('should return 200 for ADMIN on GET /admin/metrics', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/metrics')
         .set('Cookie', adminCookie)
         .expect(200);
+      expect(_res.status).toBe(200);
     });
 
     it('should return 403 for DOCTOR on GET /admin/metrics', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/metrics')
         .set('Cookie', doctorCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 403 for PATIENT on GET /admin/metrics', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/metrics')
         .set('Cookie', patientCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 401 for unauthenticated on GET /admin/metrics', async () => {
@@ -420,24 +439,27 @@ describe('Auth & Users Endpoints (e2e)', () => {
     });
 
     it('should return 200 for ADMIN on GET /admin/prescriptions', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/prescriptions')
         .set('Cookie', adminCookie)
         .expect(200);
+      expect(_res.status).toBe(200);
     });
 
     it('should return 403 for DOCTOR on GET /admin/prescriptions', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/prescriptions')
         .set('Cookie', doctorCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 403 for PATIENT on GET /admin/prescriptions', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/prescriptions')
         .set('Cookie', patientCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 401 for unauthenticated on GET /admin/prescriptions', async () => {

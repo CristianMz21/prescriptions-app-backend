@@ -10,7 +10,7 @@
 
 ## Configuration
 - Use `@nestjs/config` with `ConfigModule.forRoot()`
-- Validate env vars at startup (Joi schema)
+- Validate env vars at startup via `class-validator` (see `src/config/env.validation.ts`)
 - No `process.env` access outside config module
 
 ## Async Operations

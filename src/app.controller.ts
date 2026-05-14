@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 

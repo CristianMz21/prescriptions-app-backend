@@ -1,9 +1,11 @@
+/* Copyright (c) 2026. All rights reserved. */
 import {
   ExceptionFilter,
   Catch,
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
@@ -12,27 +14,55 @@ type ExceptionResponse = string | { message?: string | string[] };
 const hasMessage = (
   response: ExceptionResponse,
 ): response is { message: string | string[] } => {
-  return (
-    typeof response === 'object' && response !== null && 'message' in response
-  );
+  if (typeof response !== 'object' || response === null) {
+    return false;
+  }
+  return 'message' in response;
+};
+
+const extractStatus = (exception: unknown): number => {
+  if (exception instanceof HttpException) {
+    return exception.getStatus();
+  }
+  return HttpStatus.INTERNAL_SERVER_ERROR;
+};
+
+const extractResponseBody = (exception: unknown): ExceptionResponse => {
+  if (exception instanceof HttpException) {
+    return exception.getResponse();
+  }
+  return 'Internal server error';
+};
+
+const extractMessage = (
+  response: ExceptionResponse,
+): string | string[] | ExceptionResponse => {
+  if (hasMessage(response)) {
+    return response.message;
+  }
+  return response;
 };
 
 const isJwtException = (
   exception: unknown,
 ): exception is { name: string; message: string } => {
-  return (
-    typeof exception === 'object' &&
-    exception !== null &&
-    'name' in exception &&
-    'message' in exception &&
-    typeof (exception as { name: unknown }).name === 'string' &&
-    typeof (exception as { message: unknown }).message === 'string' &&
-    (exception as { name: string }).name.includes('JsonWebToken')
-  );
+  if (typeof exception !== 'object' || exception === null) {
+    return false;
+  }
+  if (!('name' in exception) || !('message' in exception)) {
+    return false;
+  }
+  const { name, message } = exception;
+  if (typeof name !== 'string' || typeof message !== 'string') {
+    return false;
+  }
+  return name.includes('JsonWebToken');
 };
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -61,19 +91,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const errorResponse: ExceptionResponse =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : 'Internal server error';
-
-    const message = hasMessage(errorResponse)
-      ? errorResponse.message
-      : errorResponse;
+    const status = extractStatus(exception);
+    const errorResponse = extractResponseBody(exception);
+    const message = extractMessage(errorResponse);
 
     const body = {
       statusCode: status,
@@ -83,7 +103,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     };
 
     if (status === Number(HttpStatus.INTERNAL_SERVER_ERROR)) {
-      console.error(`[Unhandled Exception] path: ${request.url}`, exception);
+      this.logger.error(
+        `[Unhandled Exception] path: ${request.url}`,
+        exception,
+      );
     }
 
     response.status(status).json(body);

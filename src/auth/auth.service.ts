@@ -2,7 +2,7 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
+import { compare } from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { parseDurationToSeconds } from '../common/utils/duration.utils';
@@ -34,7 +34,7 @@ export class AuthService {
   ): Promise<Omit<JwtPayload, 'passwordHash'> | null> {
     const user = await this.usersService.findByEmail(email);
 
-    if (user && (await bcrypt.compare(pass, user.passwordHash))) {
+    if (user && (await compare(pass, user.passwordHash))) {
       return { id: user.id, email: user.email, role: user.role };
     }
 

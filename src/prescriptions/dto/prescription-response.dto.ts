@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PrescriptionStatus } from '@prisma/client';
 

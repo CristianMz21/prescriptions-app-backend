@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import {
   Injectable,
   CanActivate,
@@ -40,7 +41,7 @@ export class PermissionsGuard implements CanActivate {
     const userRole: Role = user.role;
     const userPermissions: Permission[] = RolePermissionsMap[userRole] || [];
 
-    const hasAllRequiredPermissions = requiredPermissions.every((permission) =>
+    const hasAllRequiredPermissions = requiredPermissions.every(permission =>
       userPermissions.includes(permission),
     );
 

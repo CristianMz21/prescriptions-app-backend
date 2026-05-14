@@ -32,7 +32,7 @@ export class PrescriptionsService {
           notes: createPrescriptionDto.notes,
           status: PrescriptionStatus.PENDING,
           items: {
-            create: createPrescriptionDto.items.map((item) => ({
+            create: createPrescriptionDto.items.map(item => ({
               name: item.name,
               dosage: item.dosage,
               quantity: item.quantity,
@@ -72,8 +72,9 @@ export class PrescriptionsService {
       where.patientId = user.id;
     } else if (user.role === Role.DOCTOR) {
       where.doctorId = user.id;
+    } else {
+      // ADMIN: no tenant restrictions
     }
-    // ADMIN has no tenant restrictions
 
     if (status) {
       where.status = status;
@@ -81,10 +82,12 @@ export class PrescriptionsService {
 
     if (fromDate || toDate) {
       where.createdAt = {};
-      if (fromDate)
+      if (fromDate) {
         (where.createdAt as Prisma.DateTimeFilter).gte = new Date(fromDate);
-      if (toDate)
+      }
+      if (toDate) {
         (where.createdAt as Prisma.DateTimeFilter).lte = new Date(toDate);
+      }
     }
 
     const [data, total] = await Promise.all([
@@ -118,6 +121,8 @@ export class PrescriptionsService {
       base.patientId = user.id;
     } else if (user.role === Role.DOCTOR) {
       base.doctorId = user.id;
+    } else {
+      // ADMIN: no tenant restrictions
     }
     return base;
   }

@@ -39,16 +39,16 @@ describe('AdminService', () => {
 
   describe('getDashboardMetrics', () => {
     it('should aggregate and return dashboard metrics', async () => {
-      prismaService.user.count.mockImplementation(async (args) => {
+      prismaService.user.count.mockImplementation(async args => {
         if (args?.where?.role === Role.DOCTOR) return 5;
         if (args?.where?.role === Role.PATIENT) return 20;
         return 0;
       });
 
-      prismaService.prescription.count.mockImplementation(async (args) => {
+      prismaService.prescription.count.mockImplementation(async args => {
         if (args?.where?.status === PrescriptionStatus.PENDING) return 10;
         if (args?.where?.status === PrescriptionStatus.CONSUMED) return 15;
-        if (!args?.where) return 25;
+        if (!args?.where?.status) return 25;
         return 0;
       });
 

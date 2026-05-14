@@ -12,14 +12,23 @@ erDiagram
     PRESCRIPTION {
         string id PK
         enum status "PENDING|CONSUMED"
-        json items "[{name,dosage,instructions}]"
         string notes
         datetime createdAt
         datetime updatedAt
-        datetime consumedAt
         string doctorId FK
         string patientId FK
     }
 
+    PRESCRIPTION_ITEM {
+        string id PK
+        string name
+        string dosage
+        int quantity
+        string instructions
+        datetime createdAt
+        string prescriptionId FK
+    }
+
     USER ||--o{ PRESCRIPTION : "doctor"
     USER ||--o{ PRESCRIPTION : "patient"
+    PRESCRIPTION ||--o{ PRESCRIPTION_ITEM : "items"

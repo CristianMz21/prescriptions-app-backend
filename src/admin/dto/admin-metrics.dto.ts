@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsDateString } from 'class-validator';
 

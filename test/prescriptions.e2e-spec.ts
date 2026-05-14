@@ -17,7 +17,7 @@ const extractAccessCookie = (
     : setCookieHeader
       ? [setCookieHeader]
       : [];
-  const accessCookie = cookies.find((cookie) =>
+  const accessCookie = cookies.find(cookie =>
     cookie.startsWith('accessToken='),
   );
 
@@ -223,7 +223,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .get('/prescriptions?page=1&limit=5&status=PENDING')
         .set('Cookie', adminCookie)
         .expect(200)
-        .expect((res) => {
+        .expect(res => {
           expect(res.body).toHaveProperty('data');
           expect(res.body).toHaveProperty('meta');
           expect(res.body.meta.page).toEqual(1);
@@ -247,7 +247,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', patientCookie)
         .send(mockPayload)
         .expect(403)
-        .expect((res) => {
+        .expect(res => {
           expect(res.body.message).toEqual(
             'Insufficient permissions to access this resource',
           );
@@ -267,7 +267,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', doctorCookie)
         .send(invalidPayload)
         .expect(400)
-        .expect((res) => {
+        .expect(res => {
           expect(res.body.message).toEqual(
             expect.arrayContaining([
               'patientId must be a UUID',
@@ -301,7 +301,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .get(`/prescriptions/${prescriptionId}`)
         .set('Cookie', doctorCookie)
         .expect(403)
-        .expect((res) => {
+        .expect(res => {
           expect(res.body.message).toEqual(
             'You do not have permission to access this prescription.',
           );
@@ -314,6 +314,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .get('/prescriptions')
         .set('Cookie', doctorCookie)
         .expect(200);
+      expect(res.status).toBe(200);
 
       if (res.body.data.length > 0) {
         const ownPrescription = res.body.data[0];
@@ -345,7 +346,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .get(`/prescriptions/${prescriptionId}`)
         .set('Cookie', patientCookie)
         .expect(403)
-        .expect((res) => {
+        .expect(res => {
           expect(res.body.message).toEqual(
             'You do not have permission to access this prescription.',
           );
@@ -358,6 +359,7 @@ describe('Prescriptions Flow (e2e)', () => {
         .get('/prescriptions')
         .set('Cookie', adminCookie)
         .expect(200);
+      expect(res.status).toBe(200);
 
       if (res.body.data.length > 0) {
         const anyPrescription = res.body.data[0];
@@ -409,6 +411,7 @@ describe('Prescriptions Flow (e2e)', () => {
           items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
         })
         .expect(201);
+      expect(prescriptionRes.status).toBe(201);
 
       const prescriptionId = prescriptionRes.body.id;
 
@@ -432,6 +435,7 @@ describe('Prescriptions Flow (e2e)', () => {
           items: [{ name: 'Test Med', dosage: '10mg', quantity: 30 }],
         })
         .expect(201);
+      expect(prescriptionRes.status).toBe(201);
 
       const prescriptionId = prescriptionRes.body.id;
 
@@ -574,10 +578,11 @@ describe('Prescriptions Flow (e2e)', () => {
     it('should return 404 when prescription does not exist', async () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
 
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get(`/prescriptions/${nonExistentId}/pdf`)
         .set('Cookie', adminCookie)
         .expect(404);
+      expect(_res.status).toBe(404);
     });
   });
 

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Exclude } from 'class-transformer';
 import { Role } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';

@@ -15,7 +15,7 @@ const extractAccessCookie = (
     : setCookieHeader
       ? [setCookieHeader]
       : [];
-  const accessCookie = cookies.find((cookie) =>
+  const accessCookie = cookies.find(cookie =>
     cookie.startsWith('accessToken='),
   );
   if (!accessCookie) {
@@ -142,17 +142,19 @@ describe('Admin Endpoints (e2e)', () => {
     });
 
     it('should return 403 when doctor accesses /admin/prescriptions', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/prescriptions')
         .set('Cookie', doctorCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 403 when patient accesses /admin/prescriptions', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/prescriptions')
         .set('Cookie', patientCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 401 when unauthenticated', async () => {
@@ -162,10 +164,11 @@ describe('Admin Endpoints (e2e)', () => {
     });
 
     it('should return 400 for invalid status value', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/prescriptions?status=INVALID')
         .set('Cookie', adminCookie)
         .expect(400);
+      expect(_res.status).toBe(400);
     });
 
     it('should include doctor and patient data in response', async () => {
@@ -215,17 +218,19 @@ describe('Admin Endpoints (e2e)', () => {
     });
 
     it('should return 403 when doctor accesses /admin/metrics', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/metrics')
         .set('Cookie', doctorCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 403 when patient accesses /admin/metrics', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/metrics')
         .set('Cookie', patientCookie)
         .expect(403);
+      expect(_res.status).toBe(403);
     });
 
     it('should return 401 when unauthenticated', async () => {
@@ -233,17 +238,19 @@ describe('Admin Endpoints (e2e)', () => {
     });
 
     it('should return 400 for invalid date format', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/metrics?from=not-a-date')
         .set('Cookie', adminCookie)
         .expect(400);
+      expect(_res.status).toBe(400);
     });
 
     it('should return 400 for invalid to date format', async () => {
-      await request(app.getHttpServer())
+      const _res = await request(app.getHttpServer())
         .get('/admin/metrics?to=invalid')
         .set('Cookie', adminCookie)
         .expect(400);
+      expect(_res.status).toBe(400);
     });
   });
 

@@ -41,7 +41,7 @@
 
 ## 2. Modelo de Datos
 
-El schema Prisma es la **única fuente de verdad** del modelo de datos. No existen tablas Doctor, Patient, RefreshToken ni PrescriptionItem separadas.
+El schema Prisma es la **única fuente de verdad** del modelo de datos. No existen tablas Doctor, Patient ni RefreshToken separadas. `PrescriptionItem` es una tabla separada vinculada a `Prescription`.
 
 ```prisma
 generator client {
@@ -81,9 +81,6 @@ model User {
 model Prescription {
   id          String             @id @default(uuid())
   status      PrescriptionStatus @default(PENDING)
-
-  items       Json
-
   notes       String?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
@@ -94,10 +91,26 @@ model Prescription {
   patientId   String
   patient     User @relation("PatientPrescriptions", fields: [patientId], references: [id])
 
+  items       PrescriptionItem[]
+
   @@index([status])
   @@index([createdAt])
   @@index([doctorId])
   @@index([patientId])
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  name           String
+  dosage         String
+  quantity       Int
+  instructions  String?
+  createdAt      DateTime     @default(now())
+
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
 }
 ```
 
@@ -106,7 +119,7 @@ model Prescription {
 - Un `User` con rol `DOCTOR` puede authored无数 `Prescription` (relación `prescriptionsAsDoctor`)
 - Un `User` con rol `PATIENT` puede recibir无数 `Prescription` (relación `prescriptionsAsPatient`)
 - Los roles `ADMIN`, `DOCTOR`, `PATIENT` viven en `User.role` — no hay tabla separada
-- Los items de la prescripción se almacenan como `Json` — array de `{name, dosage, instructions}`
+- Cada `Prescription` tiene múltiples `PrescriptionItem` (tabla separada, no Json)
 
 ![ER Diagram](diagrams/d02_er.png)
 
@@ -209,9 +222,9 @@ Los roles viven en `User.role`. Esto simplifica:
 - Auth es un solo `User`, no múltiples perfiles
 - Queries más simples en Prisma
 
-### 4.4 Items as Json
+### 4.4 PrescriptionItem como Tabla Relacional
 
-`Prescription.items` es un campo `Json` — array de objetos `{name, dosage, instructions}`. No hay catálogo de productos.
+`Prescription.items` es una relación a la tabla `PrescriptionItem` — no un campo Json. Cada item tiene `name`, `dosage`, `quantity`, `instructions`. Esto permite indexación y queries per-item.
 
 ---
 
@@ -232,7 +245,7 @@ Todo request pasa por:
 
 | Variable | Descripcion | Ejemplo |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string (puerto 5433) | `postgresql://...` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://...` |
 | `JWT_ACCESS_SECRET` | Secreto para access tokens | `openssl rand -base64 32` |
 | `JWT_REFRESH_SECRET` | Secreto para refresh tokens | `openssl rand -base64 32` |
 | `JWT_ACCESS_TTL` | TTL access token (string) | `"15m"` |

@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import {
@@ -9,7 +10,6 @@ import {
   ApiForbiddenResponse,
   ApiCookieAuth,
   ApiExtraModels,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -22,6 +22,12 @@ import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
 import { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
 import { PrescriptionResponseDto } from '../prescriptions/dto/prescription-response.dto';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import { apiPaginatedOkResponse } from '../common/swagger/api-paginated-response.decorator';
+import {
+  UNAUTHORIZED_DESC,
+  FORBIDDEN_ADMIN_DESC,
+  BAD_REQUEST_QUERY_DESC,
+} from '../common/swagger/swagger-descriptions';
 
 @ApiTags('Admin')
 @ApiCookieAuth('accessToken')
@@ -34,34 +40,21 @@ export class AdminController {
   @Get('prescriptions')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all prescriptions (Admin Only)' })
-  @ApiOkResponse({
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(PaginatedResultDto) },
-        {
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(PrescriptionResponseDto) },
-            },
-            meta: { $ref: getSchemaPath(PaginationMetaDto) },
-          },
-        },
-      ],
-    },
-    description: 'Returns paginated list of all prescriptions',
-  })
+  @apiPaginatedOkResponse(
+    PrescriptionResponseDto,
+    'Returns paginated list of all prescriptions',
+  )
   @ApiBadRequestResponse({
     type: ErrorResponseDto,
-    description: 'Bad Request — invalid query parameters',
+    description: BAD_REQUEST_QUERY_DESC,
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — Admin role required',
+    description: FORBIDDEN_ADMIN_DESC,
   })
   listPrescriptions(@Query() filter: AdminListPrescriptionsDto) {
     return this.adminService.findAllPrescriptions(filter);
@@ -80,11 +73,11 @@ export class AdminController {
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — Admin role required',
+    description: FORBIDDEN_ADMIN_DESC,
   })
   getMetrics(@Query() metricsDto: AdminMetricsDto) {
     return this.adminService.getDashboardMetricsFiltered(

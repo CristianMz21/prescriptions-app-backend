@@ -26,7 +26,6 @@ import {
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiExtraModels,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -40,7 +39,17 @@ import { PrescriptionResponseDto } from './dto/prescription-response.dto';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
 import { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import { apiPaginatedOkResponse } from '../common/swagger/api-paginated-response.decorator';
+import {
+  UNAUTHORIZED_DESC,
+  BAD_REQUEST_QUERY_DESC,
+  FORBIDDEN_DOCTOR_DESC,
+} from '../common/swagger/swagger-descriptions';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+
+const FORBIDDEN_PRESCRIPTION_DESC =
+  'Forbidden — you do not have access to this prescription';
+const PRESCRIPTION_ID_PARAM_DESC = 'Prescription ID (UUID v4)';
 
 @ApiTags('Prescriptions')
 @ApiCookieAuth('accessToken')
@@ -66,11 +75,11 @@ export class PrescriptionsController {
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — Doctor role required',
+    description: FORBIDDEN_DOCTOR_DESC,
   })
   create(
     @CurrentUser() user: JwtPayload,
@@ -81,30 +90,17 @@ export class PrescriptionsController {
 
   @Get()
   @ApiOperation({ summary: 'List prescriptions (Paginated)' })
-  @ApiOkResponse({
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(PaginatedResultDto) },
-        {
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(PrescriptionResponseDto) },
-            },
-            meta: { $ref: getSchemaPath(PaginationMetaDto) },
-          },
-        },
-      ],
-    },
-    description: 'Returns paginated list of prescriptions based on user role',
-  })
+  @apiPaginatedOkResponse(
+    PrescriptionResponseDto,
+    'Returns paginated list of prescriptions based on user role',
+  )
   @ApiBadRequestResponse({
     type: ErrorResponseDto,
-    description: 'Bad Request — invalid query parameters',
+    description: BAD_REQUEST_QUERY_DESC,
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   findAll(
     @CurrentUser() user: JwtPayload,
@@ -118,7 +114,7 @@ export class PrescriptionsController {
   @ApiParam({
     name: 'id',
     format: 'uuid',
-    description: 'Prescription ID (UUID v4)',
+    description: PRESCRIPTION_ID_PARAM_DESC,
   })
   @ApiOkResponse({
     type: PrescriptionResponseDto,
@@ -130,11 +126,11 @@ export class PrescriptionsController {
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — you do not have access to this prescription',
+    description: FORBIDDEN_PRESCRIPTION_DESC,
   })
   findOne(
     @CurrentUser() user: JwtPayload,
@@ -149,7 +145,7 @@ export class PrescriptionsController {
   @ApiParam({
     name: 'id',
     format: 'uuid',
-    description: 'Prescription ID (UUID v4)',
+    description: PRESCRIPTION_ID_PARAM_DESC,
   })
   @ApiOkResponse({
     type: PrescriptionResponseDto,
@@ -161,7 +157,7 @@ export class PrescriptionsController {
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
@@ -185,7 +181,7 @@ export class PrescriptionsController {
   @ApiParam({
     name: 'id',
     format: 'uuid',
-    description: 'Prescription ID (UUID v4)',
+    description: PRESCRIPTION_ID_PARAM_DESC,
   })
   @ApiResponse({
     status: 200,
@@ -198,11 +194,11 @@ export class PrescriptionsController {
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — you do not have access to this prescription',
+    description: FORBIDDEN_PRESCRIPTION_DESC,
   })
   @ApiNotFoundResponse({
     type: ErrorResponseDto,

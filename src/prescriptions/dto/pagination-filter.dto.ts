@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { IsEnum, IsInt, IsOptional, IsDateString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';

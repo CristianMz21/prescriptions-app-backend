@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import { SetMetadata } from '@nestjs/common';
 import { Role } from '@prisma/client';
 

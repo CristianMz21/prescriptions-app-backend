@@ -76,8 +76,9 @@ npx prisma migrate reset --force
 
 | Email | Role | Password |
 |-------|------|----------|
-| `admin@clinic.com` | ADMIN | `Password123!` |
+| `admin@clinic.com` | ADMIN | `Password123!` (example; real password via `SEED_DEFAULT_PASSWORD` env var) |
 | `doctor@clinic.com` | DOCTOR | `Password123!` |
+| `doctor2@clinic.com` | DOCTOR | `Password123!` |
 | `patient@clinic.com` | PATIENT | `Password123!` |
 
 ---

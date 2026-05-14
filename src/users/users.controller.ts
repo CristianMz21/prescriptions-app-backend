@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import {
   Body,
   Controller,
@@ -22,7 +23,6 @@ import {
   ApiCookieAuth,
   ApiParam,
   ApiExtraModels,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -34,6 +34,12 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
 import { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import { apiPaginatedOkResponse } from '../common/swagger/api-paginated-response.decorator';
+import {
+  UNAUTHORIZED_DESC,
+  FORBIDDEN_ADMIN_DESC,
+  FORBIDDEN_ADMIN_OR_DOCTOR_DESC,
+} from '../common/swagger/swagger-descriptions';
 
 @ApiTags('Users')
 @ApiCookieAuth('accessToken')
@@ -57,11 +63,11 @@ export class UsersController {
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — Admin role required',
+    description: FORBIDDEN_ADMIN_DESC,
   })
   @ApiConflictResponse({
     type: ErrorResponseDto,
@@ -74,30 +80,14 @@ export class UsersController {
   @Get()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all users (Admin Only)' })
-  @ApiOkResponse({
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(PaginatedResultDto) },
-        {
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(UserEntity) },
-            },
-            meta: { $ref: getSchemaPath(PaginationMetaDto) },
-          },
-        },
-      ],
-    },
-    description: 'Returns paginated list of all users',
-  })
+  @apiPaginatedOkResponse(UserEntity, 'Returns paginated list of all users')
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — Admin role required',
+    description: FORBIDDEN_ADMIN_DESC,
   })
   findAll() {
     return this.usersService.findAll();
@@ -106,30 +96,14 @@ export class UsersController {
   @Get('patients')
   @Roles(Role.ADMIN, Role.DOCTOR)
   @ApiOperation({ summary: 'List all patients (Admin/Doctor Only)' })
-  @ApiOkResponse({
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(PaginatedResultDto) },
-        {
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(UserEntity) },
-            },
-            meta: { $ref: getSchemaPath(PaginationMetaDto) },
-          },
-        },
-      ],
-    },
-    description: 'Returns paginated list of all patients',
-  })
+  @apiPaginatedOkResponse(UserEntity, 'Returns paginated list of all patients')
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — Admin or Doctor role required',
+    description: FORBIDDEN_ADMIN_OR_DOCTOR_DESC,
   })
   findAllPatients() {
     return this.usersService.findAllByRole(Role.PATIENT);
@@ -138,30 +112,14 @@ export class UsersController {
   @Get('doctors')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all doctors (Admin Only)' })
-  @ApiOkResponse({
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(PaginatedResultDto) },
-        {
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(UserEntity) },
-            },
-            meta: { $ref: getSchemaPath(PaginationMetaDto) },
-          },
-        },
-      ],
-    },
-    description: 'Returns paginated list of all doctors',
-  })
+  @apiPaginatedOkResponse(UserEntity, 'Returns paginated list of all doctors')
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — Admin role required',
+    description: FORBIDDEN_ADMIN_DESC,
   })
   findAllDoctors() {
     return this.usersService.findAllByRole(Role.DOCTOR);
@@ -177,11 +135,11 @@ export class UsersController {
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
-    description: 'Unauthorized — valid access token required',
+    description: UNAUTHORIZED_DESC,
   })
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
-    description: 'Forbidden — Admin or Doctor role required',
+    description: FORBIDDEN_ADMIN_OR_DOCTOR_DESC,
   })
   @ApiNotFoundResponse({
     type: ErrorResponseDto,

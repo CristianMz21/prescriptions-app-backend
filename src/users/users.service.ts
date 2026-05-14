@@ -1,3 +1,4 @@
+/* Copyright (c) 2026. All rights reserved. */
 import {
   Injectable,
   NotFoundException,
@@ -5,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
+import { hash } from 'bcrypt';
 import { UserEntity } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 
@@ -21,10 +22,7 @@ export class UsersService {
     const saltRounds = 10;
 
     // 2. Hash the plain-text password before it ever touches the database
-    const hashedPassword = await bcrypt.hash(
-      createUserDto.password,
-      saltRounds,
-    );
+    const hashedPassword = await hash(createUserDto.password, saltRounds);
 
     try {
       const user = await this.prisma.user.create({
@@ -76,7 +74,7 @@ export class UsersService {
 
   async findAll(): Promise<UserEntity[]> {
     const users = await this.prisma.user.findMany();
-    return users.map((user) => new UserEntity(user));
+    return users.map(user => new UserEntity(user));
   }
 
   /**
@@ -87,6 +85,6 @@ export class UsersService {
       where: { role },
     });
 
-    return users.map((user) => new UserEntity(user));
+    return users.map(user => new UserEntity(user));
   }
 }
