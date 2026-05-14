@@ -429,15 +429,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -475,15 +469,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -540,15 +528,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -587,15 +569,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -634,15 +610,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'doctor';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'doctor');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -681,15 +651,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -741,15 +705,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -787,15 +745,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -851,15 +803,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'doctor';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'doctor');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -899,15 +845,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'patient';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -946,15 +886,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'patient';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -1005,15 +939,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'patient';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'patient');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -1052,15 +980,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'patient';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -1102,15 +1024,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -1149,15 +1065,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -1195,15 +1105,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const role = 'admin';",
-                  "const accessToken = pm.environment.get(`${role}AccessToken`);",
-                  "const refreshToken = pm.environment.get(`${role}RefreshToken`);",
-                  "const csrfToken = pm.environment.get(`${role}CsrfToken`);",
-                  "let cookie = accessToken ? `accessToken=${accessToken}` : '';",
-                  "if (refreshToken) cookie += `${cookie ? '; ' : ''}refreshToken=${refreshToken}`;",
-                  "if (csrfToken) cookie += `${cookie ? '; ' : ''}csrfToken=${csrfToken}`;",
-                  "if (cookie) pm.request.headers.upsert({ key: 'Cookie', value: cookie });",
-                  "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });"
+                  "// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.",
+                  "pm.variables.set('requiredRole', 'admin');",
+                  "eval(pm.collectionVariables.get('authHelper'));"
                 ]
               }
             },
@@ -1969,6 +1873,11 @@
     {
       "key": "isoDateTimeRegex",
       "value": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    {
+      "key": "authHelper",
+      "value": "// authHelper v1 — manages role-scoped auth cookies + transparent auto-login.\n// Reads requiredRole from request-level pm.variables (set by the request's pre-script).\n// roleOverride env var (when non-empty) wins over requiredRole, enabling cross-role testing\n// without editing per-request scripts. Falls back to 'admin' which has read access to everything.\n(async () => {\n  const override = (pm.environment.get('roleOverride') || '').trim();\n  const role = override || pm.variables.get('requiredRole') || 'admin';\n\n  function readSetCookieFromRes(res, name) {\n    const headers = (res && res.headers && res.headers.all) ? res.headers.all() : [];\n    const sc = headers.filter(h => (h.key || '').toLowerCase() === 'set-cookie').map(h => h.value);\n    const found = sc.find(c => c.startsWith(name + '='));\n    return found ? found.split(';')[0].slice(name.length + 1) : undefined;\n  }\n\n  let accessToken = pm.environment.get(role + 'AccessToken');\n\n  if (!accessToken) {\n    const email = pm.environment.get(role + 'Email');\n    const password = pm.environment.get('seedPassword') || 'Password123!';\n    const baseUrl = pm.environment.get('baseUrl');\n    if (email && password && baseUrl) {\n      await new Promise((resolve) => {\n        pm.sendRequest({\n          url: baseUrl + '/auth/login',\n          method: 'POST',\n          header: { 'Content-Type': 'application/json' },\n          body: { mode: 'raw', raw: JSON.stringify({ email: email, password: password }) }\n        }, (err, res) => {\n          if (!err && res && (res.code === 200 || res.code === 201)) {\n            const a = readSetCookieFromRes(res, 'accessToken');\n            const r = readSetCookieFromRes(res, 'refreshToken');\n            const c = readSetCookieFromRes(res, 'csrfToken') || (res.headers.get ? res.headers.get('X-CSRF-Token') : undefined);\n            if (a) pm.environment.set(role + 'AccessToken', a);\n            if (r) pm.environment.set(role + 'RefreshToken', r);\n            if (c) pm.environment.set(role + 'CsrfToken', c);\n            try {\n              const body = res.json();\n              if (body && body.user && body.user.id) pm.environment.set(role + 'UserId', body.user.id);\n            } catch (e) {}\n          }\n          resolve();\n        });\n      });\n      accessToken = pm.environment.get(role + 'AccessToken');\n    }\n  }\n\n  const refreshToken = pm.environment.get(role + 'RefreshToken');\n  const csrfToken    = pm.environment.get(role + 'CsrfToken');\n  const parts = [];\n  if (accessToken)  parts.push('accessToken=' + accessToken);\n  if (refreshToken) parts.push('refreshToken=' + refreshToken);\n  if (csrfToken)    parts.push('csrfToken=' + csrfToken);\n  if (parts.length) pm.request.headers.upsert({ key: 'Cookie', value: parts.join('; ') });\n  if (csrfToken)    pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });\n})();",
+      "type": "string"
     }
   ],
   "info": {

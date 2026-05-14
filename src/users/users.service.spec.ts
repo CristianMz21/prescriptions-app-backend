@@ -180,6 +180,18 @@ describe('UsersService', () => {
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
+        include: {
+          patient: { select: { id: true, birthDate: true } },
+          doctor: {
+            select: {
+              id: true,
+              specialty: true,
+              medicalId: true,
+              signatureText: true,
+              signatureImageUrl: true,
+            },
+          },
+        },
       });
       expect(prismaService.user.count).toHaveBeenCalledWith({
         where: { role: Role.PATIENT },

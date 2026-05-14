@@ -5,6 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Role, PrescriptionStatus, Prescription, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,6 +43,16 @@ export class PrescriptionsService {
         'Authenticated user has no associated Doctor record.',
       );
     }
+
+    const resolvedPatientId = await this.resolvePatientId(
+      createPrescriptionDto.patientId,
+    );
+    if (!resolvedPatientId) {
+      throw await this.buildPatientNotFoundError(
+        createPrescriptionDto.patientId,
+      );
+    }
+
     let prescription: Prescription & {
       items: { name: string }[];
       patient: { user: { email: string } };
@@ -51,7 +62,7 @@ export class PrescriptionsService {
         data: {
           code: generatePrescriptionCode(),
           authorId: doctor.id,
-          patientId: createPrescriptionDto.patientId,
+          patientId: resolvedPatientId,
           notes: createPrescriptionDto.notes,
           status: PrescriptionStatus.PENDING,
           items: {
@@ -78,12 +89,14 @@ export class PrescriptionsService {
         },
       });
     } catch (err: unknown) {
+      // Defensive fallback: the pre-check above already validates patientId, but
+      // a concurrent delete between check and create could still hit P2003/P2025.
       if (
         isPrismaError(err) &&
         (err.code === 'P2003' || err.code === 'P2025')
       ) {
-        throw new BadRequestException(
-          'Patient not found. Please provide a valid patient ID.',
+        throw await this.buildPatientNotFoundError(
+          createPrescriptionDto.patientId,
         );
       }
       throw err;
@@ -103,6 +116,39 @@ export class PrescriptionsService {
       });
 
     return prescription;
+  }
+
+  // Accepts either a Patient.id directly or a User.id of a patient and returns
+  // the canonical Patient.id. Callers can hand us whichever id they happen to
+  // have (the listing in /users/patients returns both), so the API is tolerant
+  // and self-corrects instead of demanding the "right" UUID.
+  private async resolvePatientId(input: string): Promise<string | null> {
+    const direct = await this.prisma.patient.findUnique({
+      where: { id: input },
+      select: { id: true },
+    });
+    if (direct) return direct.id;
+
+    const asUser = await this.prisma.user.findUnique({
+      where: { id: input },
+      select: { patient: { select: { id: true } } },
+    });
+    return asUser?.patient?.id ?? null;
+  }
+
+  private async buildPatientNotFoundError(
+    providedId: string,
+  ): Promise<UnprocessableEntityException> {
+    const asUser = await this.prisma.user.findUnique({
+      where: { id: providedId },
+      select: { email: true, role: true },
+    });
+    const hint = asUser
+      ? ` The id '${providedId}' belongs to a User (${asUser.email}, role=${asUser.role}) but that user has no Patient profile.`
+      : '';
+    return new UnprocessableEntityException(
+      `Patient with id '${providedId}' not found.${hint} Use GET /users/patients — the response includes both the User.id and patient.id; either one is accepted as patientId.`,
+    );
   }
 
   private applyTenantBoundary(

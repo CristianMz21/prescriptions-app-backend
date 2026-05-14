@@ -215,7 +215,10 @@ function roleFor(opId) {
   if (opId === 'UsersController_findAllPatients') return 'DOCTOR';
   if (opId === 'PrescriptionsController_create') return 'DOCTOR';
   if (opId === 'PrescriptionsController_markAsConsumed') return 'PATIENT';
-  if (opId.startsWith('PrescriptionsController_')) return 'PATIENT';
+  // findAll / findOne / downloadPdf default to ADMIN so they "just work" out of the
+  // box — admin sees every prescription regardless of author/patient. Switch via
+  // the roleOverride env var to test patient/doctor perspectives without editing scripts.
+  if (opId.startsWith('PrescriptionsController_')) return 'ADMIN';
   return 'ADMIN';
 }
 
@@ -252,7 +255,10 @@ function requestFor(row) {
   return req;
 }
 
-function preRequestScript(role) {
+// Inline cookie builder — used by orchestrated/security tests that MUST run with
+// the exact role specified (cannot be overridden by roleOverride env var, otherwise
+// negative-RBAC and E2E flow assertions would silently pass under the wrong role).
+function inlinePreRequestScript(role) {
   if (!role) return [];
   if (role === 'NO_AUTH')
     return ["pm.request.headers.upsert({ key: 'Cookie', value: '' });"];
@@ -274,6 +280,79 @@ function preRequestScript(role) {
     "if (csrfToken) pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });",
   ];
 }
+
+// Shared helper-based variant — used by the regular endpoint folders (Users,
+// Prescriptions, Admin). Delegates cookie management + transparent auto-login
+// to the authHelper collection variable. Respects the roleOverride env var so
+// users can switch perspectives without editing scripts.
+function preRequestScript(role) {
+  if (!role) return [];
+  if (role === 'NO_AUTH' || role === 'ADMIN_REFRESH_ONLY')
+    return inlinePreRequestScript(role);
+  return [
+    '// Auto-managed by authHelper. Edit requiredRole below to change the minimum role this request needs.',
+    `pm.variables.set('requiredRole', '${role.toLowerCase()}');`,
+    "eval(pm.collectionVariables.get('authHelper'));",
+  ];
+}
+
+const authHelperScript = `// authHelper v1 — manages role-scoped auth cookies + transparent auto-login.
+// Reads requiredRole from request-level pm.variables (set by the request's pre-script).
+// roleOverride env var (when non-empty) wins over requiredRole, enabling cross-role testing
+// without editing per-request scripts. Falls back to 'admin' which has read access to everything.
+(async () => {
+  const override = (pm.environment.get('roleOverride') || '').trim();
+  const role = override || pm.variables.get('requiredRole') || 'admin';
+
+  function readSetCookieFromRes(res, name) {
+    const headers = (res && res.headers && res.headers.all) ? res.headers.all() : [];
+    const sc = headers.filter(h => (h.key || '').toLowerCase() === 'set-cookie').map(h => h.value);
+    const found = sc.find(c => c.startsWith(name + '='));
+    return found ? found.split(';')[0].slice(name.length + 1) : undefined;
+  }
+
+  let accessToken = pm.environment.get(role + 'AccessToken');
+
+  if (!accessToken) {
+    const email = pm.environment.get(role + 'Email');
+    const password = pm.environment.get('seedPassword') || 'Password123!';
+    const baseUrl = pm.environment.get('baseUrl');
+    if (email && password && baseUrl) {
+      await new Promise((resolve) => {
+        pm.sendRequest({
+          url: baseUrl + '/auth/login',
+          method: 'POST',
+          header: { 'Content-Type': 'application/json' },
+          body: { mode: 'raw', raw: JSON.stringify({ email: email, password: password }) }
+        }, (err, res) => {
+          if (!err && res && (res.code === 200 || res.code === 201)) {
+            const a = readSetCookieFromRes(res, 'accessToken');
+            const r = readSetCookieFromRes(res, 'refreshToken');
+            const c = readSetCookieFromRes(res, 'csrfToken') || (res.headers.get ? res.headers.get('X-CSRF-Token') : undefined);
+            if (a) pm.environment.set(role + 'AccessToken', a);
+            if (r) pm.environment.set(role + 'RefreshToken', r);
+            if (c) pm.environment.set(role + 'CsrfToken', c);
+            try {
+              const body = res.json();
+              if (body && body.user && body.user.id) pm.environment.set(role + 'UserId', body.user.id);
+            } catch (e) {}
+          }
+          resolve();
+        });
+      });
+      accessToken = pm.environment.get(role + 'AccessToken');
+    }
+  }
+
+  const refreshToken = pm.environment.get(role + 'RefreshToken');
+  const csrfToken    = pm.environment.get(role + 'CsrfToken');
+  const parts = [];
+  if (accessToken)  parts.push('accessToken=' + accessToken);
+  if (refreshToken) parts.push('refreshToken=' + refreshToken);
+  if (csrfToken)    parts.push('csrfToken=' + csrfToken);
+  if (parts.length) pm.request.headers.upsert({ key: 'Cookie', value: parts.join('; ') });
+  if (csrfToken)    pm.request.headers.upsert({ key: 'X-CSRF-Token', value: csrfToken });
+})();`;
 
 function commonTests(opId, expectedStatus, schema) {
   const lines = [
@@ -407,7 +486,10 @@ function rawJsonRequest(
       ...tests,
     ]),
   ];
-  const pre = preRequestScript(role);
+  // rawJsonRequest powers the security-negative and sequential-E2E folders, where
+  // the role must NOT be overridable (otherwise negative tests would pass under
+  // the wrong identity). Use the inline cookie builder, not the shared helper.
+  const pre = inlinePreRequestScript(role);
   if (pre.length) events.unshift(event('prerequest', pre));
   const request = { method, header: headers, url: `{{baseUrl}}${route}` };
   if (body)
@@ -648,10 +730,11 @@ function sequentialFolder() {
   };
 }
 
-function environment(name, baseUrl) {
+function environment(name, baseUrl, options = {}) {
   const values = {
     baseUrl,
-    seedPassword: '',
+    seedPassword: options.seedPassword || '',
+    roleOverride: '',
     adminEmail: 'admin@clinic.com',
     doctorEmail: 'doctor@clinic.com',
     patientEmail: 'patient@clinic.com',
@@ -718,6 +801,11 @@ function writeJson(file, data) {
         key: 'isoDateTimeRegex',
         value: '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$',
       },
+      {
+        key: 'authHelper',
+        value: authHelperScript,
+        type: 'string',
+      },
     ],
     item: [
       setupFolder(),
@@ -729,7 +817,9 @@ function writeJson(file, data) {
   writeJson(collectionPath, collection);
   writeJson(
     localEnvPath,
-    environment('Prescription API Local', 'http://localhost:3000'),
+    environment('Prescription API Local', 'http://localhost:3000', {
+      seedPassword: 'Password123!',
+    }),
   );
   writeJson(
     ciEnvPath,

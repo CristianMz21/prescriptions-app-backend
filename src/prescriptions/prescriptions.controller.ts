@@ -25,6 +25,7 @@ import {
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
+  ApiUnprocessableEntityResponse,
   ApiExtraModels,
   ApiQuery,
 } from '@nestjs/swagger';
@@ -73,7 +74,12 @@ export class PrescriptionsController {
   })
   @ApiBadRequestResponse({
     type: ErrorResponseDto,
-    description: 'Bad Request — invalid payload or patient not found',
+    description: 'Bad Request — invalid payload (DTO validation failed)',
+  })
+  @ApiUnprocessableEntityResponse({
+    type: ErrorResponseDto,
+    description:
+      'Unprocessable Entity — payload is well-formed but the referenced patientId does not exist',
   })
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,

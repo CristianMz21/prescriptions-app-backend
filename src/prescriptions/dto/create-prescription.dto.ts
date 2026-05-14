@@ -51,7 +51,8 @@ export class PrescriptionItemDto {
 export class CreatePrescriptionDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'UUID of the Patient record (Patient.id, not User.id)',
+    description:
+      'Patient identifier. Accepts either the Patient profile id (Patient.id) or the related User.id — the server resolves either form. See GET /users/patients which exposes both.',
     format: 'uuid',
   })
   @IsUUID()

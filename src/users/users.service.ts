@@ -199,6 +199,18 @@ export class UsersService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          patient: { select: { id: true, birthDate: true } },
+          doctor: {
+            select: {
+              id: true,
+              specialty: true,
+              medicalId: true,
+              signatureText: true,
+              signatureImageUrl: true,
+            },
+          },
+        },
       }),
       this.prisma.user.count({ where }),
     ]);

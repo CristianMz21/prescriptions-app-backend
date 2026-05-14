@@ -676,7 +676,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — invalid payload or patient not found",
+            "description": "Bad Request — invalid payload (DTO validation failed)",
             "content": {
               "application/json": {
                 "schema": {
@@ -697,6 +697,16 @@
           },
           "403": {
             "description": "Forbidden — Doctor role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity — payload is well-formed but the referenced patientId does not exist",
             "content": {
               "application/json": {
                 "schema": {
@@ -2212,7 +2222,7 @@
           "patientId": {
             "type": "string",
             "example": "123e4567-e89b-12d3-a456-426614174000",
-            "description": "UUID of the Patient record (Patient.id, not User.id)",
+            "description": "Patient identifier. Accepts either the Patient profile id (Patient.id) or the related User.id — the server resolves either form. See GET /users/patients which exposes both.",
             "format": "uuid"
           },
           "items": {

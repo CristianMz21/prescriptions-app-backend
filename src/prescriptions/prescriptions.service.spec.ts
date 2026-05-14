@@ -7,12 +7,15 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 
 describe('PrescriptionsService', () => {
   let service: PrescriptionsService;
   let prismaService: {
     doctor: { findUnique: jest.Mock };
+    patient: { findUnique: jest.Mock };
+    user: { findUnique: jest.Mock };
     prescription: {
       create: jest.Mock;
       findMany: jest.Mock;
@@ -43,6 +46,12 @@ describe('PrescriptionsService', () => {
           id: 'd1',
           user: { email: 'doctor@clinic.com' },
         }),
+      },
+      patient: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'p1' }),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue(null),
       },
       prescription: {
         create: jest.fn(),
@@ -103,30 +112,85 @@ describe('PrescriptionsService', () => {
       expect(result).toEqual(created);
     });
 
-    it('should throw BadRequestException on P2003 (foreign key)', async () => {
+    it('should throw UnprocessableEntityException when patientId does not match any Patient or User', async () => {
+      prismaService.patient.findUnique.mockResolvedValueOnce(null);
+      prismaService.user.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.create('doctor-user-id', {
+          patientId: 'p-missing',
+          items: [],
+        }),
+      ).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('should resolve the User.id of a patient to its Patient.id transparently', async () => {
+      prismaService.patient.findUnique.mockResolvedValueOnce(null);
+      prismaService.user.findUnique.mockResolvedValueOnce({
+        patient: { id: 'real-patient-id' },
+      });
+      const created = {
+        ...mockPrescription,
+        patientId: 'real-patient-id',
+        items: [],
+        patient: { user: { email: 'patient@clinic.com' } },
+      };
+      prismaService.prescription.create.mockResolvedValue(created);
+
+      await service.create('doctor-user-id', {
+        patientId: 'user-id-of-patient',
+        items: [],
+      });
+
+      expect(prismaService.prescription.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ patientId: 'real-patient-id' }),
+        }),
+      );
+    });
+
+    it('should include hint when the provided id is a User with no Patient profile', async () => {
+      prismaService.patient.findUnique.mockResolvedValueOnce(null);
+      // First call from resolvePatientId returns no patient relation
+      prismaService.user.findUnique.mockResolvedValueOnce({ patient: null });
+      // Second call from buildPatientNotFoundError surfaces the user details
+      prismaService.user.findUnique.mockResolvedValueOnce({
+        email: 'doctor@clinic.com',
+        role: 'DOCTOR',
+      });
+
+      await expect(
+        service.create('doctor-user-id', {
+          patientId: 'doctor-user-id-by-mistake',
+          items: [],
+        }),
+      ).rejects.toThrow(/belongs to a User.*no Patient profile/);
+    });
+
+    it('should throw UnprocessableEntityException on P2003 (race condition fallback)', async () => {
       const err = new Error('FK violation') as Error & { code: string };
       err.code = 'P2003';
       prismaService.prescription.create.mockRejectedValue(err);
 
       await expect(
         service.create('doctor-user-id', {
-          patientId: 'p-missing',
+          patientId: 'p1',
           items: [],
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(UnprocessableEntityException);
     });
 
-    it('should throw BadRequestException on P2025 (record not found)', async () => {
+    it('should throw UnprocessableEntityException on P2025 (race condition fallback)', async () => {
       const err = new Error('Record not found') as Error & { code: string };
       err.code = 'P2025';
       prismaService.prescription.create.mockRejectedValue(err);
 
       await expect(
         service.create('doctor-user-id', {
-          patientId: 'p-missing',
+          patientId: 'p1',
           items: [],
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(UnprocessableEntityException);
     });
 
     it('should rethrow unknown prisma errors from create', async () => {

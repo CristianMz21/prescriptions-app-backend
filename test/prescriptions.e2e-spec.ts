@@ -135,6 +135,7 @@ describe('Prescriptions Flow (e2e)', () => {
   let seededPatientId: string;
   let secondDoctorCookie: string;
   let secondDoctorId: string;
+  let secondDoctorEmail: string;
   let secondPatientId: string;
   let prisma: PrismaService;
 
@@ -209,9 +210,10 @@ describe('Prescriptions Flow (e2e)', () => {
     const runId =
       Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+    secondDoctorEmail = `e2e-doctor2-${runId}@clinic.com`;
     const secondDoctorResult = await getOrCreateUser(
       app,
-      `e2e-doctor2-${runId}@clinic.com`,
+      secondDoctorEmail,
       TEST_PASSWORD,
       Role.DOCTOR,
       adminCookie,
@@ -796,6 +798,103 @@ describe('Prescriptions Flow (e2e)', () => {
         .set('Cookie', patientCookie)
         .expect(200);
       expect(res.body.data).toEqual([]);
+    });
+  });
+
+  describe('Author attribution across sessions (login → create → logout → re-login → create)', () => {
+    it('persists each prescription with the doctor who was authenticated at create time', async () => {
+      const itemSeed = `cross-session-${randomUUID()}`;
+
+      // --- Session 1: seeded doctor logs in fresh ---
+      const session1Login = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'doctor@clinic.com', password: TEST_PASSWORD })
+        .expect(201);
+      const session1Cookie = extractAccessCookie(
+        session1Login.headers['set-cookie'],
+      );
+
+      const create1 = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', session1Cookie)
+        .send({
+          patientId: seededPatientId,
+          notes: 'session 1',
+          items: [
+            {
+              name: `${itemSeed}-A`,
+              dosage: '10mg',
+              quantity: 1,
+              instructions: 'x',
+            },
+          ],
+        })
+        .expect(201);
+      const rx1Id = create1.body.id as string;
+
+      // --- Logout: server clears cookies, we drop the cookie reference ---
+      await request(app.getHttpServer())
+        .post('/auth/logout')
+        .set('Cookie', session1Cookie)
+        .expect(200);
+
+      // --- Session 2: a DIFFERENT doctor logs in fresh ---
+      const session2Login = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: secondDoctorEmail, password: TEST_PASSWORD })
+        .expect(201);
+      const session2Cookie = extractAccessCookie(
+        session2Login.headers['set-cookie'],
+      );
+
+      const create2 = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', session2Cookie)
+        .send({
+          patientId: seededPatientId,
+          notes: 'session 2',
+          items: [
+            {
+              name: `${itemSeed}-B`,
+              dosage: '20mg',
+              quantity: 2,
+              instructions: 'y',
+            },
+          ],
+        })
+        .expect(201);
+      const rx2Id = create2.body.id as string;
+
+      await request(app.getHttpServer())
+        .post('/auth/logout')
+        .set('Cookie', session2Cookie)
+        .expect(200);
+
+      // --- Verify directly in the database (bypasses any API serialization) ---
+      const rows = await prisma.prescription.findMany({
+        where: { id: { in: [rx1Id, rx2Id] } },
+        include: { author: { include: { user: true } } },
+      });
+      const byId = new Map(rows.map(r => [r.id, r]));
+      const rx1 = byId.get(rx1Id);
+      const rx2 = byId.get(rx2Id);
+
+      expect(rx1).toBeDefined();
+      expect(rx2).toBeDefined();
+      expect(rx1!.id).not.toBe(rx2!.id);
+
+      // Both belong to the same patient
+      expect(rx1!.patientId).toBe(seededPatientId);
+      expect(rx2!.patientId).toBe(seededPatientId);
+
+      // Authors are correctly attributed to the doctor logged in for each request
+      expect(rx1!.authorId).toBe(seededDoctorId);
+      expect(rx2!.authorId).toBe(secondDoctorId);
+      expect(rx1!.author.user.email).toBe('doctor@clinic.com');
+      expect(rx2!.author.user.email).toBe(secondDoctorEmail);
+
+      // Authors are distinct — the logout/re-login actually switched identity
+      expect(rx1!.authorId).not.toBe(rx2!.authorId);
     });
   });
 
