@@ -3,6 +3,11 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  # Re-run on push to main so SonarCloud re-baselines after each merge.
+  # Without this, the QG on `main` keeps showing the *last PR scan* state
+  # forever and `new_*` metrics never advance their period.
+  push:
+    branches: [main]
 
 # Per-job permissions are declared inline below (Sonar S8264).
 
