@@ -150,6 +150,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma generate
+      - name: Install Chrome for Puppeteer
+        run: pnpm exec puppeteer browsers install chrome
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
       - name: Prepare report directories
@@ -199,6 +201,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma generate
+      - name: Install Chrome for Puppeteer
+        run: pnpm exec puppeteer browsers install chrome
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
       - name: Prepare report directories
