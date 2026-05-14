@@ -14,11 +14,19 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: true
 
 jobs:
   build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(join(github.event.head_commit.added, ','), 'docs/') ||
+      contains(join(github.event.head_commit.modified, ','), 'docs/') ||
+      contains(join(github.event.head_commit.removed, ','), 'docs/') ||
+      contains(join(github.event.head_commit.added, ','), 'mkdocs.yml') ||
+      contains(join(github.event.head_commit.modified, ','), 'mkdocs.yml') ||
+      contains(join(github.event.head_commit.removed, ','), 'mkdocs.yml')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
