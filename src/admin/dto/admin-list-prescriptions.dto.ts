@@ -2,6 +2,7 @@
 import { PrescriptionStatus } from '@prisma/client';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { SEARCH_QUERY_MAX_LENGTH } from '../../common/constants';
 import {
   IsEnum,
   IsInt,
@@ -92,10 +93,10 @@ export class AdminListPrescriptionsDto {
     description:
       'Free-text query. Case-insensitive substring match against prescription notes and item names.',
     example: 'amoxi',
-    maxLength: 200,
+    maxLength: SEARCH_QUERY_MAX_LENGTH,
   })
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(SEARCH_QUERY_MAX_LENGTH)
   q?: string;
 }

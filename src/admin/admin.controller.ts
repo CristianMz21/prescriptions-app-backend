@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { AdminService, MetricsStreamSnapshot } from './admin.service';
+import { SSE_TICK_MS } from '../common/constants';
 import { AdminMetricsDto } from './dto/admin-metrics.dto';
 import { AdminListPrescriptionsDto } from './dto/admin-list-prescriptions.dto';
 import { MetricsResponseDto } from './dto/metrics-response.dto';
@@ -107,7 +108,7 @@ export class AdminController {
     description: FORBIDDEN_ADMIN_DESC,
   })
   streamMetrics(): Observable<{ data: MetricsStreamSnapshot }> {
-    return interval(5000).pipe(
+    return interval(SSE_TICK_MS).pipe(
       startWith(0),
       switchMap(() => from(this.adminService.getStreamSnapshot())),
       map(snapshot => ({ data: snapshot })),

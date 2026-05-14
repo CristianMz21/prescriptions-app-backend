@@ -440,6 +440,63 @@
         ]
       }
     },
+    "/users/me/theme": {
+      "patch": {
+        "operationId": "UsersController_updateMyTheme",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateThemeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Theme preference updated; returns the refreshed user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEntity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — invalid themePreference value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Update the current user UI theme preference",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/users/{id}": {
       "get": {
         "operationId": "UsersController_findOne",
@@ -631,6 +688,17 @@
               "example": "2026-12-31",
               "type": "string"
             }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive substring match against prescription notes and item names. Role-based visibility is preserved.",
+            "schema": {
+              "maxLength": 200,
+              "example": "amoxi",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -776,6 +844,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumePrescriptionDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Prescription status updated to CONSUMED",
@@ -946,10 +1024,10 @@
             }
           },
           {
-            "name": "doctorId",
+            "name": "authorId",
             "required": false,
             "in": "query",
-            "description": "Filter by doctor UUID",
+            "description": "Filter by author UUID (Doctor.id)",
             "schema": {
               "format": "uuid",
               "example": "123e4567-e89b-12d3-a456-426614174000",
@@ -960,7 +1038,7 @@
             "name": "patientId",
             "required": false,
             "in": "query",
-            "description": "Filter by patient UUID",
+            "description": "Filter by patient UUID (Patient.id)",
             "schema": {
               "format": "uuid",
               "example": "456e7890-e89b-12d3-a456-426614174001",
@@ -986,6 +1064,17 @@
             "schema": {
               "format": "date",
               "example": "2026-01-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text query. Case-insensitive substring match against prescription notes and item names.",
+            "schema": {
+              "maxLength": 200,
+              "example": "amoxi",
               "type": "string"
             }
           }
@@ -1135,6 +1224,46 @@
           }
         ],
         "summary": "Get dashboard metrics (Admin Only)",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/admin/metrics/stream": {
+      "get": {
+        "operationId": "AdminController_streamMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream emitting MetricsStreamSnapshot every 5 seconds"
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Admin role required",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Stream live admin metrics over Server-Sent Events (Admin Only)",
         "tags": [
           "Admin"
         ]
@@ -1301,6 +1430,61 @@
           "message"
         ]
       },
+      "ThemePreference": {
+        "type": "string",
+        "enum": [
+          "SYSTEM",
+          "LIGHT",
+          "DARK"
+        ],
+        "description": "UI theme preference"
+      },
+      "DoctorProfileSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "specialty": {
+            "type": "object",
+            "example": "Cardiology"
+          },
+          "medicalId": {
+            "type": "object",
+            "example": "MED-12345"
+          },
+          "signatureText": {
+            "type": "object",
+            "example": "Dr. Jane Doe"
+          },
+          "signatureImageUrl": {
+            "type": "object",
+            "example": "https://cdn.clinic.com/signatures/jane-doe.png",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "PatientProfileSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "birthDate": {
+            "type": "object",
+            "example": "1990-05-21",
+            "format": "date"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
       "UserProfileResponseDto": {
         "type": "object",
         "properties": {
@@ -1336,6 +1520,21 @@
             "type": "string",
             "description": "ISO 8601 timestamp when the user was last updated",
             "example": "2026-01-15T12:30:00.000Z"
+          },
+          "themePreference": {
+            "description": "UI theme preference",
+            "example": "SYSTEM",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ThemePreference"
+              }
+            ]
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/DoctorProfileSummary"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/PatientProfileSummary"
           }
         },
         "required": [
@@ -1343,7 +1542,8 @@
           "email",
           "role",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "themePreference"
         ]
       },
       "PaginationMetaDto": {
@@ -1430,6 +1630,21 @@
             "type": "string",
             "description": "ISO 8601 timestamp when the user was last updated",
             "example": "2026-01-15T12:30:00.000Z"
+          },
+          "themePreference": {
+            "description": "UI theme preference",
+            "example": "SYSTEM",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ThemePreference"
+              }
+            ]
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/DoctorProfileSummary"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/PatientProfileSummary"
           }
         },
         "required": [
@@ -1437,7 +1652,8 @@
           "email",
           "role",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "themePreference"
         ]
       },
       "CreateUserDto": {
@@ -1462,6 +1678,35 @@
                 "$ref": "#/components/schemas/Role"
               }
             ]
+          },
+          "specialty": {
+            "type": "string",
+            "example": "Cardiology",
+            "description": "Medical specialty (only applies when role=DOCTOR)"
+          },
+          "birthDate": {
+            "type": "string",
+            "example": "1990-05-21",
+            "description": "Date of birth ISO-8601 (only applies when role=PATIENT)",
+            "format": "date"
+          },
+          "medicalId": {
+            "type": "string",
+            "example": "MED-12345",
+            "description": "Medical license number (only applies when role=DOCTOR)",
+            "maxLength": 64
+          },
+          "signatureText": {
+            "type": "string",
+            "example": "Dr. Jane Doe",
+            "description": "Text-based handwritten-style signature label rendered on PDFs (DOCTOR only)",
+            "maxLength": 120
+          },
+          "signatureImageUrl": {
+            "type": "string",
+            "example": "https://cdn.clinic.com/signatures/jane-doe.png",
+            "description": "URL to a signature image rendered on PDFs (DOCTOR only)",
+            "format": "uri"
           }
         },
         "required": [
@@ -1505,6 +1750,21 @@
             "type": "string",
             "description": "ISO 8601 timestamp when the user was last updated",
             "example": "2026-01-15T12:30:00.000Z"
+          },
+          "themePreference": {
+            "description": "UI theme preference",
+            "example": "SYSTEM",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ThemePreference"
+              }
+            ]
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/DoctorProfileSummary"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/PatientProfileSummary"
           }
         },
         "required": [
@@ -1512,7 +1772,25 @@
           "email",
           "role",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "themePreference"
+        ]
+      },
+      "UpdateThemeDto": {
+        "type": "object",
+        "properties": {
+          "themePreference": {
+            "example": "DARK",
+            "description": "UI theme preference for the current user. SYSTEM follows the OS preference.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ThemePreference"
+              }
+            ]
+          }
+        },
+        "required": [
+          "themePreference"
         ]
       },
       "PrescriptionStatus": {
@@ -1526,6 +1804,12 @@
       "PrescriptionItemResponseDto": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Prescription item unique identifier",
+            "example": "aaaa1111-bbbb-2222-cccc-3333dddd4444",
+            "format": "uuid"
+          },
           "name": {
             "type": "string",
             "example": "Amoxicillin",
@@ -1536,6 +1820,11 @@
             "example": "500mg",
             "description": "Dosage of the medication"
           },
+          "quantity": {
+            "type": "number",
+            "example": 30,
+            "description": "Quantity to dispense (number of units)"
+          },
           "instructions": {
             "type": "string",
             "example": "Take 1 pill every 8 hours",
@@ -1543,22 +1832,22 @@
           }
         },
         "required": [
-          "name",
-          "dosage"
+          "id",
+          "name"
         ]
       },
-      "PrescriptionDoctorSummaryDto": {
+      "PrescriptionUserSummaryDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Doctor unique identifier",
+            "description": "User unique identifier",
             "example": "123e4567-e89b-12d3-a456-426614174000",
             "format": "uuid"
           },
           "email": {
             "type": "string",
-            "example": "doctor@clinic.com",
+            "example": "user@clinic.com",
             "format": "email"
           },
           "role": {
@@ -1573,6 +1862,50 @@
           "id",
           "email",
           "role"
+        ]
+      },
+      "PrescriptionAuthorSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Doctor unique identifier",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "specialty": {
+            "type": "string",
+            "example": "Cardiology",
+            "description": "Medical specialty"
+          },
+          "medicalId": {
+            "type": "string",
+            "example": "MED-12345",
+            "description": "Medical license / registration number"
+          },
+          "signatureText": {
+            "type": "string",
+            "example": "Dr. Jane Doe",
+            "description": "Text rendering of the doctor signature"
+          },
+          "signatureImageUrl": {
+            "type": "string",
+            "example": "https://cdn.clinic.com/signatures/jane-doe.png",
+            "description": "URL to the doctor signature image",
+            "format": "uri"
+          },
+          "user": {
+            "description": "Doctor account",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrescriptionUserSummaryDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "user"
         ]
       },
       "PrescriptionPatientSummaryDto": {
@@ -1584,23 +1917,24 @@
             "example": "456e7890-e89b-12d3-a456-426614174001",
             "format": "uuid"
           },
-          "email": {
+          "birthDate": {
+            "format": "date",
             "type": "string",
-            "example": "patient@clinic.com",
-            "format": "email"
+            "example": "1990-05-21",
+            "description": "Patient date of birth (ISO-8601 date)"
           },
-          "role": {
+          "user": {
+            "description": "Patient account",
             "allOf": [
               {
-                "$ref": "#/components/schemas/Role"
+                "$ref": "#/components/schemas/PrescriptionUserSummaryDto"
               }
             ]
           }
         },
         "required": [
           "id",
-          "email",
-          "role"
+          "user"
         ]
       },
       "PrescriptionResponseDto": {
@@ -1611,6 +1945,11 @@
             "description": "Prescription unique identifier",
             "example": "789e0123-e89b-12d3-a456-426614174002",
             "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "description": "Short URL-safe code used by the QR on the PDF",
+            "example": "RX-A1B2C3D4E5"
           },
           "status": {
             "description": "Current status of the prescription",
@@ -1645,9 +1984,15 @@
             "description": "ISO 8601 timestamp when the prescription was last updated",
             "example": "2026-01-15T12:30:00.000Z"
           },
-          "doctorId": {
+          "consumedAt": {
+            "format": "date-time",
             "type": "string",
-            "description": "Prescribing doctor unique identifier",
+            "description": "ISO 8601 timestamp when the prescription was consumed",
+            "example": "2026-01-16T08:45:00.000Z"
+          },
+          "authorId": {
+            "type": "string",
+            "description": "Author (Doctor) unique identifier",
             "example": "123e4567-e89b-12d3-a456-426614174000",
             "format": "uuid"
           },
@@ -1657,11 +2002,11 @@
             "example": "456e7890-e89b-12d3-a456-426614174001",
             "format": "uuid"
           },
-          "doctor": {
+          "author": {
             "description": "Prescribing doctor summary",
             "allOf": [
               {
-                "$ref": "#/components/schemas/PrescriptionDoctorSummaryDto"
+                "$ref": "#/components/schemas/PrescriptionAuthorSummaryDto"
               }
             ]
           },
@@ -1676,13 +2021,14 @@
         },
         "required": [
           "id",
+          "code",
           "status",
           "items",
           "createdAt",
           "updatedAt",
-          "doctorId",
+          "authorId",
           "patientId",
-          "doctor",
+          "author",
           "patient"
         ]
       },
@@ -1711,9 +2057,7 @@
           }
         },
         "required": [
-          "name",
-          "dosage",
-          "quantity"
+          "name"
         ]
       },
       "CreatePrescriptionDto": {
@@ -1722,7 +2066,7 @@
           "patientId": {
             "type": "string",
             "example": "123e4567-e89b-12d3-a456-426614174000",
-            "description": "UUID of the patient",
+            "description": "UUID of the Patient record (Patient.id, not User.id)",
             "format": "uuid"
           },
           "items": {
@@ -1743,6 +2087,17 @@
           "patientId",
           "items"
         ]
+      },
+      "ConsumePrescriptionDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Picked up at the pharmacy on May 13",
+            "description": "Optional free-text reason persisted in the prescription audit log.",
+            "maxLength": 500
+          }
+        }
       },
       "MetricsTotalsDto": {
         "type": "object",
@@ -1810,9 +2165,9 @@
       "MetricsTopDoctorItemDto": {
         "type": "object",
         "properties": {
-          "doctorId": {
+          "authorId": {
             "type": "string",
-            "description": "Doctor unique identifier",
+            "description": "Doctor (author) unique identifier",
             "example": "123e4567-e89b-12d3-a456-426614174000",
             "format": "uuid"
           },
@@ -1823,7 +2178,7 @@
           }
         },
         "required": [
-          "doctorId",
+          "authorId",
           "count"
         ]
       },

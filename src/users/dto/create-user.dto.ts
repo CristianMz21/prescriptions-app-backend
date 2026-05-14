@@ -12,6 +12,12 @@ import {
 } from 'class-validator';
 import { Role } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  PASSWORD_MIN_LENGTH,
+  SIGNATURE_TEXT_MAX_LENGTH,
+} from '../../common/constants';
+
+const MEDICAL_ID_MAX_LENGTH = 64;
 
 export class CreateUserDto {
   @ApiProperty({
@@ -29,7 +35,7 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(PASSWORD_MIN_LENGTH)
   password!: string;
 
   @ApiProperty({
@@ -62,22 +68,22 @@ export class CreateUserDto {
   @ApiPropertyOptional({
     example: 'MED-12345',
     description: 'Medical license number (only applies when role=DOCTOR)',
-    maxLength: 64,
+    maxLength: MEDICAL_ID_MAX_LENGTH,
   })
   @IsString()
   @IsOptional()
-  @MaxLength(64)
+  @MaxLength(MEDICAL_ID_MAX_LENGTH)
   medicalId?: string;
 
   @ApiPropertyOptional({
     example: 'Dr. Jane Doe',
     description:
       'Text-based handwritten-style signature label rendered on PDFs (DOCTOR only)',
-    maxLength: 120,
+    maxLength: SIGNATURE_TEXT_MAX_LENGTH,
   })
   @IsString()
   @IsOptional()
-  @MaxLength(120)
+  @MaxLength(SIGNATURE_TEXT_MAX_LENGTH)
   signatureText?: string;
 
   @ApiPropertyOptional({

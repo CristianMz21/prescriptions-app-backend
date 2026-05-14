@@ -4,25 +4,62 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { Role, ThemePreference } from '@prisma/client';
+import { Role, Prisma, ThemePreference } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'bcrypt';
 import { UserEntity } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 
+const BCRYPT_SALT_ROUNDS = 10;
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private buildDoctorCreate(
+    dto: CreateUserDto,
+  ): Prisma.DoctorCreateNestedOneWithoutUserInput | undefined {
+    if (dto.role !== Role.DOCTOR) {
+      return undefined;
+    }
+    return {
+      create: {
+        specialty: dto.specialty,
+        medicalId: dto.medicalId,
+        signatureText: dto.signatureText,
+        signatureImageUrl: dto.signatureImageUrl,
+      },
+    };
+  }
+
+  private parseBirthDate(value: string | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+    return new Date(value);
+  }
+
+  private buildPatientCreate(
+    dto: CreateUserDto,
+  ): Prisma.PatientCreateNestedOneWithoutUserInput | undefined {
+    if (dto.role !== Role.PATIENT) {
+      return undefined;
+    }
+    return {
+      create: {
+        birthDate: this.parseBirthDate(dto.birthDate),
+      },
+    };
+  }
 
   /**
    * Creates a new user with enterprise-grade password hashing.
    */
   async create(createUserDto: CreateUserDto): Promise<UserEntity> {
-    // 1. Enforce minimum of 10 salt rounds for bcrypt
-    const saltRounds = 10;
-
-    // 2. Hash the plain-text password before it ever touches the database
-    const hashedPassword = await hash(createUserDto.password, saltRounds);
+    const hashedPassword = await hash(
+      createUserDto.password,
+      BCRYPT_SALT_ROUNDS,
+    );
 
     try {
       const user = await this.prisma.user.create({
@@ -30,27 +67,8 @@ export class UsersService {
           email: createUserDto.email,
           passwordHash: hashedPassword,
           role: createUserDto.role,
-          doctor:
-            createUserDto.role === Role.DOCTOR
-              ? {
-                  create: {
-                    specialty: createUserDto.specialty,
-                    medicalId: createUserDto.medicalId,
-                    signatureText: createUserDto.signatureText,
-                    signatureImageUrl: createUserDto.signatureImageUrl,
-                  },
-                }
-              : undefined,
-          patient:
-            createUserDto.role === Role.PATIENT
-              ? {
-                  create: {
-                    birthDate: createUserDto.birthDate
-                      ? new Date(createUserDto.birthDate)
-                      : null,
-                  },
-                }
-              : undefined,
+          doctor: this.buildDoctorCreate(createUserDto),
+          patient: this.buildPatientCreate(createUserDto),
         },
       });
       return new UserEntity(user);

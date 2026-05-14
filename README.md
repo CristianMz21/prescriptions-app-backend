@@ -200,3 +200,7 @@ npm run test:e2e -- prescriptions.e2e-spec.ts
 - `PrescriptionAuditLog` tracks all status changes
 - Prisma schema is the authoritative data model
 - Prescription code format: `RX-XXXXXXXXXX` (unique)
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE.txt).

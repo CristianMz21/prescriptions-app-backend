@@ -11,6 +11,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PrescriptionStatus } from '@prisma/client';
+import { SEARCH_QUERY_MAX_LENGTH } from '../../common/constants';
 
 /**
  * DTO para filtros de paginación en listados de prescripciones.
@@ -71,10 +72,10 @@ export class PaginationFilterDto {
     description:
       'Free-text query. Case-insensitive substring match against prescription notes and item names.',
     example: 'amoxi',
-    maxLength: 200,
+    maxLength: SEARCH_QUERY_MAX_LENGTH,
   })
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(SEARCH_QUERY_MAX_LENGTH)
   q?: string;
 }
