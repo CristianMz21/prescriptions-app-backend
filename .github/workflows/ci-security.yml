@@ -1,5 +1,7 @@
 name: CI / Security
 
+# Heavy security/integration suite. The fast PR gate (lint, typecheck,
+# test:cov, build, OpenAPI, SonarCloud) lives in ci-pr.yml.
 on:
   push:
     branches: [main]
@@ -38,93 +40,8 @@ env:
   SEED_DEFAULT_PASSWORD: test-seed-password-000-do-not-use-in-prod
 
 jobs:
-  quality-gates:
-    name: Install + Format + Lint + Typecheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Generate Prisma client
-        run: pnpm exec prisma generate
-      - name: Format check
-        run: pnpm run format:check
-      - name: Lint check
-        run: pnpm run lint:check
-      - name: TypeScript typecheck
-        run: pnpm run typecheck
-
-  build-and-openapi:
-    name: Build + OpenAPI Validation
-    needs: quality-gates
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec prisma generate
-      - name: Build
-        run: pnpm run build
-      - name: Export OpenAPI
-        run: pnpm run export:openapi
-      - name: Validate OpenAPI schema
-        run: pnpm run validate:openapi
-      - name: Upload OpenAPI artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: openapi-spec
-          path: openapi.json
-
-  unit-tests:
-    name: Unit Tests + Coverage
-    needs: quality-gates
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec prisma generate
-      - name: Prepare report directories
-        run: mkdir -p reports coverage
-      - name: Run unit tests
-        run: pnpm exec jest --json --outputFile=reports/unit-test-results.json
-      - name: Run coverage
-        run: pnpm exec jest --coverage --coverageProvider=v8 --coverageReporters=lcov --coverageReporters=text-summary --coverageReporters=json-summary
-      - name: Upload unit test reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: unit-test-reports
-          path: reports/
-      - name: Upload coverage reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage-report
-          path: coverage/
-
   integration-tests:
     name: Integration Tests
-    needs: quality-gates
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -175,7 +92,6 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    needs: quality-gates
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -233,7 +149,6 @@ jobs:
 
   dependency-audit:
     name: Dependency Audit
-    needs: quality-gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -250,7 +165,6 @@ jobs:
 
   semgrep:
     name: Semgrep
-    needs: quality-gates
     runs-on: ubuntu-latest
     container:
       image: returntocorp/semgrep:latest
@@ -267,7 +181,6 @@ jobs:
 
   codeql:
     name: CodeQL
-    needs: quality-gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -298,7 +211,6 @@ jobs:
 
   gitleaks:
     name: Gitleaks
-    needs: quality-gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -317,7 +229,6 @@ jobs:
 
   cats-fuzz:
     name: CATS API Fuzz
-    needs: [build-and-openapi, quality-gates]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -412,7 +323,6 @@ jobs:
 
   owasp-zap:
     name: OWASP ZAP
-    needs: [build-and-openapi, quality-gates]
     runs-on: ubuntu-latest
     services:
       postgres:

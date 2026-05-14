@@ -1,13 +1,9 @@
 /* Copyright (c) 2026. All rights reserved. */
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import {
-  ClassSerializerInterceptor,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { SwaggerModule } from '@nestjs/swagger';
 import {
@@ -88,10 +84,6 @@ void (async () => {
     );
 
     app.useGlobalFilters(new HttpExceptionFilter());
-
-    app.useGlobalInterceptors(
-      new ClassSerializerInterceptor(app.get(Reflector)),
-    );
 
     const port = configService.get<number>('PORT') ?? DEFAULT_PORT;
     const config = buildSwaggerConfig(port);

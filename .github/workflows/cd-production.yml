@@ -1,0 +1,67 @@
+name: CD Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Per-job permissions are declared inline below (Sonar S8264).
+
+# Never cancel a deploy in flight.
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '24'
+  PNPM_VERSION: '11.1.1'
+
+jobs:
+  build:
+    name: Build for production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Pin third-party actions to full commit SHAs (Sonar S7637).
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies (frozen)
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+      - name: Build
+        run: pnpm run build
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to production
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: production
+      url: https://prescriptions-app-backend.onrender.com
+    steps:
+      - name: Placeholder — deploy step
+        # NOTE: Render currently auto-deploys via render.yaml on push to main.
+        # To wire an explicit deploy:
+        #   1. Add secret RENDER_DEPLOY_HOOK_URL in Settings → Secrets → Actions.
+        #   2. Replace this step with a `run:` that POSTs to the hook URL via
+        #      `env: HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}` and
+        #      `curl -fsS -X POST "$HOOK"` (do NOT inline ${{ secrets.* }} in
+        #      the run script body — Sonar S7636).
+        run: echo "::notice title=CD placeholder::Render auto-deploys via render.yaml. Wire an explicit deploy hook when ready (see step comments)."

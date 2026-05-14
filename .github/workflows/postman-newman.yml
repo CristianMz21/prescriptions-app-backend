@@ -40,6 +40,9 @@ jobs:
   postman-newman:
     name: OpenAPI Drift + Newman Suite
     runs-on: ubuntu-latest
+    # Safety net: kill the job if Newman or any step hangs.
+    # Newman + smoke contract + drift normally finish in <3 min total.
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16-alpine
@@ -113,15 +116,21 @@ jobs:
       - name: OpenAPI smoke contract
         run: pnpm run test:openapi-contract
 
-      - name: OpenAPI breaking-change diff (vs main)
+      - name: OpenAPI breaking-change diff (vs base branch)
         if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'breaking-change')
         run: |
+          set -euo pipefail
           git fetch origin ${{ github.base_ref }} --depth=1
-          git show origin/${{ github.base_ref }}:openapi.json > /tmp/openapi-base.json 2>/dev/null || {
+          if ! git show origin/${{ github.base_ref }}:openapi.json > openapi-base.json 2>/dev/null; then
             echo "No openapi.json on base branch — skipping breaking diff."
             exit 0
-          }
-          npx --yes oasdiff@latest breaking /tmp/openapi-base.json openapi.json --fail-on ERR
+          fi
+          # oasdiff is distributed as a Go binary / Docker image. The npm
+          # package does not exist (`npx oasdiff` returns 404). Use the
+          # official tufin/oasdiff image, mounting the workspace so it can
+          # read both spec files.
+          docker run --rm -v "$PWD:/specs" tufin/oasdiff:latest \
+            breaking /specs/openapi-base.json /specs/openapi.json --fail-on ERR
 
       - name: Start backend server
         run: |
