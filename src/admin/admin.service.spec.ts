@@ -170,8 +170,8 @@ describe('AdminService', () => {
         status: PrescriptionStatus.CONSUMED,
         authorId: 'doctor-9',
         patientId: 'patient-9',
-        from: '2026-01-01',
-        to: '2026-01-31',
+        fromDate: '2026-01-01',
+        toDate: '2026-01-31',
       });
 
       expect(prismaService.prescription.findMany).toHaveBeenCalledWith(
@@ -188,15 +188,15 @@ describe('AdminService', () => {
       );
     });
 
-    it('should throw BadRequestException for invalid from in findAllPrescriptions', async () => {
+    it('should throw BadRequestException for invalid fromDate in findAllPrescriptions', async () => {
       await expect(
-        service.findAllPrescriptions({ from: 'invalid-date' }),
+        service.findAllPrescriptions({ fromDate: 'invalid-date' }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException for invalid to in findAllPrescriptions', async () => {
+    it('should throw BadRequestException for invalid toDate in findAllPrescriptions', async () => {
       await expect(
-        service.findAllPrescriptions({ to: 'invalid-date' }),
+        service.findAllPrescriptions({ toDate: 'invalid-date' }),
       ).rejects.toThrow(BadRequestException);
     });
   });

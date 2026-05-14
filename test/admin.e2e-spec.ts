@@ -133,7 +133,9 @@ describe('Admin Endpoints (e2e)', () => {
 
     it('should filter by date range', async () => {
       const res = await request(app.getHttpServer())
-        .get('/admin/prescriptions?from=2026-01-01&to=2026-12-31&limit=10')
+        .get(
+          '/admin/prescriptions?fromDate=2026-01-01&toDate=2026-12-31&limit=10',
+        )
         .set('Cookie', adminCookie)
         .expect(200);
 

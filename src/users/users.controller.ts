@@ -28,6 +28,8 @@ import { UpdateThemeDto } from './dto/update-theme.dto';
 import { UserEntity } from './entities/user.entity';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserListQueryDto } from './dto/user-list-query.dto';
+import { DoctorListQueryDto } from './dto/doctor-list-query.dto';
+import { PatientListQueryDto } from './dto/patient-list-query.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
@@ -83,7 +85,7 @@ export class UsersController {
   @apiPaginatedOkResponse(UserEntity, 'Returns paginated list of all patients')
   @ApiStandardErrors({ 401: true, 403: FORBIDDEN_ADMIN_OR_DOCTOR_DESC })
   findAllPatients(
-    @Query() query: UserListQueryDto,
+    @Query() query: PatientListQueryDto,
   ): ReturnType<UsersService['findAllByRole']> {
     return this.usersService.findAllByRole(Role.PATIENT, query);
   }
@@ -94,7 +96,7 @@ export class UsersController {
   @apiPaginatedOkResponse(UserEntity, 'Returns paginated list of all doctors')
   @ApiStandardErrors({ 401: true, 403: FORBIDDEN_ADMIN_DESC })
   findAllDoctors(
-    @Query() query: UserListQueryDto,
+    @Query() query: DoctorListQueryDto,
   ): ReturnType<UsersService['findAllByRole']> {
     return this.usersService.findAllByRole(Role.DOCTOR, query);
   }

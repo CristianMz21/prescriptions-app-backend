@@ -276,11 +276,10 @@
             "name": "page",
             "required": false,
             "in": "query",
-            "description": "Page number (1-indexed)",
+            "description": "Page number (1-indexed).",
             "schema": {
               "minimum": 1,
               "default": 1,
-              "example": 1,
               "type": "number"
             }
           },
@@ -288,22 +287,78 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Number of items per page",
+            "description": "Items per page (capped at 100 to bound DB cost).",
             "schema": {
               "minimum": 1,
+              "maximum": 100,
               "default": 10,
-              "example": 10,
               "type": "number"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction.",
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
             }
           },
           {
             "name": "q",
             "required": false,
             "in": "query",
-            "description": "Case-insensitive search by user email.",
+            "description": "Case-insensitive substring search on user email (and doctor specialty/medicalId on /users/doctors).",
             "schema": {
               "example": "patient@test.com",
               "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by user role. Only honored on the generic /users endpoint; ignored on /users/patients and /users/doctors which fix the role server-side.",
+            "schema": {
+              "$ref": "#/components/schemas/Role"
+            }
+          },
+          {
+            "name": "createdFromDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by createdAt >= createdFromDate (ISO 8601).",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdToDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by createdAt <= createdToDate (ISO 8601).",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "themePreference",
+            "required": false,
+            "in": "query",
+            "description": "Filter by UI theme preference.",
+            "schema": {
+              "$ref": "#/components/schemas/ThemePreference"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by (whitelist).",
+            "schema": {
+              "$ref": "#/components/schemas/UserSortBy"
             }
           }
         ],
@@ -375,11 +430,10 @@
             "name": "page",
             "required": false,
             "in": "query",
-            "description": "Page number (1-indexed)",
+            "description": "Page number (1-indexed).",
             "schema": {
               "minimum": 1,
               "default": 1,
-              "example": 1,
               "type": "number"
             }
           },
@@ -387,22 +441,122 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Number of items per page",
+            "description": "Items per page (capped at 100 to bound DB cost).",
             "schema": {
               "minimum": 1,
+              "maximum": 100,
               "default": 10,
-              "example": 10,
               "type": "number"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction.",
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
             }
           },
           {
             "name": "q",
             "required": false,
             "in": "query",
-            "description": "Case-insensitive search by user email.",
+            "description": "Case-insensitive substring search on user email (and doctor specialty/medicalId on /users/doctors).",
             "schema": {
               "example": "patient@test.com",
               "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by user role. Only honored on the generic /users endpoint; ignored on /users/patients and /users/doctors which fix the role server-side.",
+            "schema": {
+              "$ref": "#/components/schemas/Role"
+            }
+          },
+          {
+            "name": "createdFromDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by createdAt >= createdFromDate (ISO 8601).",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdToDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by createdAt <= createdToDate (ISO 8601).",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "themePreference",
+            "required": false,
+            "in": "query",
+            "description": "Filter by UI theme preference.",
+            "schema": {
+              "$ref": "#/components/schemas/ThemePreference"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by (whitelist).",
+            "schema": {
+              "$ref": "#/components/schemas/UserSortBy"
+            }
+          },
+          {
+            "name": "birthDateFromDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by patient.birthDate >= birthDateFromDate (ISO 8601).",
+            "schema": {
+              "example": "1960-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "birthDateToDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by patient.birthDate <= birthDateToDate (ISO 8601).",
+            "schema": {
+              "example": "2010-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "minAge",
+            "required": false,
+            "in": "query",
+            "description": "Lower bound on patient age in years (inclusive). Computed naively as today minus N years.",
+            "schema": {
+              "minimum": 0,
+              "maximum": 150,
+              "example": 18,
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxAge",
+            "required": false,
+            "in": "query",
+            "description": "Upper bound on patient age in years (inclusive). Computed naively as today minus N years.",
+            "schema": {
+              "minimum": 0,
+              "maximum": 150,
+              "example": 65,
+              "type": "number"
             }
           }
         ],
@@ -474,11 +628,10 @@
             "name": "page",
             "required": false,
             "in": "query",
-            "description": "Page number (1-indexed)",
+            "description": "Page number (1-indexed).",
             "schema": {
               "minimum": 1,
               "default": 1,
-              "example": 1,
               "type": "number"
             }
           },
@@ -486,21 +639,99 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Number of items per page",
+            "description": "Items per page (capped at 100 to bound DB cost).",
             "schema": {
               "minimum": 1,
+              "maximum": 100,
               "default": 10,
-              "example": 10,
               "type": "number"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction.",
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
             }
           },
           {
             "name": "q",
             "required": false,
             "in": "query",
-            "description": "Case-insensitive search by user email.",
+            "description": "Case-insensitive substring search on user email (and doctor specialty/medicalId on /users/doctors).",
             "schema": {
               "example": "patient@test.com",
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by user role. Only honored on the generic /users endpoint; ignored on /users/patients and /users/doctors which fix the role server-side.",
+            "schema": {
+              "$ref": "#/components/schemas/Role"
+            }
+          },
+          {
+            "name": "createdFromDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by createdAt >= createdFromDate (ISO 8601).",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "createdToDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by createdAt <= createdToDate (ISO 8601).",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "themePreference",
+            "required": false,
+            "in": "query",
+            "description": "Filter by UI theme preference.",
+            "schema": {
+              "$ref": "#/components/schemas/ThemePreference"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by (whitelist).",
+            "schema": {
+              "$ref": "#/components/schemas/UserSortBy"
+            }
+          },
+          {
+            "name": "specialty",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive substring match on Doctor.specialty (e.g. \"cardio\").",
+            "schema": {
+              "maxLength": 128,
+              "example": "cardio",
+              "type": "string"
+            }
+          },
+          {
+            "name": "medicalId",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive substring match on Doctor.medicalId (e.g. \"MED-1234\").",
+            "schema": {
+              "maxLength": 64,
+              "example": "MED-1234",
               "type": "string"
             }
           }
@@ -773,7 +1004,7 @@
             "name": "page",
             "required": false,
             "in": "query",
-            "description": "Número de página (1-indexed).",
+            "description": "Page number (1-indexed).",
             "schema": {
               "minimum": 1,
               "default": 1,
@@ -784,11 +1015,21 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Cantidad de items por página.",
+            "description": "Items per page (capped at 100 to bound DB cost).",
             "schema": {
               "minimum": 1,
+              "maximum": 100,
               "default": 10,
               "type": "number"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction.",
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
             }
           },
           {
@@ -808,7 +1049,7 @@
             "name": "fromDate",
             "required": false,
             "in": "query",
-            "description": "Filtrar desde fecha (ISO 8601).",
+            "description": "Filtrar por createdAt >= fromDate (ISO 8601).",
             "schema": {
               "example": "2026-01-01",
               "type": "string"
@@ -818,10 +1059,71 @@
             "name": "toDate",
             "required": false,
             "in": "query",
-            "description": "Filtrar hasta fecha (ISO 8601).",
+            "description": "Filtrar por createdAt <= toDate (ISO 8601).",
             "schema": {
               "example": "2026-12-31",
               "type": "string"
+            }
+          },
+          {
+            "name": "consumedFromDate",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar por consumedAt >= consumedFromDate (ISO 8601).",
+            "schema": {
+              "example": "2026-03-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "consumedToDate",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar por consumedAt <= consumedToDate (ISO 8601).",
+            "schema": {
+              "example": "2026-03-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "description": "Match case-insensitive substring against Prescription.code (e.g. \"RX-AB\").",
+            "schema": {
+              "maxLength": 64,
+              "example": "RX-AB",
+              "type": "string"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by patient. Accepts either Patient.id or the related User.id (server resolves either form). Ignored when caller role is PATIENT (tenant boundary).",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by doctor (author). Accepts either Doctor.id or the related User.id. Ignored when caller role is DOCTOR (tenant boundary).",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasNotes",
+            "required": false,
+            "in": "query",
+            "description": "Filter by presence of notes. true → notes IS NOT NULL; false → notes IS NULL.",
+            "schema": {
+              "example": true,
+              "type": "boolean"
             }
           },
           {
@@ -833,6 +1135,15 @@
               "maxLength": 200,
               "example": "amoxi",
               "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by (whitelist).",
+            "schema": {
+              "$ref": "#/components/schemas/PrescriptionSortBy"
             }
           }
         ],
@@ -1129,11 +1440,10 @@
             "name": "page",
             "required": false,
             "in": "query",
-            "description": "Page number (1-indexed)",
+            "description": "Page number (1-indexed).",
             "schema": {
               "minimum": 1,
               "default": 1,
-              "example": 1,
               "type": "number"
             }
           },
@@ -1141,12 +1451,21 @@
             "name": "limit",
             "required": false,
             "in": "query",
-            "description": "Number of items per page",
+            "description": "Items per page (capped at 100 to bound DB cost).",
             "schema": {
               "minimum": 1,
+              "maximum": 100,
               "default": 10,
-              "example": 10,
               "type": "number"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction.",
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
             }
           },
           {
@@ -1162,7 +1481,7 @@
             "name": "authorId",
             "required": false,
             "in": "query",
-            "description": "Filter by author UUID (Doctor.id)",
+            "description": "Filter by author identifier — Doctor.id or related User.id.",
             "schema": {
               "format": "uuid",
               "example": "123e4567-e89b-12d3-a456-426614174000",
@@ -1173,7 +1492,7 @@
             "name": "patientId",
             "required": false,
             "in": "query",
-            "description": "Filter by patient UUID (Patient.id)",
+            "description": "Filter by patient identifier — Patient.id or related User.id.",
             "schema": {
               "format": "uuid",
               "example": "456e7890-e89b-12d3-a456-426614174001",
@@ -1181,10 +1500,10 @@
             }
           },
           {
-            "name": "from",
+            "name": "fromDate",
             "required": false,
             "in": "query",
-            "description": "Filter prescriptions created on or after this date (ISO 8601)",
+            "description": "Filter by createdAt >= fromDate (ISO 8601).",
             "schema": {
               "format": "date",
               "example": "2026-01-01",
@@ -1192,10 +1511,10 @@
             }
           },
           {
-            "name": "to",
+            "name": "toDate",
             "required": false,
             "in": "query",
-            "description": "Filter prescriptions created on or before this date (ISO 8601)",
+            "description": "Filter by createdAt <= toDate (ISO 8601).",
             "schema": {
               "format": "date",
               "example": "2026-01-31",
@@ -1203,14 +1522,88 @@
             }
           },
           {
+            "name": "consumedFromDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by consumedAt >= consumedFromDate (ISO 8601).",
+            "schema": {
+              "format": "date",
+              "example": "2026-03-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "consumedToDate",
+            "required": false,
+            "in": "query",
+            "description": "Filter by consumedAt <= consumedToDate (ISO 8601).",
+            "schema": {
+              "format": "date",
+              "example": "2026-03-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "description": "Match case-insensitive substring against Prescription.code (e.g. \"RX-AB\").",
+            "schema": {
+              "maxLength": 64,
+              "example": "RX-AB",
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasNotes",
+            "required": false,
+            "in": "query",
+            "description": "Filter by presence of notes. true → notes IS NOT NULL; false → notes IS NULL.",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "patientEmail",
+            "required": false,
+            "in": "query",
+            "description": "Substring match (case-insensitive) on patient.user.email.",
+            "schema": {
+              "maxLength": 255,
+              "example": "jane@clinic.com",
+              "type": "string"
+            }
+          },
+          {
+            "name": "doctorEmail",
+            "required": false,
+            "in": "query",
+            "description": "Substring match (case-insensitive) on author.user.email.",
+            "schema": {
+              "maxLength": 255,
+              "example": "doctor@clinic.com",
+              "type": "string"
+            }
+          },
+          {
             "name": "q",
             "required": false,
             "in": "query",
-            "description": "Free-text query. Case-insensitive substring match against prescription notes and item names.",
+            "description": "Free-text query. Case-insensitive substring against prescription notes and item names.",
             "schema": {
               "maxLength": 200,
               "example": "amoxi",
               "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by (whitelist).",
+            "schema": {
+              "$ref": "#/components/schemas/PrescriptionSortBy"
             }
           }
         ],
@@ -1969,6 +2362,22 @@
           "themePreference"
         ]
       },
+      "SortOrder": {
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      },
+      "UserSortBy": {
+        "type": "string",
+        "enum": [
+          "createdAt",
+          "updatedAt",
+          "email",
+          "role"
+        ]
+      },
       "UpdateThemeDto": {
         "type": "object",
         "properties": {
@@ -2289,6 +2698,15 @@
         "required": [
           "patientId",
           "items"
+        ]
+      },
+      "PrescriptionSortBy": {
+        "type": "string",
+        "enum": [
+          "createdAt",
+          "consumedAt",
+          "code",
+          "status"
         ]
       },
       "ConsumePrescriptionDto": {
