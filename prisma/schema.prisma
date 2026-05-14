@@ -39,37 +39,44 @@ model User {
   role           Role
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  
-  // Relations
+
   prescriptionsAsDoctor  Prescription[] @relation("DoctorPrescriptions")
   prescriptionsAsPatient Prescription[] @relation("PatientPrescriptions")
-  
-  // Index for fast email lookups during authentication
+
   @@index([email])
 }
 
 model Prescription {
   id          String             @id @default(uuid())
   status      PrescriptionStatus @default(PENDING)
-  
-  // Store an array of objects: { name: string, dosage: string, instructions: string }
-  // We use Json here as we don't have a structured product catalog
-  items       Json               
-  
   notes       String?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  // Relations
   doctorId    String
   doctor      User               @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
-  
+
   patientId   String
   patient     User               @relation("PatientPrescriptions", fields: [patientId], references: [id])
 
-  // Indexes for frequent queries (filtering by status, chronological sorting, and fetching by user)
+  items       PrescriptionItem[]
+
   @@index([status])
   @@index([createdAt])
   @@index([doctorId])
   @@index([patientId])
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  name           String
+  dosage         String
+  quantity       Int
+  instructions   String?
+  createdAt      DateTime     @default(now())
+
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
 }

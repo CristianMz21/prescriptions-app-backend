@@ -11,12 +11,19 @@ import { toDataURL } from 'qrcode';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+export interface PdfPrescriptionItem {
+  name: string;
+  dosage: string;
+  quantity: number;
+  instructions: string | null;
+}
+
 export interface PdfPrescriptionData {
   id: string;
   createdAt: Date;
   status: string;
   notes: string | null;
-  items: unknown;
+  items: PdfPrescriptionItem[];
   patient: {
     email: string;
   };

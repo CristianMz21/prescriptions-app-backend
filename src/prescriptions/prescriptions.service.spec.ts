@@ -211,6 +211,7 @@ describe('PrescriptionsService', () => {
       expect(prismaService.prescription.update).toHaveBeenCalledWith({
         where: { id: '1' },
         data: { status: PrescriptionStatus.CONSUMED },
+        include: { items: true },
       });
       expect(result.status).toBe(PrescriptionStatus.CONSUMED);
     });

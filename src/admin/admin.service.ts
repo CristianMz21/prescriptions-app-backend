@@ -209,6 +209,7 @@ export class AdminService {
         include: {
           doctor: { select: { id: true, email: true, role: true } },
           patient: { select: { id: true, email: true, role: true } },
+          items: true,
         },
       }),
       this.prisma.prescription.count({ where }),

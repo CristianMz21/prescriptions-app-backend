@@ -29,11 +29,18 @@ export class PrescriptionsService {
         data: {
           doctorId,
           patientId: createPrescriptionDto.patientId,
-          items:
-            createPrescriptionDto.items as unknown as Prisma.InputJsonValue,
           notes: createPrescriptionDto.notes,
           status: PrescriptionStatus.PENDING,
+          items: {
+            create: createPrescriptionDto.items.map((item) => ({
+              name: item.name,
+              dosage: item.dosage,
+              quantity: item.quantity,
+              instructions: item.instructions,
+            })),
+          },
         },
+        include: { items: true },
       });
     } catch (err: unknown) {
       if (
@@ -86,6 +93,7 @@ export class PrescriptionsService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: { items: true },
       }),
       this.prisma.prescription.count({ where }),
     ]);
@@ -155,6 +163,7 @@ export class PrescriptionsService {
       include: {
         doctor: { select: { id: true, email: true, role: true } },
         patient: { select: { id: true, email: true, role: true } },
+        items: true,
       },
     });
 
@@ -187,6 +196,7 @@ export class PrescriptionsService {
       data: {
         status: PrescriptionStatus.CONSUMED,
       },
+      include: { items: true },
     });
   }
 }

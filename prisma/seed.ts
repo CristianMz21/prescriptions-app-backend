@@ -78,6 +78,7 @@ async function main() {
           {
             name: 'Amoxicillin',
             dosage: '500mg',
+            quantity: 21,
             instructions: 'Take 1 pill every 8 hours for 7 days',
           },
         ],
@@ -91,6 +92,7 @@ async function main() {
           {
             name: 'Ibuprofen',
             dosage: '400mg',
+            quantity: 30,
             instructions: 'Take 1 pill every 6 hours as needed for pain',
           },
         ],
@@ -104,11 +106,13 @@ async function main() {
           {
             name: 'Lisinopril',
             dosage: '10mg',
+            quantity: 30,
             instructions: 'Take 1 pill daily in the morning',
           },
           {
             name: 'Atorvastatin',
             dosage: '20mg',
+            quantity: 30,
             instructions: 'Take 1 pill daily at bedtime',
           },
         ],
@@ -122,6 +126,7 @@ async function main() {
           {
             name: 'Azithromycin',
             dosage: '250mg',
+            quantity: 6,
             instructions: 'Take 2 pills on day 1, then 1 pill daily for 4 days',
           },
         ],
@@ -135,6 +140,7 @@ async function main() {
           {
             name: 'Metformin',
             dosage: '500mg',
+            quantity: 60,
             instructions: 'Take 1 pill twice daily with meals',
           },
         ],
@@ -148,9 +154,12 @@ async function main() {
       `⏳ Seeding ${dummyPrescriptions.length} dummy prescriptions...`,
     );
 
-    for (const prescriptionData of dummyPrescriptions) {
+    for (const { items, ...prescriptionData } of dummyPrescriptions) {
       await prisma.prescription.create({
-        data: prescriptionData,
+        data: {
+          ...prescriptionData,
+          items: { create: items },
+        },
       });
     }
 

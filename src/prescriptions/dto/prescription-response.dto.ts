@@ -3,6 +3,13 @@ import { PrescriptionStatus } from '@prisma/client';
 
 export class PrescriptionItemResponseDto {
   @ApiProperty({
+    description: 'Prescription item unique identifier',
+    example: 'aaaa1111-bbbb-2222-cccc-3333dddd4444',
+    format: 'uuid',
+  })
+  id!: string;
+
+  @ApiProperty({
     example: 'Amoxicillin',
     description: 'Name of the medication',
   })
@@ -10,6 +17,12 @@ export class PrescriptionItemResponseDto {
 
   @ApiProperty({ example: '500mg', description: 'Dosage of the medication' })
   dosage!: string;
+
+  @ApiProperty({
+    example: 30,
+    description: 'Quantity to dispense (number of units)',
+  })
+  quantity!: number;
 
   @ApiPropertyOptional({
     example: 'Take 1 pill every 8 hours',
