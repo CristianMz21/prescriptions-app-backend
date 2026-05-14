@@ -93,21 +93,21 @@ describe('Admin Endpoints (e2e)', () => {
       }
     });
 
-    it('should filter by doctorId', async () => {
+    it('should filter by authorId', async () => {
       const adminListRes = await request(app.getHttpServer())
         .get('/admin/prescriptions?limit=10')
         .set('Cookie', adminCookie)
         .expect(200);
 
       if (adminListRes.body.data.length > 0) {
-        const doctorId = adminListRes.body.data[0].doctorId;
+        const authorId = adminListRes.body.data[0].authorId;
         const filteredRes = await request(app.getHttpServer())
-          .get(`/admin/prescriptions?doctorId=${doctorId}&limit=10`)
+          .get(`/admin/prescriptions?authorId=${authorId}&limit=10`)
           .set('Cookie', adminCookie)
           .expect(200);
 
         expect(
-          filteredRes.body.data.every((p: any) => p.doctorId === doctorId),
+          filteredRes.body.data.every((p: any) => p.authorId === authorId),
         ).toBe(true);
       }
     });
@@ -171,19 +171,21 @@ describe('Admin Endpoints (e2e)', () => {
       expect(_res.status).toBe(400);
     });
 
-    it('should include doctor and patient data in response', async () => {
+    it('should include author and patient data in response', async () => {
       const res = await request(app.getHttpServer())
         .get('/admin/prescriptions?limit=1')
         .set('Cookie', adminCookie)
         .expect(200);
 
       if (res.body.data.length > 0) {
-        expect(res.body.data[0]).toHaveProperty('doctor');
+        expect(res.body.data[0]).toHaveProperty('author');
         expect(res.body.data[0]).toHaveProperty('patient');
-        expect(res.body.data[0].doctor).toHaveProperty('id');
-        expect(res.body.data[0].doctor).toHaveProperty('email');
+        expect(res.body.data[0].author).toHaveProperty('id');
+        expect(res.body.data[0].author).toHaveProperty('user');
+        expect(res.body.data[0].author.user).toHaveProperty('email');
         expect(res.body.data[0].patient).toHaveProperty('id');
-        expect(res.body.data[0].patient).toHaveProperty('email');
+        expect(res.body.data[0].patient).toHaveProperty('user');
+        expect(res.body.data[0].patient.user).toHaveProperty('email');
       }
     });
   });
@@ -251,6 +253,40 @@ describe('Admin Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(400);
       expect(_res.status).toBe(400);
+    });
+  });
+
+  describe('GET /admin/metrics/stream (SSE)', () => {
+    it('streams at least one MetricsStreamSnapshot for admin', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/admin/metrics/stream')
+        .set('Cookie', adminCookie)
+        .buffer(true)
+        .parse((response, callback) => {
+          let chunks = '';
+          const closableResponse = response as unknown as {
+            destroy: () => void;
+          };
+          response.on('data', chunk => {
+            chunks += chunk.toString('utf8');
+            // First event arrives via startWith(0) — close immediately to avoid hanging.
+            if (chunks.includes('"timestamp"')) {
+              closableResponse.destroy();
+            }
+          });
+          response.on('end', () => callback(null, chunks));
+          response.on('close', () => callback(null, chunks));
+        });
+      expect(res.headers['content-type']).toMatch(/text\/event-stream/);
+      expect(String(res.body)).toMatch(/"totals"/);
+      expect(String(res.body)).toMatch(/"timestamp"/);
+    }, 10000);
+
+    it('returns 403 when a non-admin tries to subscribe', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/metrics/stream')
+        .set('Cookie', doctorCookie)
+        .expect(403);
     });
   });
 

@@ -7,14 +7,17 @@
 
 ## Architecture
 - Feature modules: `auth/`, `prescriptions/`, `admin/`, `users/`
-- **No Doctor/Patient separate tables** — roles (ADMIN/DOCTOR/PATIENT) live on `User` model
-- Prisma schema is the **only** source of truth for data model; `docs/arquitectura.md` is partially stale (describes a removed intermediate design in some sections)
-- IDOR enforcement: service-layer `where` clauses filter by `user.role` + `user.id`
-- Use `findFirst` (not `findUnique`) for prescriptions — no unique constraint on patientId/doctorId
+- **Doctor/Patient as separate tables** — linked 1:1 to `User` via `userId`
+- Prisma schema is the **only** source of truth for data model
+- IDOR enforcement: `applyTenantBoundary()` in prescriptions service filters by `user.role` + `user.id`
+- Use `findFirst` (not `findUnique`) for prescriptions — no unique constraint on patientId+authorId
 - `PrescriptionItem` is a **separate table** (`Prescription` has `items PrescriptionItem[]`) — **NOT stored as Json**
+- `PrescriptionAuditLog` tracks status changes with `changedBy` reference
 
 ## Auth
 - JWT access token (15m TTL) + refresh token (7d TTL) in **HttpOnly cookies**
+- JWT payload: `{ sub: userId, email, role }`
+- Login response: `{ message: "Login successful", user: { id, email, role } }`
 - Swagger docs at `/docs` with `withCredentials: true`
 - CORS origin: at least one of `APP_ORIGIN` or `FRONTEND_URL` env vars must be set
 - **No Bearer token in Authorization header** — cookie-based
@@ -51,3 +54,5 @@
 - `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` are **strings** ("15m", "7d"), not numbers
 - Role enums are UPPERCASE in Prisma: `ADMIN`, `DOCTOR`, `PATIENT`
 - `tsconfig.json` uses `"module": "nodenext"` + `"moduleResolution": "nodenext"` — affects import resolution
+- `User` model has no `name` field — responses use `email` for identification
+- Prescription code format: `RX-XXXXXXXXXX` (unique, generated via nanoid)

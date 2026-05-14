@@ -7,6 +7,8 @@ import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './../src/app.module';
 import { Role } from '@prisma/client';
+import { PrismaService } from './../src/prisma/prisma.service';
+import { EmailService } from './../src/email/email.service';
 import { TEST_PASSWORD } from './test-credentials';
 
 const extractAccessCookie = (
@@ -135,12 +137,32 @@ describe('Prescriptions Flow (e2e)', () => {
   let secondDoctorCookie: string;
   let secondDoctorId: string;
   let secondPatientId: string;
+  let prisma: PrismaService;
+
+  const resolvePatientId = async (userId: string): Promise<string> => {
+    const row = await prisma.patient.findUnique({ where: { userId } });
+    if (!row) throw new Error(`No Patient row for userId ${userId}`);
+    return row.id;
+  };
+  const resolveDoctorId = async (userId: string): Promise<string> => {
+    const row = await prisma.doctor.findUnique({ where: { userId } });
+    if (!row) throw new Error(`No Doctor row for userId ${userId}`);
+    return row.id;
+  };
+
+  const emailMock = {
+    sendPrescriptionCreatedEmail: jest.fn().mockResolvedValue(undefined),
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(EmailService)
+      .useValue(emailMock)
+      .compile();
 
+    prisma = moduleFixture.get(PrismaService);
     app = moduleFixture.createNestApplication();
     app.use(cookieParser());
     app.useGlobalPipes(
@@ -164,24 +186,26 @@ describe('Prescriptions Flow (e2e)', () => {
       .send({ email: 'patient@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     patientCookie = extractAccessCookie(patientLogin.headers['set-cookie']);
-    seededPatientId = (patientLogin.body.user?.id ??
+    const seededPatientUserId = (patientLogin.body.user?.id ??
       patientLogin.body.id ??
       '') as string;
-    if (!seededPatientId.trim()) {
-      throw new Error('seededPatientId is empty');
+    if (!seededPatientUserId.trim()) {
+      throw new Error('seededPatientUserId is empty');
     }
+    seededPatientId = await resolvePatientId(seededPatientUserId);
 
     const doctorLogin = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'doctor@clinic.com', password: TEST_PASSWORD })
       .expect(201);
     doctorCookie = extractAccessCookie(doctorLogin.headers['set-cookie']);
-    seededDoctorId = (doctorLogin.body.user?.id ??
+    const seededDoctorUserId = (doctorLogin.body.user?.id ??
       doctorLogin.body.id ??
       '') as string;
-    if (!seededDoctorId.trim()) {
-      throw new Error('seededDoctorId is empty');
+    if (!seededDoctorUserId.trim()) {
+      throw new Error('seededDoctorUserId is empty');
     }
+    seededDoctorId = await resolveDoctorId(seededDoctorUserId);
 
     const runId =
       Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -194,7 +218,7 @@ describe('Prescriptions Flow (e2e)', () => {
       adminCookie,
     );
     secondDoctorCookie = secondDoctorResult.cookie;
-    secondDoctorId = secondDoctorResult.user.id;
+    secondDoctorId = await resolveDoctorId(secondDoctorResult.user.id);
 
     const secondPatientResult = await getOrCreateUser(
       app,
@@ -203,7 +227,7 @@ describe('Prescriptions Flow (e2e)', () => {
       Role.PATIENT,
       adminCookie,
     );
-    secondPatientId = secondPatientResult.user.id;
+    secondPatientId = await resolvePatientId(secondPatientResult.user.id);
 
     if (secondDoctorId === seededDoctorId) {
       throw new Error(
@@ -617,6 +641,92 @@ describe('Prescriptions Flow (e2e)', () => {
         );
         expect(wrongOwner.length).toBe(0);
       }
+    });
+  });
+
+  describe('Audit log + state transitions', () => {
+    it('PATCH /:id/consume creates a PrescriptionAuditLog and rejects re-consume', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/prescriptions')
+        .set('Cookie', secondDoctorCookie)
+        .send({
+          patientId: secondPatientId,
+          items: [{ name: 'AuditMed', dosage: '10mg', quantity: 5 }],
+        })
+        .expect(201);
+
+      const rxId = created.body.id;
+      // Need the second patient's cookie to mark as consumed
+      const secondPatientLogin = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({
+          email: created.body.patient?.user?.email ?? null,
+          password: TEST_PASSWORD,
+        });
+      // If login failed (email missing in body), fall back to fetching user via prisma:
+      let consumerCookie: string;
+      if (secondPatientLogin.status === 201) {
+        consumerCookie = extractAccessCookie(
+          secondPatientLogin.headers['set-cookie'],
+        );
+      } else {
+        const patientRow = await prisma.patient.findUnique({
+          where: { id: secondPatientId },
+          select: { user: { select: { email: true } } },
+        });
+        const retry = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: patientRow!.user.email, password: TEST_PASSWORD })
+          .expect(201);
+        consumerCookie = extractAccessCookie(retry.headers['set-cookie']);
+      }
+
+      const consumed = await request(app.getHttpServer())
+        .patch(`/prescriptions/${rxId}/consume`)
+        .set('Cookie', consumerCookie)
+        .send({ reason: 'picked up' })
+        .expect(200);
+      expect(consumed.body.status).toBe('CONSUMED');
+      expect(consumed.body.consumedAt).toBeTruthy();
+
+      const logs = await prisma.prescriptionAuditLog.findMany({
+        where: { prescriptionId: rxId },
+      });
+      expect(logs.length).toBe(1);
+      expect(logs[0].fromStatus).toBe('PENDING');
+      expect(logs[0].toStatus).toBe('CONSUMED');
+      expect(logs[0].reason).toBe('picked up');
+
+      const reConsume = await request(app.getHttpServer())
+        .patch(`/prescriptions/${rxId}/consume`)
+        .set('Cookie', consumerCookie)
+        .send({})
+        .expect(400);
+      expect(reConsume.body.message).toMatch(/already consumed/i);
+    });
+  });
+
+  describe('Advanced search ?q=', () => {
+    it('returns case-insensitive matches on items.name', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/prescriptions?q=amoxi&limit=50')
+        .set('Cookie', adminCookie)
+        .expect(200);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      // Seeded set contains "Amoxicillin"
+      const names = res.body.data.flatMap((p: any) =>
+        (p.items ?? []).map((i: any) => i.name.toLowerCase()),
+      );
+      const hasMatch = names.some((n: string) => n.includes('amoxi'));
+      expect(hasMatch).toBe(true);
+    });
+
+    it('returns empty list when q matches nothing visible to the user', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/prescriptions?q=zzz-no-match-zzz')
+        .set('Cookie', patientCookie)
+        .expect(200);
+      expect(res.body.data).toEqual([]);
     });
   });
 

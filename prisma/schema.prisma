@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -28,55 +25,107 @@ enum PrescriptionStatus {
   CONSUMED
 }
 
+enum ThemePreference {
+  SYSTEM
+  LIGHT
+  DARK
+}
+
 // ---------------------------------------------------------
 // MODELS
 // ---------------------------------------------------------
 
 model User {
-  id             String         @id @default(uuid())
-  email          String         @unique
-  passwordHash   String
-  role           Role
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id              String          @id @default(uuid())
+  email           String          @unique
+  passwordHash    String
+  role            Role
+  themePreference ThemePreference @default(SYSTEM)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  prescriptionsAsDoctor  Prescription[] @relation("DoctorPrescriptions")
-  prescriptionsAsPatient Prescription[] @relation("PatientPrescriptions")
+  doctor    Doctor?
+  patient   Patient?
+  auditLogs PrescriptionAuditLog[] @relation("ChangedBy")
 
   @@index([email])
 }
 
+model Doctor {
+  id                String  @id @default(uuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty         String?
+  medicalId         String?
+  signatureText     String?
+  signatureImageUrl String?
+
+  prescriptions Prescription[] @relation("AuthoredBy")
+}
+
+model Patient {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  birthDate DateTime?
+
+  prescriptions Prescription[]
+}
+
 model Prescription {
-  id          String             @id @default(uuid())
-  status      PrescriptionStatus @default(PENDING)
-  notes       String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id         String             @id @default(uuid())
+  code       String             @unique
+  status     PrescriptionStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  consumedAt DateTime?
 
-  doctorId    String
-  doctor      User               @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+  authorId String
+  author   Doctor @relation("AuthoredBy", fields: [authorId], references: [id])
 
-  patientId   String
-  patient     User               @relation("PatientPrescriptions", fields: [patientId], references: [id])
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
 
-  items       PrescriptionItem[]
+  items     PrescriptionItem[]
+  auditLogs PrescriptionAuditLog[]
 
-  @@index([status])
-  @@index([createdAt])
-  @@index([doctorId])
+  @@index([status, createdAt])
   @@index([patientId])
+  @@index([authorId])
+  @@index([notes])
 }
 
 model PrescriptionItem {
-  id             String       @id @default(uuid())
-  name           String
-  dosage         String
-  quantity       Int
-  instructions   String?
-  createdAt      DateTime     @default(now())
+  id           String   @id @default(uuid())
+  name         String
+  dosage       String?
+  quantity     Int?
+  instructions String?
+  createdAt    DateTime @default(now())
 
   prescriptionId String
   prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
 
   @@index([prescriptionId])
+  @@index([name])
+}
+
+model PrescriptionAuditLog {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  changedById String?
+  changedBy   User?   @relation("ChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  fromStatus PrescriptionStatus?
+  toStatus   PrescriptionStatus
+  reason     String?
+  createdAt  DateTime            @default(now())
+
+  @@index([prescriptionId])
+  @@index([changedById])
+  @@index([createdAt])
+  @@index([toStatus])
 }

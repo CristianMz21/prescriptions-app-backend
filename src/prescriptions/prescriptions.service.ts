@@ -1,6 +1,7 @@
 /* Copyright (c) 2026. All rights reserved. */
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
@@ -9,7 +10,10 @@ import { Role, PrescriptionStatus, Prescription, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { PaginationFilterDto } from './dto/pagination-filter.dto';
+import { ConsumePrescriptionDto } from './dto/consume-prescription.dto';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { generatePrescriptionCode } from '../common/utils/code.utils';
+import { EmailService } from '../email/email.service';
 
 const isPrismaError = (
   err: unknown,
@@ -18,16 +22,35 @@ const isPrismaError = (
 
 @Injectable()
 export class PrescriptionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PrescriptionsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async create(
-    doctorId: string,
+    doctorUserId: string,
     createPrescriptionDto: CreatePrescriptionDto,
   ): Promise<Prescription> {
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { userId: doctorUserId },
+      select: { id: true, user: { select: { email: true } } },
+    });
+    if (!doctor) {
+      throw new BadRequestException(
+        'Authenticated user has no associated Doctor record.',
+      );
+    }
+    let prescription: Prescription & {
+      items: { name: string }[];
+      patient: { user: { email: string } };
+    };
     try {
-      return await this.prisma.prescription.create({
+      prescription = await this.prisma.prescription.create({
         data: {
-          doctorId,
+          code: generatePrescriptionCode(),
+          authorId: doctor.id,
           patientId: createPrescriptionDto.patientId,
           notes: createPrescriptionDto.notes,
           status: PrescriptionStatus.PENDING,
@@ -40,7 +63,12 @@ export class PrescriptionsService {
             })),
           },
         },
-        include: { items: true },
+        include: {
+          items: true,
+          patient: {
+            select: { user: { select: { email: true } } },
+          },
+        },
       });
     } catch (err: unknown) {
       if (
@@ -53,6 +81,33 @@ export class PrescriptionsService {
       }
       throw err;
     }
+
+    // Fire-and-forget patient notification. Failures never block the response.
+    this.emailService
+      .sendPrescriptionCreatedEmail(prescription.patient.user.email, {
+        code: prescription.code,
+        doctorEmail: doctor.user.email,
+        itemNames: prescription.items.map(item => item.name),
+      })
+      .catch(err => {
+        this.logger.warn(
+          `Prescription email dispatch unexpectedly threw: ${String(err)}`,
+        );
+      });
+
+    return prescription;
+  }
+
+  private applyTenantBoundary(
+    where: Prisma.PrescriptionWhereInput,
+    user: JwtPayload,
+  ): void {
+    if (user.role === Role.PATIENT) {
+      where.patient = { userId: user.id };
+    } else if (user.role === Role.DOCTOR) {
+      where.author = { userId: user.id };
+    }
+    // ADMIN: no tenant restrictions
   }
 
   async findAll(
@@ -62,19 +117,11 @@ export class PrescriptionsService {
     data: Prescription[];
     meta: { total: number; page: number; limit: number; totalPages: number };
   }> {
-    const { page = 1, limit = 10, status, fromDate, toDate } = filterDto;
+    const { page = 1, limit = 10, status, fromDate, toDate, q } = filterDto;
     const skip = (page - 1) * limit;
 
     const where: Prisma.PrescriptionWhereInput = {};
-
-    // IDOR BOUNDARY ENFORCEMENT AT DATABASE LEVEL
-    if (user.role === Role.PATIENT) {
-      where.patientId = user.id;
-    } else if (user.role === Role.DOCTOR) {
-      where.doctorId = user.id;
-    } else {
-      // ADMIN: no tenant restrictions
-    }
+    this.applyTenantBoundary(where, user);
 
     if (status) {
       where.status = status;
@@ -88,6 +135,14 @@ export class PrescriptionsService {
       if (toDate) {
         (where.createdAt as Prisma.DateTimeFilter).lte = new Date(toDate);
       }
+    }
+
+    if (q && q.trim().length > 0) {
+      const term = q.trim();
+      where.OR = [
+        { notes: { contains: term, mode: 'insensitive' } },
+        { items: { some: { name: { contains: term, mode: 'insensitive' } } } },
+      ];
     }
 
     const [data, total] = await Promise.all([
@@ -112,28 +167,17 @@ export class PrescriptionsService {
     };
   }
 
-  private buildOwnershipWhere(
-    id: string,
-    user: JwtPayload,
-  ): Prisma.PrescriptionWhereInput {
-    const base: Prisma.PrescriptionWhereInput = { id };
-    if (user.role === Role.PATIENT) {
-      base.patientId = user.id;
-    } else if (user.role === Role.DOCTOR) {
-      base.doctorId = user.id;
-    } else {
-      // ADMIN: no tenant restrictions
-    }
-    return base;
-  }
-
   private async getOwnershipCheck(
     id: string,
     user: JwtPayload,
   ): Promise<{ exists: boolean; belongsToUser: boolean }> {
     const raw = await this.prisma.prescription.findFirst({
       where: { id },
-      select: { id: true, patientId: true, doctorId: true },
+      select: {
+        id: true,
+        author: { select: { userId: true } },
+        patient: { select: { userId: true } },
+      },
     });
     if (!raw) {
       return { exists: false, belongsToUser: false };
@@ -142,10 +186,10 @@ export class PrescriptionsService {
       return { exists: true, belongsToUser: true };
     }
     if (user.role === Role.PATIENT) {
-      return { exists: true, belongsToUser: raw.patientId === user.id };
+      return { exists: true, belongsToUser: raw.patient.userId === user.id };
     }
     if (user.role === Role.DOCTOR) {
-      return { exists: true, belongsToUser: raw.doctorId === user.id };
+      return { exists: true, belongsToUser: raw.author.userId === user.id };
     }
     return { exists: true, belongsToUser: false };
   }
@@ -163,11 +207,22 @@ export class PrescriptionsService {
       );
     }
 
+    const where: Prisma.PrescriptionWhereInput = { id };
+    this.applyTenantBoundary(where, user);
+
     const prescription = await this.prisma.prescription.findFirst({
-      where: this.buildOwnershipWhere(id, user),
+      where,
       include: {
-        doctor: { select: { id: true, email: true, role: true } },
-        patient: { select: { id: true, email: true, role: true } },
+        author: {
+          include: {
+            user: { select: { id: true, email: true, role: true } },
+          },
+        },
+        patient: {
+          include: {
+            user: { select: { id: true, email: true, role: true } },
+          },
+        },
         items: true,
       },
     });
@@ -176,12 +231,17 @@ export class PrescriptionsService {
   }
 
   async markAsConsumed(
-    patientId: string,
+    patientUserId: string,
     prescriptionId: string,
+    dto?: ConsumePrescriptionDto,
   ): Promise<Prescription> {
     const raw = await this.prisma.prescription.findFirst({
       where: { id: prescriptionId },
-      select: { id: true, patientId: true },
+      select: {
+        id: true,
+        status: true,
+        patient: { select: { userId: true } },
+      },
     });
 
     if (!raw) {
@@ -190,18 +250,37 @@ export class PrescriptionsService {
       );
     }
 
-    if (raw.patientId !== patientId) {
+    if (raw.patient.userId !== patientUserId) {
       throw new ForbiddenException(
         'You do not have permission to access this prescription.',
       );
     }
 
-    return this.prisma.prescription.update({
-      where: { id: prescriptionId },
-      data: {
-        status: PrescriptionStatus.CONSUMED,
-      },
-      include: { items: true },
+    if (raw.status === PrescriptionStatus.CONSUMED) {
+      throw new BadRequestException('Prescription already consumed');
+    }
+
+    return this.prisma.$transaction(async tx => {
+      const updated = await tx.prescription.update({
+        where: { id: prescriptionId },
+        data: {
+          status: PrescriptionStatus.CONSUMED,
+          consumedAt: new Date(),
+        },
+        include: { items: true },
+      });
+
+      await tx.prescriptionAuditLog.create({
+        data: {
+          prescriptionId,
+          changedById: patientUserId,
+          fromStatus: raw.status,
+          toStatus: PrescriptionStatus.CONSUMED,
+          reason: dto?.reason ?? null,
+        },
+      });
+
+      return updated;
     });
   }
 }

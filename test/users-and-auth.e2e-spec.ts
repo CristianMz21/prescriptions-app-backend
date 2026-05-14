@@ -469,6 +469,45 @@ describe('Auth & Users Endpoints (e2e)', () => {
     });
   });
 
+  describe('PATCH /users/me/theme', () => {
+    it('updates theme preference and is reflected in /auth/profile', async () => {
+      const patched = await request(app.getHttpServer())
+        .patch('/users/me/theme')
+        .set('Cookie', patientCookie)
+        .send({ themePreference: 'DARK' })
+        .expect(200);
+      expect(patched.body.themePreference).toBe('DARK');
+
+      const profile = await request(app.getHttpServer())
+        .get('/auth/profile')
+        .set('Cookie', patientCookie)
+        .expect(200);
+      expect(profile.body.themePreference).toBe('DARK');
+
+      // Reset to SYSTEM so subsequent runs are deterministic
+      await request(app.getHttpServer())
+        .patch('/users/me/theme')
+        .set('Cookie', patientCookie)
+        .send({ themePreference: 'SYSTEM' })
+        .expect(200);
+    });
+
+    it('rejects invalid themePreference value with 400', async () => {
+      await request(app.getHttpServer())
+        .patch('/users/me/theme')
+        .set('Cookie', patientCookie)
+        .send({ themePreference: 'NEON' })
+        .expect(400);
+    });
+
+    it('returns 401 without auth cookie', async () => {
+      await request(app.getHttpServer())
+        .patch('/users/me/theme')
+        .send({ themePreference: 'LIGHT' })
+        .expect(401);
+    });
+  });
+
   afterAll(async () => {
     await app.close();
   });

@@ -192,6 +192,7 @@
       <div class="header-info">
         <h1 class="title">Digital Prescription</h1>
         <div class="meta-data">
+          <div>Code: <span>{{code}}</span></div>
           <div>Document ID: <span>{{prescriptionId}}</span></div>
           <div>Issued Date: <span>{{date}}</span></div>
           <div>Status: <span>{{status}}</span></div>
@@ -209,7 +210,10 @@
       </div>
       <div class="info-block">
         <strong>Prescribing Doctor</strong>
-        <span>{{doctorEmail}}</span>
+        <span>{{doctorEmail}}{{#if doctorSpecialty}} — {{doctorSpecialty}}{{/if}}</span>
+        {{#if doctorMedicalId}}
+        <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">License: {{doctorMedicalId}}</div>
+        {{/if}}
       </div>
     </div>
 
@@ -249,6 +253,20 @@
         {{notes}}
       </div>
     </div>
+    {{/if}}
+
+    {{#if doctorSignatureImageUrl}}
+    <div class="section">
+      <div class="section-title">Signature</div>
+      <img src="{{doctorSignatureImageUrl}}" alt="Doctor signature" style="max-height: 80px; max-width: 240px;" />
+    </div>
+    {{else}}
+    {{#if doctorSignatureText}}
+    <div class="section">
+      <div class="section-title">Signature</div>
+      <div style="font-family: 'Brush Script MT', cursive; font-size: 24px; color: #111827;">{{doctorSignatureText}}</div>
+    </div>
+    {{/if}}
     {{/if}}
 
     <div class="footer">

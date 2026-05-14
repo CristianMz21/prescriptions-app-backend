@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   UseGuards,
   UseInterceptors,
@@ -29,8 +30,11 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateThemeDto } from './dto/update-theme.dto';
 import { UserEntity } from './entities/user.entity';
 import { UserResponseDto } from './dto/user-response.dto';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { PaginatedResultDto } from '../common/dto/paginated-result.dto';
 import { PaginationMetaDto } from '../common/dto/pagination-meta.dto';
 import { ErrorResponseDto } from '../common/dto/error-response.dto';
@@ -123,6 +127,29 @@ export class UsersController {
   })
   findAllDoctors() {
     return this.usersService.findAllByRole(Role.DOCTOR);
+  }
+
+  @Patch('me/theme')
+  @ApiOperation({
+    summary: 'Update the current user UI theme preference',
+  })
+  @ApiOkResponse({
+    type: UserEntity,
+    description: 'Theme preference updated; returns the refreshed user profile',
+  })
+  @ApiBadRequestResponse({
+    type: ErrorResponseDto,
+    description: 'Bad Request — invalid themePreference value',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: UNAUTHORIZED_DESC,
+  })
+  updateMyTheme(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateThemeDto,
+  ): Promise<UserEntity> {
+    return this.usersService.updateTheme(user.id, dto.themePreference);
   }
 
   @Get(':id')

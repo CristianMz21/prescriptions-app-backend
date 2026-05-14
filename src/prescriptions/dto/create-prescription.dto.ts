@@ -22,18 +22,22 @@ export class PrescriptionItemDto {
   @IsNotEmpty()
   name!: string;
 
-  @ApiProperty({ example: '500mg', description: 'Dosage of the medication' })
+  @ApiPropertyOptional({
+    example: '500mg',
+    description: 'Dosage of the medication',
+  })
   @IsString()
-  @IsNotEmpty()
-  dosage!: string;
+  @IsOptional()
+  dosage?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 30,
     description: 'Quantity to dispense (number of units)',
   })
   @IsInt()
   @Min(1)
-  quantity!: number;
+  @IsOptional()
+  quantity?: number;
 
   @ApiPropertyOptional({
     example: 'Take 1 pill every 8 hours',
@@ -47,7 +51,7 @@ export class PrescriptionItemDto {
 export class CreatePrescriptionDto {
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'UUID of the patient',
+    description: 'UUID of the Patient record (Patient.id, not User.id)',
     format: 'uuid',
   })
   @IsUUID()

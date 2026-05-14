@@ -28,6 +28,8 @@
 }
 ```
 
+El JWT contiene **3 claims**: `sub` (user ID), `email`, `role`. No incluye `name` porque User no tiene ese campo.
+
 ### 1.4 Variables de Entorno Relacionadas
 
 - `JWT_ACCESS_SECRET` — Secreto para access tokens
@@ -68,21 +70,18 @@
 - `JwtAuthGuard` extrae token de cookie y valida JWT
 - `RolesGuard` verifica si `user.role` esta en los roles requeridos
 
-### 2.3 Prevencion de IDOR
+### 2.3 Prevencion de IDOR (applyTenantBoundary)
 
-El ownership check vive en la **capa de servicio**:
+El ownership check vive en la **capa de servicio**, implementado via `applyTenantBoundary`:
 
 ```typescript
-async consume(prescriptionId: string, currentUser: User) {
-  const prescription = await this.prisma.prescription.findFirst({
-    where: {
-      id: prescriptionId,
-      patientId: currentUser.id,  // Solo el paciente puede consumir sus propias
-    },
-  });
-  if (!prescription) {
-    throw new ForbiddenException('No tenes acceso a esta prescripcion');
+private applyTenantBoundary(where: Prisma.PrescriptionWhereInput, user: JwtPayload) {
+  if (user.role === Role.PATIENT) {
+    where.patient = { userId: user.id };   // Solo el paciente puede consumir sus propias
+  } else if (user.role === Role.DOCTOR) {
+    where.author = { userId: user.id };      // Solo el doctor puede ver las que autoro
   }
+  // ADMIN: sin filtro — ve todo
 }
 ```
 
@@ -132,7 +131,7 @@ Implementados via Helmet + custom middleware en `src/main.ts`.
 | Amenaza | Vector | Mitigacion |
 |---------|--------|------------|
 | **Replay de Token** | Cookies robadas | 15m TTL corto + refresh rotation |
-| **IDOR** | Paciente cambia URL | Ownership check en service layer |
+| **IDOR** | Paciente cambia URL | applyTenantBoundary en service layer |
 | **Escalacion de Privilegios** | Doctor accede a metricas admin | RolesGuard verifica rol |
 | **Mass Assignment** | Payload con `role: 'ADMIN'` | ValidationPipe whitelist |
 | **Inyeccion SQL** | Parametros maliciosos | Solo consultas parametrizadas Prisma |
@@ -145,13 +144,13 @@ Implementados via Helmet + custom middleware en `src/main.ts`.
 
 | Categoria | Estado | Implementacion |
 |-----------|--------|----------------|
-| A01 Broken Access Control | OK | RolesGuard + IDOR checks en servicios |
+| A01 Broken Access Control | OK | RolesGuard + applyTenantBoundary |
 | A02 Cryptographic Failures | OK | bcrypt, secretos JWT firmados |
 | A03 Injection | OK | Prisma parametrizadas + ValidationPipe |
 | A04 Insecure Design | OK | Matriz RBAC + ownership checks |
 | A05 Security Misconfiguration | OK | Headers OK + CORS configurado |
 | A06 Vulnerable Components | OK | npm audit en CI |
 | A07 Auth Failures | OK | JWT corta vida + cookie HttpOnly |
-| A08 Data Integrity | OK | Prisma transacciones |
+| A08 Data Integrity | OK | Prisma transacciones + audit log |
 | A09 Logging Failures | OK | Interceptor existe, logs disponibles |
 | A10 SSRF | N/A | No hay file upload |

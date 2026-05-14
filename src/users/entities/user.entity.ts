@@ -1,7 +1,38 @@
 /* Copyright (c) 2026. All rights reserved. */
 import { Exclude } from 'class-transformer';
-import { Role } from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
+import { Role, ThemePreference } from '@prisma/client';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export class DoctorProfileSummary {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiPropertyOptional({ example: 'Cardiology' })
+  specialty?: string | null;
+
+  @ApiPropertyOptional({ example: 'MED-12345' })
+  medicalId?: string | null;
+
+  @ApiPropertyOptional({ example: 'Dr. Jane Doe' })
+  signatureText?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'https://cdn.clinic.com/signatures/jane-doe.png',
+    format: 'uri',
+  })
+  signatureImageUrl?: string | null;
+}
+
+export class PatientProfileSummary {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiPropertyOptional({
+    example: '1990-05-21',
+    format: 'date',
+  })
+  birthDate?: Date | null;
+}
 
 export class UserEntity {
   @ApiProperty({
@@ -42,6 +73,20 @@ export class UserEntity {
     format: 'date-time',
   })
   updatedAt!: Date;
+
+  @ApiProperty({
+    description: 'UI theme preference',
+    enum: ThemePreference,
+    enumName: 'ThemePreference',
+    example: 'SYSTEM',
+  })
+  themePreference!: ThemePreference;
+
+  @ApiPropertyOptional({ type: () => DoctorProfileSummary })
+  doctor?: DoctorProfileSummary | null;
+
+  @ApiPropertyOptional({ type: () => PatientProfileSummary })
+  patient?: PatientProfileSummary | null;
 
   constructor(partial: Partial<UserEntity>) {
     Object.assign(this, partial);

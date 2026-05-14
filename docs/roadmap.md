@@ -5,9 +5,9 @@
 | Componente | Estado | Notas |
 |-----------|--------|-------|
 | Auth (login/refresh/logout) | OK Listo | JWT en HttpOnly cookies |
-| Users (CRUD + listados) | OK Listo | ADMIN, DOCTOR, PATIENT |
-| Prescriptions (CRUD + consume + PDF) | OK Listo | Puppeteer + Handlebars |
-| Admin (metricas + listado total) | OK Listo | Metrics + all prescriptions |
+| Users (CRUD + listados) | OK Listo | ADMIN, DOCTOR, PATIENT con Doctor/Patient tables |
+| Prescriptions (CRUD + consume + PDF) | OK Listo | Puppeteer + Handlebars, code RX- |
+| Admin (metricas + listado total) | OK Listo | Metrics con topDoctors + byDay |
 | Swagger /docs | OK Listo | withCredentials enabled |
 | Prisma migrations | OK Listo | Nunca synchronize: true |
 | Seed data | OK Listo | Upsert (re-runnable) |
@@ -21,61 +21,62 @@
 ## Features Implementadas
 
 ### Auth
-- Login con email/password
+- Login con email/password → `{ message, user: { id, email, role } }`
 - Refresh token automatico (cookie)
 - Logout (limpieza de cookies)
 - Perfil del usuario actual
-- JWT de 15 min + refresh de 7 dias
+- JWT de 15 min + refresh de 7 dias en HttpOnly cookies
 
 ### Users
-- Crear usuario (ADMIN)
+- Crear usuario (ADMIN) con campos de Doctor/Patient opcionales
 - Listar todos los usuarios (ADMIN)
 - Listar pacientes (ADMIN + DOCTOR)
 - Listar doctores (ADMIN)
 - Ver detalle de usuario (ADMIN + DOCTOR)
 
 ### Prescriptions
-- Crear prescripcion (DOCTOR)
+- Crear prescripcion (DOCTOR) con `code: RX-XXXXXXXXXX`
 - Listar propias filtradas por rol (All)
 - Ver detalle (Owner/Admin)
 - Marcar como consumida (PATIENT owner)
 - Descargar PDF (Owner/Admin)
+- Audit log de cambios de estado
 
 ### Admin
 - Listar todas las prescripciones (ADMIN)
-- Dashboard de metricas: totals + by status + by day (ADMIN)
+- Dashboard de metricas: totals + byStatus + byDay + topDoctors (ADMIN)
 
 ---
 
 ## Decisiones de Arquitectura Tomadas
 
-### 1. Roles en User.role (no tablas separadas)
+### 1. Doctor/Patient como Tablas Separadas
 
-Un solo modelo `User` con `role: ADMIN | DOCTOR | PATIENT`. No hay `Doctor` ni `Patient` como tablas separadas.
+`Doctor` y `Patient` son tablas separadas vinculadas 1:1 a `User` via `userId`.
 
-**Ventaja:** Queries simples, no hay joins extras.
-**Desventaja:** Menos flexibilidad si en el futuro se necesitan perfiles complejos por rol.
+**Ventaja:** Datos específicos del rol (specialty para Doctor, birthDate para Patient)
+**Tradeoff:** Queries de listado requieren join con la tabla de rol
 
-### 2. Items como Json (no PrescriptionItem)
+### 2. Items como Tabla Relacional
 
-`Prescription.items` es un campo `Json` con array de `{name, dosage, instructions}`.
+`Prescription.items` es una relación a la tabla `PrescriptionItem` — no un campo Json.
 
-**Ventaja:** Schema simple, sin tabla intermedia.
-**Desventaja:** No se puede hacer query directa sobre items individuales en SQL.
+**Ventaja:** Indexación por item, queries per-item, constraints sobre quantity
+**Tradeoff:** Schema más complejo, más joins
 
 ### 3. Auth con Cookies (no Bearer)
 
 Tokens en HttpOnly cookies, no en Authorization header.
 
-**Ventaja:** Proteccion contra XSS, CSRF mitigado con sameSite.
-**Desventaja:** Mas complejo de testar con curl (requiere --cookie).
+**Ventaja:** Proteccion contra XSS, CSRF mitigado con sameSite
+**Tradeoff:** Mas complejo de testar con curl (requiere --cookie)
 
 ### 4. PDF con Puppeteer (no pdfkit)
 
 Generacion de PDF via Puppeteer (headless Chrome) + Handlebars.
 
-**Ventaja:** PDF de alta fidelidad,HTML completo.
-**Desventaja:** Puppeteer es heavy dependency, CI necesita Chromium.
+**Ventaja:** PDF de alta fidelidad, HTML completo
+**Tradeoff:** Puppeteer es heavy dependency, CI necesita Chromium
 
 ---
 
@@ -88,3 +89,5 @@ Generacion de PDF via Puppeteer (headless Chrome) + Handlebars.
 | HttpOnly cookie | Cookie no accesible via JavaScript (segura contra XSS) |
 | fast-fail | La app no inicia si falta configuracion critica |
 | seed | Datos de prueba insertados en la DB |
+| applyTenantBoundary | Funcion que filtra prescriptions por rol en findAll |
+| topDoctors | Top 5 doctores por cantidad de prescripciones en el periodo |

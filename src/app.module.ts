@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
+import { EmailModule } from './email/email.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -20,6 +21,7 @@ import { validate } from './config/env.validation';
     PrescriptionsModule,
     AdminModule,
     UsersModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

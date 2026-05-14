@@ -4,9 +4,10 @@ import { PrescriptionsController } from './prescriptions.controller';
 import { PrescriptionsService } from './prescriptions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfModule } from '../pdf/pdf.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [PdfModule],
+  imports: [PdfModule, EmailModule],
   controllers: [PrescriptionsController],
   providers: [PrescriptionsService, PrismaService],
 })

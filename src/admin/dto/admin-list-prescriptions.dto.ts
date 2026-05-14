@@ -7,7 +7,9 @@ import {
   IsInt,
   IsOptional,
   IsDateString,
+  IsString,
   IsUUID,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -49,16 +51,16 @@ export class AdminListPrescriptionsDto {
   status?: PrescriptionStatus;
 
   @ApiPropertyOptional({
-    description: 'Filter by doctor UUID',
+    description: 'Filter by author UUID (Doctor.id)',
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
   })
   @IsOptional()
   @IsUUID()
-  doctorId?: string;
+  authorId?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by patient UUID',
+    description: 'Filter by patient UUID (Patient.id)',
     example: '456e7890-e89b-12d3-a456-426614174001',
     format: 'uuid',
   })
@@ -85,4 +87,15 @@ export class AdminListPrescriptionsDto {
   @IsOptional()
   @IsDateString()
   to?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Free-text query. Case-insensitive substring match against prescription notes and item names.',
+    example: 'amoxi',
+    maxLength: 200,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  q?: string;
 }

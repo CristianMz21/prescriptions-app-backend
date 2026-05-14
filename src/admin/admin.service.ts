@@ -10,6 +10,12 @@ export interface AggregateMetrics {
   byDay: Array<{ date: string; count: number }>;
 }
 
+export interface MetricsStreamSnapshot {
+  totals: { doctors: number; patients: number; prescriptions: number };
+  byStatus: { pending: number; consumed: number };
+  timestamp: string;
+}
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -95,6 +101,38 @@ export class AdminService {
     };
   }
 
+  async getStreamSnapshot(): Promise<MetricsStreamSnapshot> {
+    const [
+      doctorsCount,
+      patientsCount,
+      totalPrescriptions,
+      pendingPrescriptions,
+      consumedPrescriptions,
+    ] = await Promise.all([
+      this.prisma.user.count({ where: { role: Role.DOCTOR } }),
+      this.prisma.user.count({ where: { role: Role.PATIENT } }),
+      this.prisma.prescription.count(),
+      this.prisma.prescription.count({
+        where: { status: PrescriptionStatus.PENDING },
+      }),
+      this.prisma.prescription.count({
+        where: { status: PrescriptionStatus.CONSUMED },
+      }),
+    ]);
+    return {
+      totals: {
+        doctors: doctorsCount,
+        patients: patientsCount,
+        prescriptions: totalPrescriptions,
+      },
+      byStatus: {
+        pending: pendingPrescriptions,
+        consumed: consumedPrescriptions,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   async getDashboardMetrics(): Promise<AggregateMetrics> {
     const byDayQuery = this.prisma.$queryRaw<
       Array<{ date: Date; count: bigint }>
@@ -113,7 +151,7 @@ export class AdminService {
     to?: string,
   ): Promise<
     AggregateMetrics & {
-      topDoctors: Array<{ doctorId: string; count: number }>;
+      topDoctors: Array<{ authorId: string; count: number }>;
     }
   > {
     const where = this.buildDateRangeWhere(from, to);
@@ -133,19 +171,19 @@ export class AdminService {
 
     const [base, topDoctorsRaw] = await Promise.all([
       this.fetchAggregateMetrics(where, byDayQuery),
-      this.prisma.$queryRaw<Array<{ doctorId: string; count: bigint }>>`
-        SELECT "doctorId", COUNT(*) as count
+      this.prisma.$queryRaw<Array<{ authorId: string; count: bigint }>>`
+        SELECT "authorId", COUNT(*) as count
         FROM "Prescription"
         WHERE "createdAt" >= ${fromDate}
         AND "createdAt" <= ${toDate}
-        GROUP BY "doctorId"
+        GROUP BY "authorId"
         ORDER BY count DESC
         LIMIT 5;
       `,
     ]);
 
     const topDoctors = topDoctorsRaw.map(row => ({
-      doctorId: row.doctorId,
+      authorId: row.authorId,
       count: Number(row.count),
     }));
 
@@ -160,21 +198,29 @@ export class AdminService {
       page = 1,
       limit = 10,
       status,
-      doctorId,
+      authorId,
       patientId,
       from,
       to,
+      q,
     } = filter;
 
     const where = this.buildDateRangeWhere(from, to);
     if (status) {
       where.status = status;
     }
-    if (doctorId) {
-      where.doctorId = doctorId;
+    if (authorId) {
+      where.authorId = authorId;
     }
     if (patientId) {
       where.patientId = patientId;
+    }
+    if (q && q.trim().length > 0) {
+      const term = q.trim();
+      where.OR = [
+        { notes: { contains: term, mode: 'insensitive' } },
+        { items: { some: { name: { contains: term, mode: 'insensitive' } } } },
+      ];
     }
 
     const skip = (page - 1) * limit;
@@ -185,8 +231,16 @@ export class AdminService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          doctor: { select: { id: true, email: true, role: true } },
-          patient: { select: { id: true, email: true, role: true } },
+          author: {
+            include: {
+              user: { select: { id: true, email: true, role: true } },
+            },
+          },
+          patient: {
+            include: {
+              user: { select: { id: true, email: true, role: true } },
+            },
+          },
           items: true,
         },
       }),

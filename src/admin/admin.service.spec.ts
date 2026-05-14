@@ -86,8 +86,8 @@ describe('AdminService', () => {
           { date: new Date('2026-01-01'), count: BigInt(2) },
         ])
         .mockResolvedValueOnce([
-          { doctorId: 'doctor-1', count: BigInt(5) },
-          { doctorId: 'doctor-2', count: BigInt(3) },
+          { authorId: 'doctor-1', count: BigInt(5) },
+          { authorId: 'doctor-2', count: BigInt(3) },
         ]);
     });
 
@@ -97,8 +97,8 @@ describe('AdminService', () => {
       expect(result.totals.doctors).toBe(3);
       expect(result.byDay).toEqual([{ date: '2026-01-01', count: 2 }]);
       expect(result.topDoctors).toEqual([
-        { doctorId: 'doctor-1', count: 5 },
-        { doctorId: 'doctor-2', count: 3 },
+        { authorId: 'doctor-1', count: 5 },
+        { authorId: 'doctor-2', count: 3 },
       ]);
     });
 
@@ -160,7 +160,7 @@ describe('AdminService', () => {
       );
     });
 
-    it('should apply status, doctorId, patientId, and date filters', async () => {
+    it('should apply status, authorId, patientId, and date filters', async () => {
       prismaService.prescription.findMany.mockResolvedValue([]);
       prismaService.prescription.count.mockResolvedValue(0);
 
@@ -168,7 +168,7 @@ describe('AdminService', () => {
         page: 2,
         limit: 5,
         status: PrescriptionStatus.CONSUMED,
-        doctorId: 'doctor-9',
+        authorId: 'doctor-9',
         patientId: 'patient-9',
         from: '2026-01-01',
         to: '2026-01-31',
@@ -178,7 +178,7 @@ describe('AdminService', () => {
         expect.objectContaining({
           where: {
             status: PrescriptionStatus.CONSUMED,
-            doctorId: 'doctor-9',
+            authorId: 'doctor-9',
             patientId: 'patient-9',
             createdAt: { gte: expect.any(Date), lte: expect.any(Date) },
           },

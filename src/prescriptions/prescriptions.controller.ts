@@ -26,10 +26,12 @@ import {
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiExtraModels,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { PaginationFilterDto } from './dto/pagination-filter.dto';
+import { ConsumePrescriptionDto } from './dto/consume-prescription.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -90,6 +92,12 @@ export class PrescriptionsController {
 
   @Get()
   @ApiOperation({ summary: 'List prescriptions (Paginated)' })
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    description:
+      'Case-insensitive substring match against prescription notes and item names. Role-based visibility is preserved.',
+  })
   @apiPaginatedOkResponse(
     PrescriptionResponseDto,
     'Returns paginated list of prescriptions based on user role',
@@ -172,8 +180,13 @@ export class PrescriptionsController {
   markAsConsumed(
     @CurrentUser() user: JwtPayload,
     @Param('id') prescriptionId: string,
+    @Body() dto: ConsumePrescriptionDto,
   ) {
-    return this.prescriptionsService.markAsConsumed(user.id, prescriptionId);
+    return this.prescriptionsService.markAsConsumed(
+      user.id,
+      prescriptionId,
+      dto,
+    );
   }
 
   @Get(':id/pdf')
@@ -219,9 +232,11 @@ export class PrescriptionsController {
       prescription as unknown as PdfPrescriptionData,
     );
 
+    const filenameKey =
+      (prescription as unknown as { code?: string }).code ?? prescription.id;
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="prescription-${prescription.id}.pdf"`,
+      'Content-Disposition': `attachment; filename="prescription-${filenameKey}.pdf"`,
     });
 
     return new StreamableFile(buffer);

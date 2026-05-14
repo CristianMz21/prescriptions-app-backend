@@ -27,10 +27,10 @@ Content-Type: application/json
 
 ```json
 {
+  "message": "Login successful",
   "user": {
     "id": "uuid-...",
     "email": "doctor@clinic.com",
-    "name": "Dr. Juan Perez",
     "role": "DOCTOR"
   }
 }
@@ -68,7 +68,6 @@ Cookie: refreshToken=<token>
   "user": {
     "id": "uuid-...",
     "email": "doctor@clinic.com",
-    "name": "Dr. Juan Perez",
     "role": "DOCTOR"
   }
 }
@@ -110,8 +109,10 @@ Cookie: accessToken=<token>
 {
   "id": "uuid-...",
   "email": "doctor@clinic.com",
-  "name": "Dr. Juan Perez",
-  "role": "DOCTOR"
+  "role": "DOCTOR",
+  "themePreference": "SYSTEM",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z"
 }
 ```
 
@@ -131,10 +132,12 @@ Content-Type: application/json
 {
   "email": "nuevopaciente@clinic.com",
   "password": "Password123!",
-  "name": "Maria Lopez",
-  "role": "PATIENT"
+  "role": "PATIENT",
+  "birthDate": "1990-05-15"
 }
 ```
+
+Tambien acepta campos opcionales para DOCTOR: `specialty`, `medicalId`, `signatureText`, `signatureImageUrl`.
 
 **Response 201:**
 
@@ -142,8 +145,14 @@ Content-Type: application/json
 {
   "id": "uuid-...",
   "email": "nuevopaciente@clinic.com",
-  "name": "Maria Lopez",
-  "role": "PATIENT"
+  "role": "PATIENT",
+  "themePreference": "SYSTEM",
+  "createdAt": "2026-05-13T12:00:00.000Z",
+  "updatedAt": "2026-05-13T12:00:00.000Z",
+  "patient": {
+    "id": "uuid-...",
+    "birthDate": "1990-05-15T00:00:00.000Z"
+  }
 }
 ```
 
@@ -175,14 +184,23 @@ Cookie: accessToken=<token>
   {
     "id": "uuid-...",
     "email": "admin@clinic.com",
-    "name": "Admin",
-    "role": "ADMIN"
+    "role": "ADMIN",
+    "themePreference": "SYSTEM",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
   },
   {
     "id": "uuid-...",
     "email": "doctor@clinic.com",
-    "name": "Dr. Juan Perez",
-    "role": "DOCTOR"
+    "role": "DOCTOR",
+    "themePreference": "SYSTEM",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z",
+    "doctor": {
+      "id": "uuid-...",
+      "specialty": "Cardiologia",
+      "medicalId": "MED-12345"
+    }
   }
 ]
 ```
@@ -205,8 +223,14 @@ Cookie: accessToken=<token>
   {
     "id": "uuid-...",
     "email": "patient@clinic.com",
-    "name": "Carlos Garcia",
-    "role": "PATIENT"
+    "role": "PATIENT",
+    "themePreference": "SYSTEM",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z",
+    "patient": {
+      "id": "uuid-...",
+      "birthDate": "1990-05-15T00:00:00.000Z"
+    }
   }
 ]
 ```
@@ -229,8 +253,17 @@ Cookie: accessToken=<token>
   {
     "id": "uuid-...",
     "email": "doctor@clinic.com",
-    "name": "Dr. Juan Perez",
-    "role": "DOCTOR"
+    "role": "DOCTOR",
+    "themePreference": "SYSTEM",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z",
+    "doctor": {
+      "id": "uuid-...",
+      "specialty": "Cardiologia",
+      "medicalId": "MED-12345",
+      "signatureText": "Dr. Juan Perez",
+      "signatureImageUrl": "https://..."
+    }
   }
 ]
 ```
@@ -252,8 +285,14 @@ Cookie: accessToken=<token>
 {
   "id": "uuid-...",
   "email": "patient@clinic.com",
-  "name": "Carlos Garcia",
-  "role": "PATIENT"
+  "role": "PATIENT",
+  "themePreference": "SYSTEM",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "patient": {
+    "id": "uuid-...",
+    "birthDate": "1990-05-15T00:00:00.000Z"
+  }
 }
 ```
 
@@ -263,7 +302,7 @@ Cookie: accessToken=<token>
 
 ### POST /prescriptions
 
-**Auth requerida** — Solo rol `DOCTOR`. `doctorId` se infiere del JWT.
+**Auth requerida** — Solo rol `DOCTOR`. `authorId` se infiere del JWT (Doctor asociado al User).
 
 ```yaml
 POST /prescriptions
@@ -277,50 +316,63 @@ Content-Type: application/json
     {
       "name": "Aspirina 100mg",
       "dosage": "1 tableta",
+      "quantity": 30,
       "instructions": "Una vez al dia por la manana"
     },
     {
       "name": "Omeprazol 20mg",
       "dosage": "1 capsula",
+      "quantity": 20,
       "instructions": "Antes del desayuno"
     }
   ]
 }
 ```
 
-Tambien acepta `patientEmail` en lugar de `patientId`.
+**Nota**: No existe `patientEmail` — solo `patientId` (UUID del Patient).
 
 **Response 201:**
 
 ```json
 {
   "id": "uuid-...",
-  "code": "PRESC-M3XK9P",
+  "code": "RX-A1B2C3D4E5",
   "status": "PENDING",
   "notes": "Tomar con comida. Evitar alcohol.",
   "createdAt": "2026-05-13T12:00:00.000Z",
   "updatedAt": "2026-05-13T12:00:00.000Z",
   "consumedAt": null,
+  "authorId": "uuid-doctor...",
   "patientId": "uuid-paciente...",
-  "doctorId": "uuid-doctor...",
   "items": [
     {
+      "id": "uuid-item...",
       "name": "Aspirina 100mg",
       "dosage": "1 tableta",
+      "quantity": 30,
       "instructions": "Una vez al dia por la manana"
     }
   ],
+  "author": {
+    "id": "uuid-doctor...",
+    "specialty": "Cardiologia",
+    "medicalId": "MED-12345",
+    "signatureText": "Dr. Juan Perez",
+    "signatureImageUrl": null,
+    "user": {
+      "id": "uuid-doctor...",
+      "email": "doctor@clinic.com",
+      "role": "DOCTOR"
+    }
+  },
   "patient": {
     "id": "uuid-paciente...",
-    "email": "patient@clinic.com",
-    "name": "Carlos Garcia",
-    "role": "PATIENT"
-  },
-  "doctor": {
-    "id": "uuid-doctor...",
-    "email": "doctor@clinic.com",
-    "name": "Dr. Juan Perez",
-    "role": "DOCTOR"
+    "birthDate": "1990-05-15T00:00:00.000Z",
+    "user": {
+      "id": "uuid-paciente...",
+      "email": "patient@clinic.com",
+      "role": "PATIENT"
+    }
   }
 }
 ```
@@ -330,7 +382,7 @@ Tambien acepta `patientEmail` en lugar de `patientId`.
 ```json
 {
   "statusCode": 400,
-  "message": "Se requiere patientId o patientEmail",
+  "message": "Se requiere patientId",
   "error": "Bad Request"
 }
 ```
@@ -360,14 +412,14 @@ Tambien acepta `patientEmail` en lugar de `patientId`.
   "data": [
     {
       "id": "uuid-...",
-      "code": "PRESC-M3XK9P",
+      "code": "RX-A1B2C3D4E5",
       "status": "PENDING",
       "notes": "Tomar con comida",
       "createdAt": "2026-05-13T12:00:00.000Z",
       "consumedAt": null,
       "items": [...],
-      "patient": { "id": "...", "email": "...", "name": "...", "role": "PATIENT" },
-      "doctor": { "id": "...", "email": "...", "name": "...", "role": "DOCTOR" }
+      "author": { "id": "...", "user": { "email": "...", "role": "DOCTOR" } },
+      "patient": { "id": "...", "user": { "email": "...", "role": "PATIENT" } }
     }
   ],
   "meta": {
@@ -413,7 +465,7 @@ Cookie: accessToken=<token>
 ```json
 {
   "id": "uuid-...",
-  "code": "PRESC-M3XK9P",
+  "code": "RX-A1B2C3D4E5",
   "status": "CONSUMED",
   "consumedAt": "2026-05-13T15:00:00.000Z",
   ...
@@ -445,7 +497,7 @@ Cookie: accessToken=<token>
 
 ```
 Content-Type: application/pdf
-Content-Disposition: attachment; filename="prescription-PRESC-M3XK9P.pdf"
+Content-Disposition: attachment; filename="prescription-RX-A1B2C3D4E5.pdf"
 
 <binary PDF data>
 ```
@@ -471,20 +523,27 @@ GET /admin/metrics
 Cookie: accessToken=<token>
 ```
 
+Query params opcionales: `from` (ISO date), `to` (ISO date).
+
 **Response 200:**
 
 ```json
 {
-  "totalPatients": 2,
-  "totalDoctors": 2,
-  "totalPrescriptions": 35,
-  "prescriptionsByStatus": {
-    "PENDING": 20,
-    "CONSUMED": 15
+  "totals": {
+    "doctors": 5,
+    "patients": 20,
+    "prescriptions": 100
   },
-  "prescriptionsByDay": [
-    { "date": "2026-05-10", "total": 5 },
-    { "date": "2026-05-11", "total": 3 }
+  "byStatus": {
+    "pending": 60,
+    "consumed": 40
+  },
+  "byDay": [
+    { "date": "2026-05-10", "count": 5 },
+    { "date": "2026-05-11", "count": 3 }
+  ],
+  "topDoctors": [
+    { "authorId": "uuid-doctor...", "count": 15 }
   ]
 }
 ```

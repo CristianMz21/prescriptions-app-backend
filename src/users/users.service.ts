@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Role, ThemePreference } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'bcrypt';
 import { UserEntity } from './entities/user.entity';
@@ -30,6 +30,27 @@ export class UsersService {
           email: createUserDto.email,
           passwordHash: hashedPassword,
           role: createUserDto.role,
+          doctor:
+            createUserDto.role === Role.DOCTOR
+              ? {
+                  create: {
+                    specialty: createUserDto.specialty,
+                    medicalId: createUserDto.medicalId,
+                    signatureText: createUserDto.signatureText,
+                    signatureImageUrl: createUserDto.signatureImageUrl,
+                  },
+                }
+              : undefined,
+          patient:
+            createUserDto.role === Role.PATIENT
+              ? {
+                  create: {
+                    birthDate: createUserDto.birthDate
+                      ? new Date(createUserDto.birthDate)
+                      : null,
+                  },
+                }
+              : undefined,
         },
       });
       return new UserEntity(user);
@@ -64,6 +85,23 @@ export class UsersService {
   async findById(id: string): Promise<UserEntity> {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        doctor: {
+          select: {
+            id: true,
+            specialty: true,
+            medicalId: true,
+            signatureText: true,
+            signatureImageUrl: true,
+          },
+        },
+        patient: {
+          select: {
+            id: true,
+            birthDate: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -80,6 +118,40 @@ export class UsersService {
   /**
    * Directory Use: Lists users by role, instantiated as secure UserEntities.
    */
+  async updateTheme(
+    userId: string,
+    themePreference: ThemePreference,
+  ): Promise<UserEntity> {
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data: { themePreference },
+        include: {
+          doctor: {
+            select: {
+              id: true,
+              specialty: true,
+              medicalId: true,
+              signatureText: true,
+              signatureImageUrl: true,
+            },
+          },
+          patient: { select: { id: true, birthDate: true } },
+        },
+      });
+      return new UserEntity(user);
+    } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2025'
+      ) {
+        throw new NotFoundException('User not found');
+      }
+      throw err;
+    }
+  }
+
   async findAllByRole(role: Role): Promise<UserEntity[]> {
     const users = await this.prisma.user.findMany({
       where: { role },

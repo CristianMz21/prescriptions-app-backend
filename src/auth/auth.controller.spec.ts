@@ -182,6 +182,7 @@ describe('AuthController', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         passwordHash: 'hash',
+        themePreference: 'SYSTEM' as const,
       };
 
       usersService.findById.mockResolvedValue(fullUserEntity);

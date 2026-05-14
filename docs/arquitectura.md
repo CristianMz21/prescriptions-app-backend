@@ -5,34 +5,35 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Doctor App  ·  Patient App  ·  Admin Dashboard           │
-└──────────────────────┬─────────────────────────────────┘
+└──────────────────────┬─────────────────────────────────────┘
                          │ HTTPS (JWT HttpOnly cookies)
-┌───────────────────────▼─────────────────────────────────┐
-│                    NESTJS APPLICATION                      │
+┌───────────────────────▼────────────────────────────────────┐
+│                 NESTJS APPLICATION                          │
 │                                                         │
-│  ┌──────────────┐  ┌────────────────┐  ┌─────────────┐  │
-│  │  Helmet      │  │ ValidationPipe  │  │    CORS     │  │
-│  │  (headers)   │  │ whitelist+      │  │ pinned to   │  │
-│  └──────────────┘  └────────────────┘  │ FRONTEND_URL │  │
-│                                        └─────────────┘  │
+│  ┌──────────────┐  ┌────────────────┐  ┌─────────────┐   │
+│  │  Helmet      │  │ ValidationPipe │  │    CORS    │   │
+│  │  (headers)  │  │ whitelist+     │  │ pinned to  │   │
+│  └──────────────┘  └────────────────┘  │ FRONTEND_URL │ │
+│                                        └─────────────┘   │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │     JwtAuthGuard (cookie) → RolesGuard            │   │
-│  │     @CurrentUser()  @Roles()                       │   │
+│  │   cookie-parser  ·  JwtAuthGuard  ·  RolesGuard │   │
+│  │   @CurrentUser()  @Roles()                       │   │
 │  └──────────────────────────────────────────────────┘   │
 │                                                         │
 │  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐  │
 │  │  Auth    │ │  Users   │ │Prescrip-  │ │  Admin   │  │
 │  │  Module  │ │  Module  │ │  tions    │ │  Module  │  │
 │  └──────────┘ └──────────┘ └───────────┘ └──────────┘  │
-│  ┌──────────┐                                           │
-│  │   PDF   │  (Puppeteer + Handlebars)                  │
-│  └──────────┘                                           │
-└─────────────────────────────┬─────────────────────────────┘
-                             │ Prisma Client
-┌─────────────────────────────▼───────────────────────────┐
-│                    POSTGRESQL DATABASE                   │
-│  User · Prescription                                    │
-└─────────────────────────────────────────────────────────┘
+│  ┌──────────┐                                            │
+│  │   PDF   │  (Puppeteer + Handlebars)                   │
+│  └──────────┘                                            │
+└──────────────────────────────┬──────────────────────────────┘
+                              │ Prisma Client
+┌─────────────────────────────▼──────────────────────────────┐
+│                   POSTGRESQL DATABASE                        │
+│  User · Doctor · Patient · Prescription                    │
+│  PrescriptionItem · PrescriptionAuditLog                   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ![Arquitectura](diagrams/d01_arquitectura.png)
@@ -41,7 +42,7 @@
 
 ## 2. Modelo de Datos
 
-El schema Prisma es la **única fuente de verdad** del modelo de datos. No existen tablas Doctor, Patient ni RefreshToken separadas. `PrescriptionItem` es una tabla separada vinculada a `Prescription`.
+El schema Prisma es la **única fuente de verdad** del modelo de datos.
 
 ```prisma
 generator client {
@@ -64,62 +65,115 @@ enum PrescriptionStatus {
   CONSUMED
 }
 
-model User {
-  id             String         @id @default(uuid())
-  email          String         @unique
-  passwordHash   String
-  role           Role
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+enum ThemePreference {
+  SYSTEM
+  LIGHT
+  DARK
+}
 
-  prescriptionsAsDoctor   Prescription[] @relation("DoctorPrescriptions")
-  prescriptionsAsPatient Prescription[] @relation("PatientPrescriptions")
+model User {
+  id              String          @id @default(uuid())
+  email           String          @unique
+  passwordHash    String
+  role            Role
+  themePreference ThemePreference @default(SYSTEM)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  doctor    Doctor?
+  patient   Patient?
+  auditLogs PrescriptionAuditLog[] @relation("ChangedBy")
 
   @@index([email])
 }
 
+model Doctor {
+  id                String  @id @default(uuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty         String?
+  medicalId         String?
+  signatureText     String?
+  signatureImageUrl String?
+
+  prescriptions Prescription[] @relation("AuthoredBy")
+}
+
+model Patient {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  birthDate DateTime?
+
+  prescriptions Prescription[]
+}
+
 model Prescription {
-  id          String             @id @default(uuid())
-  status      PrescriptionStatus @default(PENDING)
-  notes       String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id         String             @id @default(uuid())
+  code       String             @unique      // RX-XXXXXXXXXX
+  status     PrescriptionStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  consumedAt DateTime?
 
-  doctorId    String
-  doctor      User @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+  authorId String
+  author   Doctor @relation("AuthoredBy", fields: [authorId], references: [id])
 
-  patientId   String
-  patient     User @relation("PatientPrescriptions", fields: [patientId], references: [id])
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
 
-  items       PrescriptionItem[]
+  items     PrescriptionItem[]
+  auditLogs PrescriptionAuditLog[]
 
-  @@index([status])
-  @@index([createdAt])
-  @@index([doctorId])
+  @@index([status, createdAt])
   @@index([patientId])
+  @@index([authorId])
+  @@index([notes])
 }
 
 model PrescriptionItem {
-  id             String       @id @default(uuid())
-  name           String
-  dosage         String
-  quantity       Int
-  instructions  String?
-  createdAt      DateTime     @default(now())
+  id           String   @id @default(uuid())
+  name         String
+  dosage       String?
+  quantity     Int?
+  instructions String?
+  createdAt    DateTime @default(now())
 
   prescriptionId String
   prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
 
   @@index([prescriptionId])
+  @@index([name])
+}
+
+model PrescriptionAuditLog {
+  id             String       @id @default(uuid())
+  prescriptionId  String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  changedById String?
+  changedBy   User? @relation("ChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  fromStatus PrescriptionStatus?
+  toStatus   PrescriptionStatus
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  @@index([prescriptionId])
+  @@index([changedById])
+  @@index([createdAt])
+  @@index([toStatus])
 }
 ```
 
 ### Relaciones
 
-- Un `User` con rol `DOCTOR` puede authored无数 `Prescription` (relación `prescriptionsAsDoctor`)
-- Un `User` con rol `PATIENT` puede recibir无数 `Prescription` (relación `prescriptionsAsPatient`)
-- Los roles `ADMIN`, `DOCTOR`, `PATIENT` viven en `User.role` — no hay tabla separada
-- Cada `Prescription` tiene múltiples `PrescriptionItem` (tabla separada, no Json)
+- `User` tiene optionally-one `Doctor` o `Patient` (relación 1:1 via `userId`)
+- `Doctor` authored muchas `Prescription` (relación 1:N via `authorId`)
+- `Patient` recibe muchas `Prescription` (relación 1:N via `patientId`)
+- `Prescription` tiene muchos `PrescriptionItem` (tabla separada, no Json)
+- `PrescriptionAuditLog` registra cambios de estado con tracking de quién cambió
 
 ![ER Diagram](diagrams/d02_er.png)
 
@@ -132,7 +186,6 @@ backend/
 ├── src/
 │   ├── main.ts                       # Entry point, ValidationPipe, Swagger
 │   ├── app.module.ts                 # Root module
-│   │
 │   ├── auth/                         # Login, logout, refresh, profile
 │   │   ├── auth.module.ts
 │   │   ├── auth.controller.ts
@@ -143,43 +196,47 @@ backend/
 │   │   ├── guards/
 │   │   │   ├── jwt-auth.guard.ts
 │   │   │   └── roles.guard.ts
-│   │   └── decorators/
-│   │       ├── roles.decorator.ts
-│   │       └── current-user.decorator.ts
-│   │
-│   ├── users/                        # User management + patient/doctor listing
+│   │   ├── decorators/
+│   │   │   ├── roles.decorator.ts
+│   │   │   └── current-user.decorator.ts
+│   │   └── dto/
+│   │       ├── login.dto.ts
+│   │       ├── login-response.dto.ts
+│   │       └── refresh-token.dto.ts
+│   ├── users/                        # User management + Doctor/Patient listing
 │   │   ├── users.module.ts
 │   │   ├── users.controller.ts
 │   │   └── users.service.ts
-│   │
-│   ├── prescriptions/                 # Prescription CRUD + consume + PDF
+│   ├── prescriptions/               # Prescription CRUD + consume + PDF
 │   │   ├── prescriptions.module.ts
 │   │   ├── prescriptions.controller.ts
-│   │   └── prescriptions.service.ts
-│   │
-│   ├── admin/                         # Admin-only: metrics + all prescriptions
+│   │   ├── prescriptions.service.ts
+│   │   └── dto/
+│   │       ├── create-prescription.dto.ts
+│   │       └── prescription-response.dto.ts
+│   ├── admin/                       # Admin metrics + all prescriptions
 │   │   ├── admin.module.ts
 │   │   ├── admin.controller.ts
-│   │   └── admin.service.ts
-│   │
-│   ├── pdf/                          # Puppeteer PDF generation
+│   │   ├── admin.service.ts
+│   │   └── dto/
+│   │       └── metrics-response.dto.ts
+│   ├── pdf/                         # Puppeteer PDF generation
 │   │   └── pdf.service.ts
-│   │
-│   ├── prisma/                       # Singleton PrismaClient
+│   ├── prisma/                      # Singleton PrismaClient
 │   │   ├── prisma.module.ts
 │   │   └── prisma.service.ts
-│   │
 │   ├── config/
 │   │   └── env.validation.ts
-│   │
 │   └── common/
-│       └── filters/
-│           └── http-exception.filter.ts
-│
+│       ├── filters/
+│       │   └── http-exception.filter.ts
+│       ├── interfaces/
+│       │   └── jwt-payload.interface.ts
+│       └── utils/
+│           └── code.utils.ts
 ├── prisma/
 │   ├── schema.prisma
 │   └── seed.ts
-│
 └── test/
     └── *.e2e-spec.ts
 ```
@@ -197,30 +254,31 @@ Los tokens JWT se almacenan en **HttpOnly cookies** — nunca expuestos a JavaSc
 - `accessToken` — 15 min TTL
 - `refreshToken` — 7 dias TTL
 - No hay Bearer token en Authorization header
+- Login response body: `{ message: "Login successful", user: { id, email, role } }`
 - Swagger UI configurado con `withCredentials: true`
 
 ### 4.2 IDOR Prevention
 
-Los ownership checks viven en la **capa de servicio**, no en el controller.
+Los ownership checks viven en la **capa de servicio**, no en el controller. Se implementan via `applyTenantBoundary`:
 
 ```typescript
-const prescription = await this.prisma.prescription.findFirst({
-  where: {
-    id: prescriptionId,
-    ...(role === 'PATIENT' ? { patientId: currentUser.id } : {}),
-    ...(role === 'DOCTOR'  ? { doctorId: currentUser.id } : {}),
-  },
-});
+private applyTenantBoundary(where: Prisma.PrescriptionWhereInput, user: JwtPayload) {
+  if (user.role === Role.PATIENT) {
+    where.patient = { userId: user.id };
+  } else if (user.role === Role.DOCTOR) {
+    where.author = { userId: user.id };
+  }
+  // ADMIN: sin filtro — ve todo
+}
 ```
 
-Se usa `findFirst` (no `findUnique`) porque no existe unique constraint en patientId+doctorId.
+### 4.3 Doctor/Patient como Tablas Separadas
 
-### 4.3 No Separate Doctor/Patient Tables
+`Doctor` y `Patient` son tablas separadas vinculadas 1:1 a `User` via `userId`.
 
-Los roles viven en `User.role`. Esto simplifica:
-- No hay join entre User y Doctor/Patient
+- Permiten datos específicos del rol (specialty para Doctor, birthDate para Patient)
+- Queries de listado filtran por `role` y luego join con la tabla correspondiente
 - Auth es un solo `User`, no múltiples perfiles
-- Queries más simples en Prisma
 
 ### 4.4 PrescriptionItem como Tabla Relacional
 
@@ -233,11 +291,10 @@ Los roles viven en `User.role`. Esto simplifica:
 Todo request pasa por:
 
 1. **Helmet** — Security headers (X-Frame-Options DENY, nosniff, XSS, etc.)
-2. **Custom securityHeadersMiddleware** — no-store cache control
-3. **cookieParser** — Parseo de cookies para auth
-4. **CORS** — Origen pinned a `FRONTEND_URL` con `credentials: true`
-5. **ValidationPipe** — `whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`
-6. **HttpExceptionFilter** — JSON error format consistente
+2. **cookieParser** — Parseo de cookies para auth
+3. **CORS** — Origen pinned a `FRONTEND_URL` con `credentials: true`
+4. **ValidationPipe** — `whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`
+5. **HttpExceptionFilter** — JSON error format consistente
 
 ---
 

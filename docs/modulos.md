@@ -28,9 +28,13 @@ auth/
 ├── guards/
 │   ├── jwt-auth.guard.ts
 │   └── roles.guard.ts
-└── decorators/
-    ├── roles.decorator.ts
-    └── current-user.decorator.ts
+├── decorators/
+│   ├── roles.decorator.ts
+│   └── current-user.decorator.ts
+└── dto/
+    ├── login.dto.ts
+    ├── login-response.dto.ts
+    └── refresh-token.dto.ts
 ```
 
 ### Endpoints
@@ -51,7 +55,8 @@ auth/
    - bcrypt.compare(password, passwordHash)
    - Si valido: firma accessToken (15m) + refreshToken (7d)
    - Setea HttpOnly cookies
-3. Response: { user } (tokens en cookies, no en body)
+3. Response: { message: "Login successful", user: { id, email, role } }
+   (tokens en cookies, no en body)
 ```
 
 ### Flujo de Refresh
@@ -62,7 +67,17 @@ auth/
    - Verifica refreshToken con JWT_REFRESH_SECRET
    - Firma nuevo accessToken
    - Setea nueva cookie accessToken
-3. Response: { user }
+3. Response: { user: { id, email, role } }
+```
+
+### JWT Payload
+
+```typescript
+{
+  sub: string;   // User ID (UUID)
+  email: string;
+  role: Role;    // ADMIN | DOCTOR | PATIENT
+}
 ```
 
 ### Guards
@@ -91,7 +106,10 @@ Gestión de usuarios y listado de pacientes/doctores.
 users/
 ├── users.module.ts
 ├── users.controller.ts
-└── users.service.ts
+├── users.service.ts
+└── dto/
+    ├── create-user.dto.ts
+    └── user-entity.ts
 ```
 
 ### Endpoints
@@ -104,15 +122,33 @@ users/
 | `GET` | `/users/doctors` | Listar doctores | ADMIN |
 | `GET` | `/users/:id` | Detalle usuario | ADMIN, DOCTOR |
 
-### DTOs Principales
+### User Response (UserEntity)
+
+El `User` expuesta en API **no tiene campo `name`**. Campos:
+
+| Campo | Tipo | Descripcion |
+|-------|------|-------------|
+| `id` | UUID | Identificador único |
+| `email` | string | Email |
+| `role` | Role | ADMIN \| DOCTOR \| PATIENT |
+| `themePreference` | ThemePreference | SYSTEM \| LIGHT \| DARK |
+| `createdAt` | DateTime | Fecha de creación |
+| `updatedAt` | DateTime | Última actualización |
+| `doctor` | DoctorProfileSummary? | Solo para DOCTOR |
+| `patient` | PatientProfileSummary? | Solo para PATIENT |
+
+### CreateUserDto
 
 ```typescript
-// CreateUserDto
 {
-  email: string;        // unico
+  email: string;
   password: string;
-  name: string;
   role: 'ADMIN' | 'DOCTOR' | 'PATIENT';
+  specialty?: string;        // solo para DOCTOR
+  medicalId?: string;        // solo para DOCTOR
+  signatureText?: string;    // solo para DOCTOR
+  signatureImageUrl?: string; // solo para DOCTOR
+  birthDate?: string;       // solo para PATIENT (ISO-8601)
 }
 ```
 
@@ -131,7 +167,7 @@ prescriptions/
 ├── prescriptions.service.ts
 └── dto/
     ├── create-prescription.dto.ts
-    └── pagination.dto.ts
+    └── prescription-response.dto.ts
 ```
 
 ### Endpoints
@@ -148,35 +184,65 @@ prescriptions/
 
 ```typescript
 {
-  patientId?: string;        // ID del paciente (mutually exclusive con patientEmail)
-  patientEmail?: string;     // Email del paciente (busca y obtiene ID)
-  notes?: string;
+  patientId: string;        // ID del Patient (UUID)
   items: Array<{
     name: string;
-    dosage: string;
-    instructions: string;
+    dosage?: string;
+    quantity?: number;
+    instructions?: string;
   }>;
+  notes?: string;
 }
 ```
 
-**Validacion**: Se requiere `patientId` O `patientEmail`, no ambos. Items debe tener al menos 1 elemento.
+**Nota**: No existe `patientEmail` — solo `patientId`.
 
-### Logica de FindAll por Rol
+### PrescriptionResponseDto
 
 ```typescript
-// DOCTOR  → where: { doctorId: currentUser.id }
-// PATIENT → where: { patientId: currentUser.id }
+{
+  id: string;
+  code: string;              // RX-XXXXXXXXXX
+  status: PrescriptionStatus;
+  items: PrescriptionItem[];
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  consumedAt?: Date;
+  authorId: string;          // Doctor UUID
+  patientId: string;         // Patient UUID
+  author: {
+    id: string;
+    specialty?: string;
+    medicalId?: string;
+    signatureText?: string;
+    signatureImageUrl?: string;
+    user: { id: string; email: string; role: string; };
+  };
+  patient: {
+    id: string;
+    birthDate?: Date;
+    user: { id: string; email: string; role: string; };
+  };
+}
+```
+
+### Logica de FindAll por Rol (applyTenantBoundary)
+
+```typescript
+// PATIENT → where: { patient: { userId: currentUser.id } }
+// DOCTOR  → where: { author: { userId: currentUser.id } }
 // ADMIN   → sin filtro (ve todas)
 ```
 
 ### IDOR Prevention en consume()
 
 ```typescript
-async consume(prescriptionId: string, currentUser: User) {
+async consume(prescriptionId: string, currentUser: JwtPayload) {
   const prescription = await this.prisma.prescription.findFirst({
     where: {
       id: prescriptionId,
-      patientId: currentUser.id,  // Solo el paciente puede consumir
+      patient: { userId: currentUser.id },  // Solo el paciente puede consumir
     },
   });
   if (!prescription) {
@@ -201,7 +267,9 @@ Endpoints exclusivos de administracion.
 admin/
 ├── admin.module.ts
 ├── admin.controller.ts
-└── admin.service.ts
+├── admin.service.ts
+└── dto/
+    └── metrics-response.dto.ts
 ```
 
 ### Endpoints
@@ -215,16 +283,22 @@ admin/
 
 ```typescript
 {
-  totalPatients: number;
-  totalDoctors: number;
-  totalPrescriptions: number;
-  prescriptionsByStatus: {
-    PENDING: number;
-    CONSUMED: number;
+  totals: {
+    doctors: number;
+    patients: number;
+    prescriptions: number;
   };
-  prescriptionsByDay: Array<{
+  byStatus: {
+    pending: number;
+    consumed: number;
+  };
+  byDay: Array<{
     date: string;   // YYYY-MM-DD
-    total: number;
+    count: number;
+  }>;
+  topDoctors: Array<{
+    authorId: string;
+    count: number;
   }>;
 }
 ```
@@ -283,7 +357,6 @@ prisma/
 Extiende `PrismaClient` de `@prisma/client`. Se inyecta en todos los servicios que necesitan acceso a la DB.
 
 ```typescript
-// Uso en un servicio
 constructor(private prisma: PrismaService) {}
 
 async findUser(id: string) {
@@ -310,10 +383,9 @@ PrescriptionsController
   ├─ @Roles('DOCTOR')
   │
 PrescriptionsService.create(dto, currentUser)
-  ├─ Validar patientId o patientEmail
-  ├─ user.findFirst({ where: { id: patientId, role: PATIENT } })
-  ├─ Generar code: PRESC-{random6}
-  ├─ prescription.create({ data: { ..., doctorId: currentUser.id } })
+  ├─ Validar patientId existe y role=PATIENT
+  ├─ Generar code: RX-{random10}
+  ├─ prescription.create({ data: { ..., authorId: doctor.id } })
   └─ Return prescription (201)
 ```
 
@@ -329,8 +401,29 @@ PrescriptionsController
   ├─ @UseGuards(JwtAuthGuard, RolesGuard)
   │
 PrescriptionsService.findAll(pagination, currentUser)
-  ├─ Si PATIENT → where: { patientId: currentUser.id }
+  ├─ Si PATIENT → where: { patient: { userId: currentUser.id } }
   ├─ pagination (page, limit, status, from, to, sort, order)
-  ├─ include: { patient: true, doctor: true }
+  ├─ include: { patient: true, author: true }
   └─ Return { data: [...], meta: { page, limit, total, totalPages } }
+```
+
+### Consumir Prescripcion (PATIENT)
+
+```
+Patient App
+  │
+  ├─ PATCH /prescriptions/:id/consume
+  │   Cookie: accessToken
+  │
+PrescriptionsController
+  ├─ @UseGuards(JwtAuthGuard, RolesGuard)
+  ├─ @Roles('PATIENT')
+  │
+PrescriptionsService.consume(id, currentUser)
+  ├─ applyTenantBoundary(where, currentUser) → patient.userId = currentUser.id
+  ├─ findFirst → verificar ownership
+  ├─ Verificar status !== CONSUMED
+  ├─ prescription.update({ status: CONSUMED, consumedAt: now() })
+  ├─ auditLog.create({ fromStatus: PENDING, toStatus: CONSUMED })
+  └─ Return updated prescription
 ```

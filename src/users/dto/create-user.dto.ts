@@ -1,13 +1,17 @@
 /* Copyright (c) 2026. All rights reserved. */
 import {
+  IsDateString,
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
+  IsUrl,
+  MaxLength,
   MinLength,
 } from 'class-validator';
 import { Role } from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -37,4 +41,51 @@ export class CreateUserDto {
   @IsEnum(Role)
   @IsNotEmpty()
   role!: Role;
+
+  @ApiPropertyOptional({
+    example: 'Cardiology',
+    description: 'Medical specialty (only applies when role=DOCTOR)',
+  })
+  @IsString()
+  @IsOptional()
+  specialty?: string;
+
+  @ApiPropertyOptional({
+    example: '1990-05-21',
+    description: 'Date of birth ISO-8601 (only applies when role=PATIENT)',
+    format: 'date',
+  })
+  @IsDateString()
+  @IsOptional()
+  birthDate?: string;
+
+  @ApiPropertyOptional({
+    example: 'MED-12345',
+    description: 'Medical license number (only applies when role=DOCTOR)',
+    maxLength: 64,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(64)
+  medicalId?: string;
+
+  @ApiPropertyOptional({
+    example: 'Dr. Jane Doe',
+    description:
+      'Text-based handwritten-style signature label rendered on PDFs (DOCTOR only)',
+    maxLength: 120,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  signatureText?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://cdn.clinic.com/signatures/jane-doe.png',
+    description: 'URL to a signature image rendered on PDFs (DOCTOR only)',
+    format: 'uri',
+  })
+  @IsUrl()
+  @IsOptional()
+  signatureImageUrl?: string;
 }

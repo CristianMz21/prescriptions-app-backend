@@ -13,22 +13,27 @@ import { join } from 'node:path';
 
 export interface PdfPrescriptionItem {
   name: string;
-  dosage: string;
-  quantity: number;
+  dosage: string | null;
+  quantity: number | null;
   instructions: string | null;
 }
 
 export interface PdfPrescriptionData {
   id: string;
+  code: string;
   createdAt: Date;
   status: string;
   notes: string | null;
   items: PdfPrescriptionItem[];
   patient: {
-    email: string;
+    user: { email: string };
   };
-  doctor: {
-    email: string;
+  author: {
+    specialty?: string | null;
+    medicalId?: string | null;
+    signatureText?: string | null;
+    signatureImageUrl?: string | null;
+    user: { email: string };
   };
   qrCodeUrl?: string;
 }
@@ -48,7 +53,7 @@ export class PdfService {
       const frontendUrl = this.configService.get<string>('FRONTEND_URL');
       const appOrigin = this.configService.get<string>('APP_ORIGIN');
       const qrBaseUrl = frontendUrl ?? appOrigin;
-      const qrPath = `/patient/prescriptions/${prescription.id}`;
+      const qrPath = `/patient/prescriptions/${prescription.code}`;
       let defaultQrUrl = qrPath;
       if (qrBaseUrl) {
         defaultQrUrl = `${qrBaseUrl}${qrPath}`;
@@ -74,10 +79,15 @@ export class PdfService {
 
       const html = template({
         prescriptionId: prescription.id,
+        code: prescription.code,
         date: prescription.createdAt.toLocaleDateString(),
         status: prescription.status,
-        patientEmail: prescription.patient.email,
-        doctorEmail: prescription.doctor.email,
+        patientEmail: prescription.patient.user.email,
+        doctorEmail: prescription.author.user.email,
+        doctorSpecialty: prescription.author.specialty,
+        doctorMedicalId: prescription.author.medicalId,
+        doctorSignatureText: prescription.author.signatureText,
+        doctorSignatureImageUrl: prescription.author.signatureImageUrl,
         items: prescription.items,
         notes: prescription.notes,
         qrCode: qrCodeDataUrl,

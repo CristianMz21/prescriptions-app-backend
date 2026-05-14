@@ -38,6 +38,7 @@ describe('PdfService', () => {
 
       const mockPrescription = {
         id: '1',
+        code: 'RX-TEST123',
         createdAt: new Date(),
         status: 'PENDING',
         notes: 'Notes',
@@ -49,8 +50,11 @@ describe('PdfService', () => {
             instructions: 'Take 1',
           },
         ],
-        doctor: { email: 'doc@c.com' },
-        patient: { email: 'pat@c.com' },
+        author: {
+          specialty: 'General Practice',
+          user: { email: 'doc@c.com' },
+        },
+        patient: { user: { email: 'pat@c.com' } },
       } satisfies PdfPrescriptionData;
 
       const result = await service.generatePrescriptionPdf(mockPrescription);
@@ -74,12 +78,13 @@ describe('PdfService', () => {
     it('should throw InternalServerErrorException on non-Error throw', async () => {
       const mockPrescription = {
         id: '1',
+        code: 'RX-TEST456',
         createdAt: new Date(),
         status: 'PENDING',
         notes: null,
         items: [],
-        doctor: { email: 'doc@c.com' },
-        patient: { email: 'pat@c.com' },
+        author: { user: { email: 'doc@c.com' } },
+        patient: { user: { email: 'pat@c.com' } },
       } satisfies PdfPrescriptionData;
 
       // Make puppeteer reject with a non-Error value to exercise the

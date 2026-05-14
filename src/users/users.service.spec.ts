@@ -16,6 +16,7 @@ describe('UsersService', () => {
       create: jest.Mock;
       findUnique: jest.Mock;
       findMany: jest.Mock;
+      update: jest.Mock;
     };
   };
 
@@ -34,6 +35,7 @@ describe('UsersService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         findMany: jest.fn(),
+        update: jest.fn(),
       },
     };
 
@@ -66,11 +68,12 @@ describe('UsersService', () => {
 
       expect(bcrypt.hash).toHaveBeenCalledWith('password', 10);
       expect(prismaService.user.create).toHaveBeenCalledWith({
-        data: {
+        data: expect.objectContaining({
           email: dto.email,
           passwordHash: 'hashed-password',
           role: dto.role,
-        },
+          patient: { create: { birthDate: null } },
+        }),
       });
       expect(result.id).toEqual(mockUser.id);
       expect(result.email).toEqual(mockUser.email);
@@ -117,11 +120,15 @@ describe('UsersService', () => {
   });
 
   describe('findById', () => {
-    it('should find user by id and return UserEntity', async () => {
+    it('should find user by id and return UserEntity with role profile included', async () => {
       prismaService.user.findUnique.mockResolvedValue(mockUser);
       const result = await service.findById('user-1');
       expect(prismaService.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-1' },
+        include: expect.objectContaining({
+          doctor: expect.any(Object),
+          patient: expect.any(Object),
+        }),
       });
       expect(result).toBeDefined();
       expect(result?.id).toEqual('user-1');
@@ -130,6 +137,32 @@ describe('UsersService', () => {
     it('should throw NotFoundException if user not found', async () => {
       prismaService.user.findUnique.mockResolvedValue(null);
       await expect(service.findById('user-1')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('updateTheme', () => {
+    it('should update themePreference and return UserEntity', async () => {
+      prismaService.user.update.mockResolvedValue({
+        ...mockUser,
+        themePreference: 'DARK',
+      });
+      const result = await service.updateTheme('user-1', 'DARK');
+      expect(prismaService.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'user-1' },
+          data: { themePreference: 'DARK' },
+        }),
+      );
+      expect(result.id).toEqual('user-1');
+    });
+
+    it('should throw NotFoundException on P2025', async () => {
+      const err = new Error('not found') as Error & { code: string };
+      err.code = 'P2025';
+      prismaService.user.update.mockRejectedValue(err);
+      await expect(service.updateTheme('missing', 'SYSTEM')).rejects.toThrow(
         NotFoundException,
       );
     });

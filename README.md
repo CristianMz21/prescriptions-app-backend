@@ -116,7 +116,29 @@ All seeded users share the same password, read from `SEED_DEFAULT_PASSWORD` (see
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|
 | `GET` | `/admin/prescriptions` | List all prescriptions with filters and pagination | ADMIN |
-| `GET` | `/admin/metrics` | Dashboard metrics (totals, by status, by day, top doctors) | ADMIN |
+| `GET` | `/admin/metrics` | Dashboard metrics | ADMIN |
+
+### Admin Metrics Response
+
+```json
+{
+  "totals": {
+    "doctors": 5,
+    "patients": 20,
+    "prescriptions": 100
+  },
+  "byStatus": {
+    "pending": 60,
+    "consumed": 40
+  },
+  "byDay": [
+    { "date": "2026-01-15", "count": 12 }
+  ],
+  "topDoctors": [
+    { "authorId": "uuid", "count": 15 }
+  ]
+}
+```
 
 ## Swagger / OpenAPI
 
@@ -154,15 +176,16 @@ npm run test:e2e -- prescriptions.e2e-spec.ts
 
 - **Auth** — Login, logout, token refresh, profile
 - **Users** — User management and directory
-- **Prescriptions** — Prescription CRUD, PDF generation, consume action
+- **Prescriptions** — Prescription CRUD, PDF generation, consume action, audit log
 - **Admin** — Dashboard metrics and admin-only prescription listing
 - **PDF** — Server-side PDF generation via Puppeteer + Handlebars
+- **PrismaModule** — Singleton PrismaClient
 
 ### Security
 
 - **JWT in HttpOnly cookies** — Access token (15m) and refresh token (7d) stored server-side only; never exposed to JavaScript
 - **RBAC** — Guards and decorators enforce role-based access at controller level
-- **IDOR Prevention** — Ownership checks enforced at the service layer with `findFirst` queries scoped to the authenticated user's identity
+- **IDOR Prevention** — `applyTenantBoundary()` filters prescriptions by authenticated user's identity and role
 - **ValidationPipe** — Global whitelist + forbidNonWhitelisted + transform for all incoming DTOs
 - **Helmet** — Security headers configured
 - **CORS** — Configured to allow requests only from `FRONTEND_URL`
@@ -171,6 +194,9 @@ npm run test:e2e -- prescriptions.e2e-spec.ts
 ### Data Model
 
 - Users have role `ADMIN`, `DOCTOR`, or `PATIENT`
-- Prescriptions belong to one doctor and one patient
+- `Doctor` and `Patient` are separate tables linked 1:1 to `User` via `userId`
+- Prescriptions belong to one doctor (`author`) and one patient
 - Prescription items stored in separate `PrescriptionItem` table (not Json)
+- `PrescriptionAuditLog` tracks all status changes
 - Prisma schema is the authoritative data model
+- Prescription code format: `RX-XXXXXXXXXX` (unique)

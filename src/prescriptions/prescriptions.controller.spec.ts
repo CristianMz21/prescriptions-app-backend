@@ -21,13 +21,15 @@ describe('PrescriptionsController', () => {
 
   const mockPrescription = {
     id: 'prescription-1',
-    doctorId: 'doctor-1',
+    code: 'RX-TEST123ABC',
+    authorId: 'doctor-1',
     patientId: 'patient-1',
     items: [],
     notes: 'Test notes',
     status: PrescriptionStatus.PENDING,
     createdAt: new Date(),
     updatedAt: new Date(),
+    consumedAt: null,
   };
 
   beforeEach(async () => {
@@ -134,11 +136,16 @@ describe('PrescriptionsController', () => {
         consumedPrescription,
       );
 
-      const result = await controller.markAsConsumed(user, mockPrescription.id);
+      const result = await controller.markAsConsumed(
+        user,
+        mockPrescription.id,
+        {},
+      );
 
       expect(prescriptionsService.markAsConsumed).toHaveBeenCalledWith(
         user.id,
         mockPrescription.id,
+        {},
       );
       expect(result.status).toBe(PrescriptionStatus.CONSUMED);
     });
@@ -173,7 +180,7 @@ describe('PrescriptionsController', () => {
       expect(res.set).toHaveBeenCalledWith(
         expect.objectContaining({
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="prescription-${mockPrescription.id}.pdf"`,
+          'Content-Disposition': `attachment; filename="prescription-${mockPrescription.code}.pdf"`,
         }),
       );
       expect(result).toBeInstanceOf(StreamableFile);

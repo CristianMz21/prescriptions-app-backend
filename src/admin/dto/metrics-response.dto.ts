@@ -36,11 +36,11 @@ export class MetricsByDayItemDto {
 
 export class MetricsTopDoctorItemDto {
   @ApiProperty({
-    description: 'Doctor unique identifier',
+    description: 'Doctor (author) unique identifier',
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
   })
-  doctorId!: string;
+  authorId!: string;
 
   @ApiProperty({
     example: 15,

@@ -1,5 +1,6 @@
 import { PrismaClient, Role, PrescriptionStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { generatePrescriptionCode } from '../src/common/utils/code.utils';
 
 const prisma = new PrismaClient();
 
@@ -12,10 +13,9 @@ async function main() {
   const hashedPassword = await bcrypt.hash(defaultPassword, saltRounds);
 
   // ---------------------------------------------------------
-  // 1. Seed Users (Upsert ensures we don't duplicate on re-runs)
+  // 1. Seed Users + typed role tables (Doctor/Patient)
   // ---------------------------------------------------------
 
-  // Seed Admin
   const admin = await prisma.user.upsert({
     where: { email: 'admin@clinic.com' },
     update: {},
@@ -27,45 +27,67 @@ async function main() {
   });
   console.log(`✅ Upserted ADMIN user: ${admin.email}`);
 
-  // Seed Doctor
-  const doctor = await prisma.user.upsert({
+  const doctorUser = await prisma.user.upsert({
     where: { email: 'doctor@clinic.com' },
     update: {},
     create: {
       email: 'doctor@clinic.com',
       passwordHash: hashedPassword,
       role: Role.DOCTOR,
+      doctor: {
+        create: {
+          specialty: 'General Practice',
+          medicalId: 'MED-10001',
+          signatureText: 'Dr. Jane Doe',
+        },
+      },
     },
+    include: { doctor: true },
   });
-  console.log(`✅ Upserted DOCTOR user: ${doctor.email}`);
+  console.log(`✅ Upserted DOCTOR user: ${doctorUser.email}`);
 
-  const doctor2 = await prisma.user.upsert({
+  const doctor2User = await prisma.user.upsert({
     where: { email: 'doctor2@clinic.com' },
     update: {},
     create: {
       email: 'doctor2@clinic.com',
       passwordHash: hashedPassword,
       role: Role.DOCTOR,
+      doctor: {
+        create: {
+          specialty: 'Pediatrics',
+          medicalId: 'MED-20002',
+          signatureText: 'Dr. John Smith',
+        },
+      },
     },
+    include: { doctor: true },
   });
-  console.log(`✅ Upserted DOCTOR user: ${doctor2.email}`);
+  console.log(`✅ Upserted DOCTOR user: ${doctor2User.email}`);
 
-  const patient = await prisma.user.upsert({
+  const patientUser = await prisma.user.upsert({
     where: { email: 'patient@clinic.com' },
     update: {},
     create: {
       email: 'patient@clinic.com',
       passwordHash: hashedPassword,
       role: Role.PATIENT,
+      patient: { create: { birthDate: new Date('1990-05-21') } },
     },
+    include: { patient: true },
   });
-  console.log(`✅ Upserted PATIENT user: ${patient.email}`);
+  console.log(`✅ Upserted PATIENT user: ${patientUser.email}`);
+
+  const doctor = doctorUser.doctor;
+  const patient = patientUser.patient;
+  if (!doctor || !patient) {
+    throw new Error('Doctor or Patient typed-row was not created');
+  }
 
   // ---------------------------------------------------------
   // 2. Seed Prescriptions
   // ---------------------------------------------------------
 
-  // Only seed prescriptions if the patient has none, to avoid spamming the DB on multiple runs.
   const existingPrescriptionsCount = await prisma.prescription.count({
     where: { patientId: patient.id },
   });
@@ -83,8 +105,6 @@ async function main() {
           },
         ],
         notes: 'Take with food to avoid stomach upset.',
-        doctorId: doctor.id,
-        patientId: patient.id,
       },
       {
         status: PrescriptionStatus.CONSUMED,
@@ -97,8 +117,6 @@ async function main() {
           },
         ],
         notes: null,
-        doctorId: doctor.id,
-        patientId: patient.id,
       },
       {
         status: PrescriptionStatus.PENDING,
@@ -117,8 +135,6 @@ async function main() {
           },
         ],
         notes: 'Follow up in 3 months for blood work.',
-        doctorId: doctor.id,
-        patientId: patient.id,
       },
       {
         status: PrescriptionStatus.CONSUMED,
@@ -131,8 +147,6 @@ async function main() {
           },
         ],
         notes: 'Finish the entire course even if feeling better.',
-        doctorId: doctor.id,
-        patientId: patient.id,
       },
       {
         status: PrescriptionStatus.PENDING,
@@ -145,8 +159,6 @@ async function main() {
           },
         ],
         notes: 'Monitor blood sugar levels closely.',
-        doctorId: doctor.id,
-        patientId: patient.id,
       },
     ];
 
@@ -155,16 +167,38 @@ async function main() {
     );
 
     for (const { items, ...prescriptionData } of dummyPrescriptions) {
-      await prisma.prescription.create({
+      const consumedAt =
+        prescriptionData.status === PrescriptionStatus.CONSUMED
+          ? new Date()
+          : null;
+      const created = await prisma.prescription.create({
         data: {
           ...prescriptionData,
+          code: generatePrescriptionCode(),
+          authorId: doctor.id,
+          patientId: patient.id,
+          consumedAt,
           items: { create: items },
         },
       });
+
+      // For CONSUMED prescriptions, also seed the corresponding audit log
+      // (idempotency guarded by the if-block above which only runs on first seed).
+      if (prescriptionData.status === PrescriptionStatus.CONSUMED) {
+        await prisma.prescriptionAuditLog.create({
+          data: {
+            prescriptionId: created.id,
+            changedById: patientUser.id,
+            fromStatus: PrescriptionStatus.PENDING,
+            toStatus: PrescriptionStatus.CONSUMED,
+            reason: 'Seeded historical consumption',
+          },
+        });
+      }
     }
 
     console.log(
-      `✅ Successfully created ${dummyPrescriptions.length} dummy prescriptions.`,
+      `✅ Successfully created ${dummyPrescriptions.length} dummy prescriptions (with audit logs for CONSUMED).`,
     );
   } else {
     console.log(
@@ -176,7 +210,7 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error('❌ Error during seeding:', e);
     process.exit(1);
   })

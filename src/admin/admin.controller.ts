@@ -1,6 +1,7 @@
 /* Copyright (c) 2026. All rights reserved. */
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Sse, UseGuards } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import { Observable, from, interval, map, startWith, switchMap } from 'rxjs';
 import {
   ApiTags,
   ApiOperation,
@@ -10,11 +11,12 @@ import {
   ApiForbiddenResponse,
   ApiCookieAuth,
   ApiExtraModels,
+  ApiProduces,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { AdminService } from './admin.service';
+import { AdminService, MetricsStreamSnapshot } from './admin.service';
 import { AdminMetricsDto } from './dto/admin-metrics.dto';
 import { AdminListPrescriptionsDto } from './dto/admin-list-prescriptions.dto';
 import { MetricsResponseDto } from './dto/metrics-response.dto';
@@ -83,6 +85,32 @@ export class AdminController {
     return this.adminService.getDashboardMetricsFiltered(
       metricsDto.from,
       metricsDto.to,
+    );
+  }
+
+  @Sse('metrics/stream')
+  @Roles(Role.ADMIN)
+  @ApiOperation({
+    summary: 'Stream live admin metrics over Server-Sent Events (Admin Only)',
+  })
+  @ApiProduces('text/event-stream')
+  @ApiOkResponse({
+    description:
+      'Server-Sent Events stream emitting MetricsStreamSnapshot every 5 seconds',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: UNAUTHORIZED_DESC,
+  })
+  @ApiForbiddenResponse({
+    type: ErrorResponseDto,
+    description: FORBIDDEN_ADMIN_DESC,
+  })
+  streamMetrics(): Observable<{ data: MetricsStreamSnapshot }> {
+    return interval(5000).pipe(
+      startWith(0),
+      switchMap(() => from(this.adminService.getStreamSnapshot())),
+      map(snapshot => ({ data: snapshot })),
     );
   }
 }

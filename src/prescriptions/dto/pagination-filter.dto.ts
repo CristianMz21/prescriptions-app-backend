@@ -1,5 +1,13 @@
 /* Copyright (c) 2026. All rights reserved. */
-import { IsEnum, IsInt, IsOptional, IsDateString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsDateString,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PrescriptionStatus } from '@prisma/client';
@@ -58,4 +66,15 @@ export class PaginationFilterDto {
   @IsOptional()
   @IsDateString()
   toDate?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Free-text query. Case-insensitive substring match against prescription notes and item names.',
+    example: 'amoxi',
+    maxLength: 200,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  q?: string;
 }

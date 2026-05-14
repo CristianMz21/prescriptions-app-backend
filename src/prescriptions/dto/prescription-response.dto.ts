@@ -1,6 +1,6 @@
 /* Copyright (c) 2026. All rights reserved. */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PrescriptionStatus } from '@prisma/client';
+import { PrescriptionStatus, Role } from '@prisma/client';
 
 export class PrescriptionItemResponseDto {
   @ApiProperty({
@@ -16,14 +16,17 @@ export class PrescriptionItemResponseDto {
   })
   name!: string;
 
-  @ApiProperty({ example: '500mg', description: 'Dosage of the medication' })
-  dosage!: string;
+  @ApiPropertyOptional({
+    example: '500mg',
+    description: 'Dosage of the medication',
+  })
+  dosage?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 30,
     description: 'Quantity to dispense (number of units)',
   })
-  quantity!: number;
+  quantity?: number;
 
   @ApiPropertyOptional({
     example: 'Take 1 pill every 8 hours',
@@ -32,7 +35,22 @@ export class PrescriptionItemResponseDto {
   instructions?: string;
 }
 
-export class PrescriptionDoctorSummaryDto {
+export class PrescriptionUserSummaryDto {
+  @ApiProperty({
+    description: 'User unique identifier',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    format: 'uuid',
+  })
+  id!: string;
+
+  @ApiProperty({ example: 'user@clinic.com', format: 'email' })
+  email!: string;
+
+  @ApiProperty({ enum: Role, enumName: 'Role' })
+  role!: Role;
+}
+
+export class PrescriptionAuthorSummaryDto {
   @ApiProperty({
     description: 'Doctor unique identifier',
     example: '123e4567-e89b-12d3-a456-426614174000',
@@ -40,11 +58,36 @@ export class PrescriptionDoctorSummaryDto {
   })
   id!: string;
 
-  @ApiProperty({ example: 'doctor@clinic.com', format: 'email' })
-  email!: string;
+  @ApiPropertyOptional({
+    example: 'Cardiology',
+    description: 'Medical specialty',
+  })
+  specialty?: string;
 
-  @ApiProperty({ enum: PrescriptionStatus, enumName: 'Role' })
-  role!: string;
+  @ApiPropertyOptional({
+    example: 'MED-12345',
+    description: 'Medical license / registration number',
+  })
+  medicalId?: string;
+
+  @ApiPropertyOptional({
+    example: 'Dr. Jane Doe',
+    description: 'Text rendering of the doctor signature',
+  })
+  signatureText?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://cdn.clinic.com/signatures/jane-doe.png',
+    description: 'URL to the doctor signature image',
+    format: 'uri',
+  })
+  signatureImageUrl?: string;
+
+  @ApiProperty({
+    type: () => PrescriptionUserSummaryDto,
+    description: 'Doctor account',
+  })
+  user!: PrescriptionUserSummaryDto;
 }
 
 export class PrescriptionPatientSummaryDto {
@@ -55,11 +98,18 @@ export class PrescriptionPatientSummaryDto {
   })
   id!: string;
 
-  @ApiProperty({ example: 'patient@clinic.com', format: 'email' })
-  email!: string;
+  @ApiPropertyOptional({
+    example: '1990-05-21',
+    description: 'Patient date of birth (ISO-8601 date)',
+    format: 'date',
+  })
+  birthDate?: Date;
 
-  @ApiProperty({ enum: PrescriptionStatus, enumName: 'Role' })
-  role!: string;
+  @ApiProperty({
+    type: () => PrescriptionUserSummaryDto,
+    description: 'Patient account',
+  })
+  user!: PrescriptionUserSummaryDto;
 }
 
 export class PrescriptionResponseDto {
@@ -69,6 +119,12 @@ export class PrescriptionResponseDto {
     format: 'uuid',
   })
   id!: string;
+
+  @ApiProperty({
+    description: 'Short URL-safe code used by the QR on the PDF',
+    example: 'RX-A1B2C3D4E5',
+  })
+  code!: string;
 
   @ApiProperty({
     description: 'Current status of the prescription',
@@ -104,12 +160,19 @@ export class PrescriptionResponseDto {
   })
   updatedAt!: Date;
 
+  @ApiPropertyOptional({
+    description: 'ISO 8601 timestamp when the prescription was consumed',
+    example: '2026-01-16T08:45:00.000Z',
+    format: 'date-time',
+  })
+  consumedAt?: Date;
+
   @ApiProperty({
-    description: 'Prescribing doctor unique identifier',
+    description: 'Author (Doctor) unique identifier',
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
   })
-  doctorId!: string;
+  authorId!: string;
 
   @ApiProperty({
     description: 'Patient unique identifier',
@@ -119,10 +182,10 @@ export class PrescriptionResponseDto {
   patientId!: string;
 
   @ApiProperty({
-    type: () => PrescriptionDoctorSummaryDto,
+    type: () => PrescriptionAuthorSummaryDto,
     description: 'Prescribing doctor summary',
   })
-  doctor!: PrescriptionDoctorSummaryDto;
+  author!: PrescriptionAuthorSummaryDto;
 
   @ApiProperty({
     type: () => PrescriptionPatientSummaryDto,
