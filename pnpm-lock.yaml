@@ -4,6 +4,14 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  axios: 1.15.2
+  flatted: 3.4.2
+  handlebars: 4.7.9
+  node-forge: 1.4.0
+  lodash: 4.18.1
+  underscore: 1.13.8
+
 importers:
 
   .:
@@ -45,7 +53,7 @@ importers:
         specifier: ^1.4.7
         version: 1.4.7
       handlebars:
-        specifier: ^4.7.9
+        specifier: 4.7.9
         version: 4.7.9
       helmet:
         specifier: ^8.1.0
@@ -2405,9 +2413,6 @@ packages:
     resolution: {integrity: sha512-f7ccFPK3SXFHpx15UIGyRJ/FJQctuKZ0zVuN3frBo4HnK3cay9VEW0R6yPYFHC0AgqhukPzKjq22t5DmAyqGyw==}
     engines: {node: '>=16'}
 
-  flatted@3.2.6:
-    resolution: {integrity: sha512-0sQoMh9s0BYsm+12Huy/rkKxVu4R1+r96YX5cG44rHV0pQ6iC3Q+mkoMFaGWObMFYQxCVT+ssG1ksneA2MI9KQ==}
-
   flatted@3.4.2:
     resolution: {integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==}
 
@@ -2551,11 +2556,6 @@ packages:
 
   graphlib@2.1.8:
     resolution: {integrity: sha512-jcLLfkpoVGmH7/InMC/1hIvOPSUh38oJtGhvrOFGzioE1DZ+0YW16RgmOJhHiuWTvGiJQ9Z1Ik43JvkRPRvE+A==}
-
-  handlebars@4.7.8:
-    resolution: {integrity: sha512-vafaFqs8MZkRrSX7sFVUdo3ap/eNiLnb4IakshzvP56X5Nr1iGKAIqdX6tMlm6HcNRIkr6AxO5jFEoJzzpT8aQ==}
-    engines: {node: '>=0.4.7'}
-    hasBin: true
 
   handlebars@4.7.9:
     resolution: {integrity: sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==}
@@ -3075,12 +3075,6 @@ packages:
   lodash.once@4.1.1:
     resolution: {integrity: sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==}
 
-  lodash@4.17.21:
-    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-
-  lodash@4.17.23:
-    resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
-
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
@@ -3297,8 +3291,8 @@ packages:
       encoding:
         optional: true
 
-  node-forge@1.3.1:
-    resolution: {integrity: sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==}
+  node-forge@1.4.0:
+    resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
     engines: {node: '>= 6.13.0'}
 
   node-gyp-build@4.8.4:
@@ -4236,8 +4230,8 @@ packages:
     resolution: {integrity: sha512-rvKSBiC5zqCCiDZ9kAOszZcDvdAHwwIKJG33Ykj43OKcWsnmcBRL09YTU4nOeHZ8Y2a7l1MgTd08SBe9A8Qj6A==}
     engines: {node: '>=18'}
 
-  underscore@1.12.1:
-    resolution: {integrity: sha512-hEQt0+ZLDVUMhebKxL4x1BTtDY7bavVofhZ9KZ4aI26X9SRaE+Y3m83XUL1UP2jn8ynjndwCCpEHdUG+9pP1Tw==}
+  underscore@1.13.8:
+    resolution: {integrity: sha512-DXtD3ZtEQzc7M8m4cXotyHR+FAS18C64asBYY5vqZexfYryNNnDc02W4hKg3rdQuqOYas1jkseX0+nZXjTXnvQ==}
 
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
@@ -6968,8 +6962,6 @@ snapshots:
       flatted: 3.4.2
       keyv: 4.5.4
 
-  flatted@3.2.6: {}
-
   flatted@3.4.2: {}
 
   foreach@2.0.6: {}
@@ -7138,15 +7130,6 @@ snapshots:
     dependencies:
       lodash: 4.18.1
 
-  handlebars@4.7.8:
-    dependencies:
-      minimist: 1.2.8
-      neo-async: 2.6.2
-      source-map: 0.6.1
-      wordwrap: 1.0.0
-    optionalDependencies:
-      uglify-js: 3.19.3
-
   handlebars@4.7.9:
     dependencies:
       minimist: 1.2.8
@@ -7215,7 +7198,7 @@ snapshots:
       des.js: 1.1.0
       httpreq: 1.1.1
       js-md4: 0.3.2
-      underscore: 1.12.1
+      underscore: 1.13.8
 
   httpreq@1.1.1: {}
 
@@ -7824,10 +7807,6 @@ snapshots:
 
   lodash.once@4.1.1: {}
 
-  lodash@4.17.21: {}
-
-  lodash@4.17.23: {}
-
   lodash@4.18.1: {}
 
   log-symbols@4.1.0:
@@ -7981,7 +7960,7 @@ snapshots:
       csv-parse: 4.16.3
       filesize: 10.1.4
       liquid-json: 0.3.1
-      lodash: 4.17.21
+      lodash: 4.18.1
       mkdirp: 3.0.1
       postman-collection: 4.4.0
       postman-collection-transformer: 4.1.8
@@ -8013,7 +7992,7 @@ snapshots:
     dependencies:
       whatwg-url: 5.0.0
 
-  node-forge@1.3.1: {}
+  node-forge@1.4.0: {}
 
   node-gyp-build@4.8.4: {}
 
@@ -8120,7 +8099,7 @@ snapshots:
       js-yaml: 4.1.0
       json-pointer: 0.6.2
       json-schema-merge-allof: 0.8.1
-      lodash: 4.17.21
+      lodash: 4.18.1
       neotraverse: 0.6.15
       oas-resolver-browser: 2.5.6
       object-hash: 3.0.0
@@ -8279,7 +8258,7 @@ snapshots:
     dependencies:
       commander: 8.3.0
       inherits: 2.0.4
-      lodash: 4.17.21
+      lodash: 4.18.1
       semver: 7.5.4
       strip-json-comments: 3.1.1
 
@@ -8290,7 +8269,7 @@ snapshots:
       http-reasons: 0.1.0
       iconv-lite: 0.6.3
       liquid-json: 0.3.1
-      lodash: 4.17.21
+      lodash: 4.18.1
       mime-format: 2.0.1
       mime-types: 2.1.35
       postman-url-encoder: 3.0.5
@@ -8304,7 +8283,7 @@ snapshots:
       http-reasons: 0.1.0
       iconv-lite: 0.6.3
       liquid-json: 0.3.1
-      lodash: 4.17.23
+      lodash: 4.18.1
       mime: 3.0.0
       mime-format: 2.0.2
       postman-url-encoder: 3.0.8
@@ -8366,13 +8345,13 @@ snapshots:
       '@postman/tough-cookie': 4.1.3-postman.1
       async: 3.2.5
       aws4: 1.12.0
-      handlebars: 4.7.8
+      handlebars: 4.7.9
       httpntlm: 1.8.13
       jose: 4.14.4
       js-sha512: 0.9.0
-      lodash: 4.17.21
+      lodash: 4.18.1
       mime-types: 2.1.35
-      node-forge: 1.3.1
+      node-forge: 1.4.0
       node-oauth1: 1.3.0
       performance-now: 2.1.0
       postman-collection: 4.4.0
@@ -8385,7 +8364,7 @@ snapshots:
 
   postman-sandbox@4.7.1:
     dependencies:
-      lodash: 4.17.21
+      lodash: 4.18.1
       postman-collection: 4.4.0
       teleport-javascript: 1.0.0
       uvm: 2.1.1
@@ -9118,7 +9097,7 @@ snapshots:
 
   uint8array-extras@1.5.0: {}
 
-  underscore@1.12.1: {}
+  underscore@1.13.8: {}
 
   undici-types@7.16.0: {}
 
@@ -9177,7 +9156,7 @@ snapshots:
 
   uvm@2.1.1:
     dependencies:
-      flatted: 3.2.6
+      flatted: 3.4.2
 
   v8-compile-cache-lib@3.0.1: {}
 
