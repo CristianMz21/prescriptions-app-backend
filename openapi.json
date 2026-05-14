@@ -2508,15 +2508,15 @@
         "properties": {
           "name": {
             "type": "string",
-            "example": "Jane Doe Updated",
-            "description": "New display name (UI).",
+            "example": "Jane Doe",
+            "description": "Full display name (UI). Required.",
             "minLength": 1,
             "maxLength": 120
           },
           "phone": {
             "type": "string",
-            "example": "+54 11 9999-0000",
-            "description": "New contact phone (free-form up to 32 chars). Send empty string to clear (currently treated as set-to-empty; not nullified).",
+            "example": "+54 11 1234-5678",
+            "description": "Optional contact phone (E.164-ish, free-form up to 32 chars).",
             "maxLength": 32
           }
         }
