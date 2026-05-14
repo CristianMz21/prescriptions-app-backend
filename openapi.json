@@ -1,0 +1,1873 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Login successful — access tokens set in cookies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — validation failed or invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Authenticate user and obtain access tokens",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Token refreshed — new access token set in cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — refresh token missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Refresh access token using refresh token cookie",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Logout successful — cookies cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Log out and clear access/refresh token cookies",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/profile": {
+      "get": {
+        "operationId": "AuthController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns the authenticated user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Get authenticated user profile",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Admin role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict — user with this email already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Create a new user (Admin Only)",
+        "tags": [
+          "Users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns paginated list of all users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResultDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UserEntity"
+                          }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMetaDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Admin role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "List all users (Admin Only)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/patients": {
+      "get": {
+        "operationId": "UsersController_findAllPatients",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns paginated list of all patients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResultDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UserEntity"
+                          }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMetaDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Admin or Doctor role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "List all patients (Admin/Doctor Only)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/doctors": {
+      "get": {
+        "operationId": "UsersController_findAllDoctors",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns paginated list of all doctors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResultDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UserEntity"
+                          }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMetaDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Admin role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "List all doctors (Admin Only)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User ID (UUID v4)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the user details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Admin or Doctor role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found — user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Get user detail by ID",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/prescriptions": {
+      "post": {
+        "operationId": "PrescriptionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePrescriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Prescription created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrescriptionResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — invalid payload or patient not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Doctor role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Create a new prescription (Doctor Only)",
+        "tags": [
+          "Prescriptions"
+        ]
+      },
+      "get": {
+        "operationId": "PrescriptionsController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Número de página (1-indexed).",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Cantidad de items por página.",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar por estado de prescripción.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONSUMED"
+              ]
+            }
+          },
+          {
+            "name": "fromDate",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar desde fecha (ISO 8601).",
+            "schema": {
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "toDate",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar hasta fecha (ISO 8601).",
+            "schema": {
+              "example": "2026-12-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns paginated list of prescriptions based on user role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResultDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PrescriptionResponseDto"
+                          }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMetaDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "List prescriptions (Paginated)",
+        "tags": [
+          "Prescriptions"
+        ]
+      }
+    },
+    "/prescriptions/{id}": {
+      "get": {
+        "operationId": "PrescriptionsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Prescription ID (UUID v4)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the prescription detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrescriptionResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — you do not have access to this prescription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found — prescription does not exist or access forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Get prescription detail by ID",
+        "tags": [
+          "Prescriptions"
+        ]
+      }
+    },
+    "/prescriptions/{id}/consume": {
+      "patch": {
+        "operationId": "PrescriptionsController_markAsConsumed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Prescription ID (UUID v4)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prescription status updated to CONSUMED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrescriptionResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — prescription already consumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Patient role required or prescription does not belong to patient",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found — prescription not found or does not belong to patient",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Mark prescription as consumed (Patient Only)",
+        "tags": [
+          "Prescriptions"
+        ]
+      }
+    },
+    "/prescriptions/{id}/pdf": {
+      "get": {
+        "operationId": "PrescriptionsController_downloadPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Prescription ID (UUID v4)",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Streams the generated PDF file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — you do not have access to this prescription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found — prescription not found or not authorized to download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Download prescription PDF",
+        "tags": [
+          "Prescriptions"
+        ]
+      }
+    },
+    "/admin/prescriptions": {
+      "get": {
+        "operationId": "AdminController_listPrescriptions",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-indexed)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by prescription status",
+            "schema": {
+              "$ref": "#/components/schemas/PrescriptionStatus"
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by doctor UUID",
+            "schema": {
+              "format": "uuid",
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by patient UUID",
+            "schema": {
+              "format": "uuid",
+              "example": "456e7890-e89b-12d3-a456-426614174001",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Filter prescriptions created on or after this date (ISO 8601)",
+            "schema": {
+              "format": "date",
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Filter prescriptions created on or before this date (ISO 8601)",
+            "schema": {
+              "format": "date",
+              "example": "2026-01-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns paginated list of all prescriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResultDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PrescriptionResponseDto"
+                          }
+                        },
+                        "meta": {
+                          "$ref": "#/components/schemas/PaginationMetaDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Admin role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "List all prescriptions (Admin Only)",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/admin/metrics": {
+      "get": {
+        "operationId": "AdminController_getMetrics",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date for filtering metrics (ISO 8601 date string)",
+            "schema": {
+              "format": "date",
+              "example": "2026-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date for filtering metrics (ISO 8601 date string)",
+            "schema": {
+              "format": "date",
+              "example": "2026-01-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns aggregated system metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request — invalid date parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — valid access token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — Admin role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "Get dashboard metrics (Admin Only)",
+        "tags": [
+          "Admin"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Prescription Management API",
+    "description": "API documentation for the MVP Prescription Management System.",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "accessToken"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "doctor@clinic.com",
+            "description": "User email"
+          },
+          "password": {
+            "type": "string",
+            "example": "***REDACTED-DEV-PASSWORD***",
+            "description": "User password"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "ADMIN",
+          "DOCTOR",
+          "PATIENT"
+        ],
+        "description": "User role for RBAC"
+      },
+      "AuthUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User unique identifier",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "doctor@clinic.com",
+            "format": "email"
+          },
+          "role": {
+            "description": "User role for RBAC",
+            "example": "DOCTOR",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Login successful",
+            "description": "Confirmation message"
+          },
+          "user": {
+            "description": "Authenticated user profile",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthUserDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 400,
+            "description": "HTTP status code of the error"
+          },
+          "message": {
+            "type": "string",
+            "example": "Invalid JSON payload",
+            "description": "Error message describing what went wrong"
+          },
+          "path": {
+            "type": "string",
+            "example": "/auth/login",
+            "description": "The request path that caused the error"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-05-13T10:30:00.000Z",
+            "description": "ISO 8601 timestamp when the error occurred"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "path",
+          "timestamp"
+        ]
+      },
+      "RefreshResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Token refreshed",
+            "description": "Confirmation message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "LogoutResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Logged out successfully",
+            "description": "Confirmation message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "UserProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique user identifier (UUID v4)",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "doctor@clinic.com",
+            "format": "email"
+          },
+          "role": {
+            "description": "User role for RBAC",
+            "example": "DOCTOR",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 timestamp when the user was created",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 timestamp when the user was last updated",
+            "example": "2026-01-15T12:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page number (1-indexed)"
+          },
+          "limit": {
+            "type": "number",
+            "example": 10,
+            "description": "Number of items per page"
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Total number of items across all pages"
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 5,
+            "description": "Total number of pages"
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "PaginatedResultDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "UserEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique user identifier (UUID v4)",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "doctor@clinic.com",
+            "format": "email"
+          },
+          "role": {
+            "description": "User role for RBAC",
+            "example": "DOCTOR",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 timestamp when the user was created",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 timestamp when the user was last updated",
+            "example": "2026-01-15T12:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@clinic.com",
+            "description": "User email address",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "example": "***REDACTED-DEV-PASSWORD***",
+            "description": "User password (minimum 6 characters)"
+          },
+          "role": {
+            "description": "User role (ADMIN, DOCTOR, PATIENT)",
+            "example": "PATIENT",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "role"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique user identifier (UUID v4)",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "doctor@clinic.com",
+            "format": "email"
+          },
+          "role": {
+            "description": "User role for RBAC",
+            "example": "DOCTOR",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 timestamp when the user was created",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 timestamp when the user was last updated",
+            "example": "2026-01-15T12:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PrescriptionStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "CONSUMED"
+        ],
+        "description": "Current status of the prescription"
+      },
+      "PrescriptionItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Amoxicillin",
+            "description": "Name of the medication"
+          },
+          "dosage": {
+            "type": "string",
+            "example": "500mg",
+            "description": "Dosage of the medication"
+          },
+          "instructions": {
+            "type": "string",
+            "example": "Take 1 pill every 8 hours",
+            "description": "Instructions for the patient"
+          }
+        },
+        "required": [
+          "name",
+          "dosage"
+        ]
+      },
+      "PrescriptionDoctorSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Doctor unique identifier",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "doctor@clinic.com",
+            "format": "email"
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
+        ]
+      },
+      "PrescriptionPatientSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Patient unique identifier",
+            "example": "456e7890-e89b-12d3-a456-426614174001",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "patient@clinic.com",
+            "format": "email"
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
+        ]
+      },
+      "PrescriptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Prescription unique identifier",
+            "example": "789e0123-e89b-12d3-a456-426614174002",
+            "format": "uuid"
+          },
+          "status": {
+            "description": "Current status of the prescription",
+            "example": "PENDING",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrescriptionStatus"
+              }
+            ]
+          },
+          "items": {
+            "description": "List of medications in the prescription",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrescriptionItemResponseDto"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "example": "Follow up in 2 weeks",
+            "description": "Additional notes from the doctor"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 timestamp when the prescription was created",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 timestamp when the prescription was last updated",
+            "example": "2026-01-15T12:30:00.000Z"
+          },
+          "doctorId": {
+            "type": "string",
+            "description": "Prescribing doctor unique identifier",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "Patient unique identifier",
+            "example": "456e7890-e89b-12d3-a456-426614174001",
+            "format": "uuid"
+          },
+          "doctor": {
+            "description": "Prescribing doctor summary",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrescriptionDoctorSummaryDto"
+              }
+            ]
+          },
+          "patient": {
+            "description": "Patient summary",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PrescriptionPatientSummaryDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "items",
+          "createdAt",
+          "updatedAt",
+          "doctorId",
+          "patientId",
+          "doctor",
+          "patient"
+        ]
+      },
+      "PrescriptionItemDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Amoxicillin",
+            "description": "Name of the medication"
+          },
+          "dosage": {
+            "type": "string",
+            "example": "500mg",
+            "description": "Dosage of the medication"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 30,
+            "description": "Quantity to dispense (number of units)"
+          },
+          "instructions": {
+            "type": "string",
+            "example": "Take 1 pill every 8 hours",
+            "description": "Instructions for the patient"
+          }
+        },
+        "required": [
+          "name",
+          "dosage",
+          "quantity"
+        ]
+      },
+      "CreatePrescriptionDto": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "description": "UUID of the patient",
+            "format": "uuid"
+          },
+          "items": {
+            "description": "List of medications in the prescription",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrescriptionItemDto"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "example": "Follow up in 2 weeks",
+            "description": "Additional notes from the doctor"
+          }
+        },
+        "required": [
+          "patientId",
+          "items"
+        ]
+      },
+      "MetricsTotalsDto": {
+        "type": "object",
+        "properties": {
+          "doctors": {
+            "type": "number",
+            "example": 5,
+            "description": "Total number of doctors"
+          },
+          "patients": {
+            "type": "number",
+            "example": 20,
+            "description": "Total number of patients"
+          },
+          "prescriptions": {
+            "type": "number",
+            "example": 100,
+            "description": "Total number of prescriptions"
+          }
+        },
+        "required": [
+          "doctors",
+          "patients",
+          "prescriptions"
+        ]
+      },
+      "MetricsByStatusDto": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "number",
+            "example": 60,
+            "description": "Number of pending prescriptions"
+          },
+          "consumed": {
+            "type": "number",
+            "example": 40,
+            "description": "Number of consumed prescriptions"
+          }
+        },
+        "required": [
+          "pending",
+          "consumed"
+        ]
+      },
+      "MetricsByDayItemDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-01-15",
+            "description": "Date string (YYYY-MM-DD)"
+          },
+          "count": {
+            "type": "number",
+            "example": 12,
+            "description": "Number of prescriptions created on this day"
+          }
+        },
+        "required": [
+          "date",
+          "count"
+        ]
+      },
+      "MetricsTopDoctorItemDto": {
+        "type": "object",
+        "properties": {
+          "doctorId": {
+            "type": "string",
+            "description": "Doctor unique identifier",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "format": "uuid"
+          },
+          "count": {
+            "type": "number",
+            "example": 15,
+            "description": "Number of prescriptions by this doctor"
+          }
+        },
+        "required": [
+          "doctorId",
+          "count"
+        ]
+      },
+      "MetricsResponseDto": {
+        "type": "object",
+        "properties": {
+          "totals": {
+            "description": "Aggregate counts",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MetricsTotalsDto"
+              }
+            ]
+          },
+          "byStatus": {
+            "description": "Prescription counts by status",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MetricsByStatusDto"
+              }
+            ]
+          },
+          "byDay": {
+            "description": "Daily prescription counts for the last 30 days (or filtered range)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricsByDayItemDto"
+            }
+          },
+          "topDoctors": {
+            "description": "Top 5 doctors by prescription count in the filtered period",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricsTopDoctorItemDto"
+            }
+          }
+        },
+        "required": [
+          "totals",
+          "byStatus",
+          "byDay",
+          "topDoctors"
+        ]
+      }
+    }
+  }
+}
