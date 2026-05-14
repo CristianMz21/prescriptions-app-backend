@@ -1,13 +1,13 @@
 # ---------------------------------------------------------
 # Stage 1: Dependencies & Builder
 # ---------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Install pnpm for efficient package management
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11.1.1
 
 # Copy package.json and lock files
 COPY package.json pnpm-lock.yaml ./
@@ -30,7 +30,7 @@ RUN pnpm run build
 # ---------------------------------------------------------
 # Stage 2: Production Final Image
 # ---------------------------------------------------------
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 
 # Set Node environment to production for framework optimizations
 ENV NODE_ENV=production
@@ -61,7 +61,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/start.sh ./
 
 # Install ONLY production dependencies to keep the image size minimal
-RUN npm install -g pnpm && pnpm install --prod --frozen-lockfile
+RUN npm install -g pnpm@11.1.1 && pnpm install --prod --frozen-lockfile
 
 # Generate Prisma Client again for the production stage
 RUN npx prisma generate
