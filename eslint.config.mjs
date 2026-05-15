@@ -29,10 +29,23 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-ignore': true,
+          'ts-expect-error': true,
+          'ts-nocheck': true,
+          'ts-check': false,
+        },
+      ],
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
   {
+    // Test files exercise mock objects whose runtime shape is intentionally
+    // narrower than the production type. `no-unsafe-*` (which flag any-typed
+    // member access propagation) are still off here. `no-explicit-any` stays
+    // ERROR everywhere — no `as any` / `: any` permitted.
     files: ['**/*.spec.ts', '**/*.e2e-spec.ts', 'test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -42,7 +55,6 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/require-await': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },

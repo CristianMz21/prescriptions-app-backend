@@ -170,3 +170,45 @@ jobs:
         with:
           args: >
             -Dsonar.qualitygate.wait=true
+
+  forbidden-patterns:
+    name: Forbidden Patterns
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Scan for unsafe shortcuts
+        # Banned across src/ and test/: .skip(, .only(, @ts-ignore,
+        # @ts-expect-error, eslint-disable, NOSONAR, `as any`, `: any`, `<any>`.
+        # Each pattern that hits any TS/TSX file outside the exclusion list
+        # fails the job. No `continue-on-error`, no path-based skipping.
+        run: |
+          set -uo pipefail
+          patterns=(
+            '\.skip\('
+            '\.only\('
+            '@ts-ignore'
+            '@ts-expect-error'
+            'eslint-disable'
+            'NOSONAR'
+            '\bas any\b'
+            ': any\b'
+            '<any>'
+          )
+          violations=0
+          for p in "${patterns[@]}"; do
+            if grep -rnE --include='*.ts' --include='*.tsx' "$p" \
+                 src test \
+                 --exclude-dir=node_modules \
+                 --exclude-dir=dist \
+                 --exclude-dir=coverage; then
+              echo "::error::Forbidden pattern detected: $p"
+              violations=$((violations + 1))
+            fi
+          done
+          if [ "$violations" -gt 0 ]; then
+            echo "::error::$violations forbidden-pattern category(ies) hit. Fix at root."
+            exit 1
+          fi
+          echo "All forbidden-pattern gates clean."
