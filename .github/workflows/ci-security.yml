@@ -404,6 +404,7 @@ jobs:
             zap-api-scan.py \
             -t /zap/wrk/openapi.json \
             -f openapi \
+            -z "-config proxy.port=8090" \
             -r zap-report.html \
             -J zap-report.json \
             -x zap-report.xml \
