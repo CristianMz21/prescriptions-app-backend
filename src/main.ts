@@ -13,6 +13,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response, NextFunction } from 'express';
 import { buildCorsOptions } from './config/cors.config';
+import { getCorsRuntimeConfig } from './config/cors-runtime.config';
 
 const DEFAULT_PORT = 3000;
 const bootstrapLogger = new Logger('Bootstrap');
@@ -37,24 +38,7 @@ void (async () => {
     const app = await NestFactory.create(AppModule);
 
     const configService = app.get(ConfigService);
-    const appOrigin = configService.get<string>('APP_ORIGIN');
-    const frontendUrl = configService.get<string>('FRONTEND_URL');
-    const additionalOrigins = configService.get<string>(
-      'CORS_ADDITIONAL_ORIGINS',
-    );
-    const previewPrefix = configService.get<string>('CORS_PREVIEW_PREFIX');
-    const previewRequiredSegment = configService.get<string>(
-      'CORS_PREVIEW_REQUIRED_SEGMENT',
-    );
-    const previewSuffix = configService.get<string>('CORS_PREVIEW_SUFFIX');
-    const previewRule =
-      previewPrefix && previewRequiredSegment && previewSuffix
-        ? {
-            prefix: previewPrefix,
-            requiredSegment: previewRequiredSegment,
-            suffix: previewSuffix,
-          }
-        : undefined;
+    const corsRuntimeConfig = getCorsRuntimeConfig(configService);
 
     app.use(
       helmet({
@@ -78,14 +62,7 @@ void (async () => {
     app.use(securityHeadersMiddleware);
     app.use(cookieParser());
 
-    app.enableCors(
-      buildCorsOptions({
-        appOrigin,
-        frontendUrl,
-        additionalOrigins,
-        previewRule,
-      }),
-    );
+    app.enableCors(buildCorsOptions(corsRuntimeConfig));
 
     app.useGlobalPipes(
       new ValidationPipe({

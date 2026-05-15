@@ -56,4 +56,28 @@ describe('env.validation', () => {
       'Environment validation failed: CORS_PREVIEW_PREFIX must start with https://',
     );
   });
+
+  it('throws when preview rule env vars are partially provided', () => {
+    expect(() =>
+      validate({
+        ...baseConfig,
+        APP_ORIGIN: 'https://prescriptions-app-eight.vercel.app',
+        CORS_PREVIEW_PREFIX: 'https://prescriptions-',
+        CORS_PREVIEW_REQUIRED_SEGMENT: undefined,
+        CORS_PREVIEW_SUFFIX: undefined,
+      }),
+    ).toThrow(
+      'Environment validation failed: CORS_PREVIEW_PREFIX, CORS_PREVIEW_REQUIRED_SEGMENT and CORS_PREVIEW_SUFFIX must be provided together',
+    );
+  });
+
+  it('throws when class-validator detects invalid enum values', () => {
+    expect(() =>
+      validate({
+        ...baseConfig,
+        APP_ORIGIN: 'https://prescriptions-app-eight.vercel.app',
+        NODE_ENV: 'prod',
+      }),
+    ).toThrow('Environment validation failed:');
+  });
 });

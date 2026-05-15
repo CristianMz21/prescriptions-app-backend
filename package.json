@@ -125,7 +125,6 @@
       ".filter.ts",
       ".controller.ts",
       ".interface.ts",
-      "env.validation.ts",
       "permissions.ts"
     ],
     "coverageThreshold": {

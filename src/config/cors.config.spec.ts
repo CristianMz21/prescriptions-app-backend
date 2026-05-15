@@ -55,6 +55,15 @@ describe('cors.config', () => {
   });
 
   describe('preview origin validation', () => {
+    it('rejects preview origin when no preview rule configured', () => {
+      expect(
+        isAllowedVercelPreviewOrigin(
+          'https://prescriptions-abc-cristians-projects-04637ff3.vercel.app',
+          undefined,
+        ),
+      ).toBe(false);
+    });
+
     it('accepts matching vercel preview origin', () => {
       expect(
         isAllowedVercelPreviewOrigin(
@@ -99,6 +108,13 @@ describe('cors.config', () => {
           'https://prescriptions-pr-123.vercel.app',
           allowedOrigins,
           previewRule,
+        ),
+      ).toBe(false);
+      expect(
+        isAllowedOrigin(
+          'https://prescriptions-pr-123-cristians-projects-04637ff3.vercel.app',
+          allowedOrigins,
+          undefined,
         ),
       ).toBe(false);
     });
