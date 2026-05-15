@@ -20,7 +20,17 @@ import {
   yearsAgo,
 } from '../common/utils/filter.utils';
 
-const BCRYPT_SALT_ROUNDS = 10;
+// Default 10 (OWASP-recommended floor for 2024+ hardware). Override via
+// `BCRYPT_SALT_ROUNDS` env var only when needed — bounded to [4, 15] so an
+// accidental zero/negative/insane value falls back to the safe default.
+// Test fixtures set rounds=4 to keep CI bcrypt out of the critical path
+// (~5ms hash instead of ~100ms-1s under runner load); production should
+// always run at >=10.
+const rawRounds = Number(process.env.BCRYPT_SALT_ROUNDS);
+const BCRYPT_SALT_ROUNDS =
+  Number.isFinite(rawRounds) && rawRounds >= 4 && rawRounds <= 15
+    ? rawRounds
+    : 10;
 
 @Injectable()
 export class UsersService {
