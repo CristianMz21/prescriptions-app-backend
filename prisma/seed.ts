@@ -5,15 +5,13 @@ import {
   PrescriptionStatus,
   PrismaClient,
   Role,
-  User,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { generatePrescriptionCode } from '../src/common/utils/code.utils';
 
 const prisma = new PrismaClient();
 
-// Deterministic dataset: same `faker.seed` + same `prisma migrate reset`
-// always produce the same rows. Helps CI parity + reproducible demos.
+// Deterministic dataset: faker.seed=42 + the same upsert keys yield the same
+// rows on every run, so seeding is safe to chain into every deploy.
 faker.seed(42);
 
 // ---------------------------------------------------------
@@ -142,6 +140,10 @@ const LATAM_COUNTRY_CODES: readonly string[] = [
   '+593 2',
 ];
 
+const GENERATED_DOCTORS_COUNT = 6;
+const GENERATED_PATIENTS_COUNT = 24;
+const PRESCRIPTIONS_COUNT = 70;
+
 // ---------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------
@@ -165,106 +167,142 @@ const randomNotes = (): string | null => {
   return faker.helpers.arrayElement(notes);
 };
 
-// ---------------------------------------------------------
-// Fixed users (preserved for e2e test contract)
-// ---------------------------------------------------------
-
-const upsertAdmin = (passwordHash: string) =>
-  prisma.user.upsert({
-    where: { email: 'admin@clinic.com' },
-    update: {
-      passwordHash,
-      role: Role.ADMIN,
-      name: 'Sandra Admin',
-      phone: '+54 11 4000-0001',
-    },
-    create: {
-      email: 'admin@clinic.com',
-      passwordHash,
-      name: 'Sandra Admin',
-      phone: '+54 11 4000-0001',
-      role: Role.ADMIN,
-    },
-  });
-
-const upsertDoctor1 = (passwordHash: string) =>
-  prisma.user.upsert({
-    where: { email: 'doctor@clinic.com' },
-    update: {
-      passwordHash,
-      role: Role.DOCTOR,
-      name: 'Jane Doe',
-      phone: '+54 11 4000-1001',
-    },
-    create: {
-      email: 'doctor@clinic.com',
-      passwordHash,
-      name: 'Jane Doe',
-      phone: '+54 11 4000-1001',
-      role: Role.DOCTOR,
-      doctor: {
-        create: {
-          specialty: 'General Practice',
-          medicalId: 'MED-10001',
-          signatureText: 'Dr. Jane Doe',
-        },
-      },
-    },
-    include: { doctor: true },
-  });
-
-const upsertDoctor2 = (passwordHash: string) =>
-  prisma.user.upsert({
-    where: { email: 'doctor2@clinic.com' },
-    update: {
-      passwordHash,
-      role: Role.DOCTOR,
-      name: 'John Smith',
-      phone: '+54 11 4000-1002',
-    },
-    create: {
-      email: 'doctor2@clinic.com',
-      passwordHash,
-      name: 'John Smith',
-      phone: '+54 11 4000-1002',
-      role: Role.DOCTOR,
-      doctor: {
-        create: {
-          specialty: 'Pediatrics',
-          medicalId: 'MED-20002',
-          signatureText: 'Dr. John Smith',
-        },
-      },
-    },
-    include: { doctor: true },
-  });
-
-const upsertPatient1 = (passwordHash: string) =>
-  prisma.user.upsert({
-    where: { email: 'patient@clinic.com' },
-    update: {
-      passwordHash,
-      role: Role.PATIENT,
-      name: 'Carlos Rivera',
-      phone: '+54 11 4000-2001',
-    },
-    create: {
-      email: 'patient@clinic.com',
-      passwordHash,
-      name: 'Carlos Rivera',
-      phone: '+54 11 4000-2001',
-      role: Role.PATIENT,
-      patient: { create: { birthDate: new Date('1990-05-21') } },
-    },
-    include: { patient: true },
-  });
+// Deterministic prescription code, stable across re-runs while faker.seed=42.
+const deterministicPrescriptionCode = (): string =>
+  `RX-${faker.string.alphanumeric({ length: 10, casing: 'upper' })}`;
 
 // ---------------------------------------------------------
-// Generated cohorts
+// Fixed users (e2e + QA contract)
+//
+// On UPDATE we deliberately omit `passwordHash` so re-deploying never resets
+// a credential that an operator may have rotated. The hash is only set on
+// initial CREATE.
 // ---------------------------------------------------------
 
-type UserWithDoctor = User & { doctor: Doctor | null };
-type UserWithPatient = User & { patient: Patient | null };
+interface FixedUserSpec {
+  email: string;
+  name: string;
+  phone: string;
+  role: Role;
+}
+
+const FIXED_USERS: ReadonlyArray<FixedUserSpec> = [
+  {
+    email: 'admin@clinic.com',
+    name: 'Sandra Admin',
+    phone: '+54 11 4000-0001',
+    role: Role.ADMIN,
+  },
+  {
+    email: 'doctor@clinic.com',
+    name: 'Jane Doe',
+    phone: '+54 11 4000-1001',
+    role: Role.DOCTOR,
+  },
+  {
+    email: 'doctor2@clinic.com',
+    name: 'John Smith',
+    phone: '+54 11 4000-1002',
+    role: Role.DOCTOR,
+  },
+  {
+    email: 'patient@clinic.com',
+    name: 'Carlos Rivera',
+    phone: '+54 11 4000-2001',
+    role: Role.PATIENT,
+  },
+];
+
+interface FixedDoctorProfile {
+  email: string;
+  specialty: string;
+  medicalId: string;
+}
+
+const FIXED_DOCTORS: ReadonlyArray<FixedDoctorProfile> = [
+  {
+    email: 'doctor@clinic.com',
+    specialty: 'General Practice',
+    medicalId: 'MED-10001',
+  },
+  {
+    email: 'doctor2@clinic.com',
+    specialty: 'Pediatrics',
+    medicalId: 'MED-20002',
+  },
+];
+
+interface FixedPatientProfile {
+  email: string;
+  birthDate: Date;
+}
+
+const FIXED_PATIENTS: ReadonlyArray<FixedPatientProfile> = [
+  { email: 'patient@clinic.com', birthDate: new Date('1990-05-21') },
+];
+
+async function upsertFixedUser(
+  spec: FixedUserSpec,
+  passwordHash: string,
+): Promise<void> {
+  await prisma.user.upsert({
+    where: { email: spec.email },
+    update: {
+      name: spec.name,
+      phone: spec.phone,
+      role: spec.role,
+    },
+    create: {
+      email: spec.email,
+      passwordHash,
+      name: spec.name,
+      phone: spec.phone,
+      role: spec.role,
+    },
+  });
+}
+
+async function upsertFixedDoctorProfile(
+  profile: FixedDoctorProfile,
+): Promise<void> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { email: profile.email },
+  });
+  await prisma.doctor.upsert({
+    where: { userId: user.id },
+    update: {
+      specialty: profile.specialty,
+      medicalId: profile.medicalId,
+      signatureText: `Dr. ${user.name}`,
+    },
+    create: {
+      userId: user.id,
+      specialty: profile.specialty,
+      medicalId: profile.medicalId,
+      signatureText: `Dr. ${user.name}`,
+    },
+  });
+}
+
+async function upsertFixedPatientProfile(
+  profile: FixedPatientProfile,
+): Promise<void> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { email: profile.email },
+  });
+  await prisma.patient.upsert({
+    where: { userId: user.id },
+    update: { birthDate: profile.birthDate },
+    create: { userId: user.id, birthDate: profile.birthDate },
+  });
+}
+
+// ---------------------------------------------------------
+// Generated cohorts (faker, deterministic via faker.seed)
+// ---------------------------------------------------------
+
+type UserWithDoctor = { id: string; email: string; doctor: Doctor };
+type UserWithPatient = { id: string; email: string; patient: Patient };
 
 async function seedGeneratedDoctors(
   passwordHash: string,
@@ -275,27 +313,26 @@ async function seedGeneratedDoctors(
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
     const name = `${firstName} ${lastName}`;
-    const email = `dr.${faker.helpers
-      .slugify(name)
-      .toLowerCase()}.${faker.number.int({ min: 100, max: 999 })}@clinic.com`;
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        name,
-        phone: randomPhone(),
-        role: Role.DOCTOR,
-        doctor: {
-          create: {
-            specialty: faker.helpers.arrayElement(SPECIALTIES),
-            medicalId: `MED-3${faker.string.numeric(4)}`,
-            signatureText: `Dr. ${name}`,
-          },
-        },
-      },
-      include: { doctor: true },
+    const slug = faker.helpers.slugify(name).toLowerCase();
+    const suffix = faker.number.int({ min: 100, max: 999 });
+    const email = `dr.${slug}.${suffix}@clinic.com`;
+    const phone = randomPhone();
+    const specialty = faker.helpers.arrayElement(SPECIALTIES);
+    const medicalId = `MED-3${faker.string.numeric(4)}`;
+    const signatureText = `Dr. ${name}`;
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: { name, phone, role: Role.DOCTOR },
+      create: { email, passwordHash, name, phone, role: Role.DOCTOR },
     });
-    docs.push(user);
+    const doctor = await prisma.doctor.upsert({
+      where: { userId: user.id },
+      update: { specialty, medicalId, signatureText },
+      create: { userId: user.id, specialty, medicalId, signatureText },
+    });
+
+    docs.push({ id: user.id, email: user.email, doctor });
   }
   return docs;
 }
@@ -309,54 +346,47 @@ async function seedGeneratedPatients(
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
     const name = `${firstName} ${lastName}`;
-    const email = `${faker.helpers
-      .slugify(name)
-      .toLowerCase()}.${faker.number.int({ min: 100, max: 999 })}@clinic.com`;
+    const slug = faker.helpers.slugify(name).toLowerCase();
+    const suffix = faker.number.int({ min: 100, max: 999 });
+    const email = `${slug}.${suffix}@clinic.com`;
+    const phone = randomPhone();
     const birthDate = faker.date.birthdate({ min: 5, max: 85, mode: 'age' });
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        name,
-        phone: randomPhone(),
-        role: Role.PATIENT,
-        patient: { create: { birthDate } },
-      },
-      include: { patient: true },
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: { name, phone, role: Role.PATIENT },
+      create: { email, passwordHash, name, phone, role: Role.PATIENT },
     });
-    pats.push(user);
+    const patient = await prisma.patient.upsert({
+      where: { userId: user.id },
+      update: { birthDate },
+      create: { userId: user.id, birthDate },
+    });
+
+    pats.push({ id: user.id, email: user.email, patient });
   }
   return pats;
 }
 
 // ---------------------------------------------------------
-// Prescriptions
+// Prescriptions (upsert by unique code; audit-log side-effect
+// gated on absence so re-runs don't duplicate history rows)
 // ---------------------------------------------------------
 
 async function seedPrescriptions(
-  doctors: UserWithDoctor[],
-  patients: UserWithPatient[],
+  doctors: ReadonlyArray<UserWithDoctor>,
+  patients: ReadonlyArray<UserWithPatient>,
   count: number,
 ): Promise<void> {
-  const validDoctors = doctors.filter(
-    (
-      d,
-    ): d is UserWithDoctor & {
-      doctor: Doctor;
-    } => d.doctor !== null,
-  );
-  const validPatients = patients.filter(
-    (p): p is UserWithPatient & { patient: Patient } => p.patient !== null,
-  );
-  if (validDoctors.length === 0 || validPatients.length === 0) {
+  if (doctors.length === 0 || patients.length === 0) {
     throw new Error(
-      `Cannot seed prescriptions: ${validDoctors.length} doctors, ${validPatients.length} patients available.`,
+      `Cannot seed prescriptions: ${doctors.length} doctors, ${patients.length} patients available.`,
     );
   }
 
   for (let i = 0; i < count; i++) {
-    const doctorUser = faker.helpers.arrayElement(validDoctors);
-    const patientUser = faker.helpers.arrayElement(validPatients);
+    const doctorUser = faker.helpers.arrayElement(doctors);
+    const patientUser = faker.helpers.arrayElement(patients);
     const status = faker.helpers.weightedArrayElement([
       { value: PrescriptionStatus.PENDING, weight: 5 },
       { value: PrescriptionStatus.CONSUMED, weight: 5 },
@@ -377,30 +407,43 @@ async function seedPrescriptions(
       quantity: faker.number.int({ min: 5, max: 90 }),
       instructions: med.instructions,
     }));
+    const notes = randomNotes();
+    const code = deterministicPrescriptionCode();
 
-    const created = await prisma.prescription.create({
-      data: {
-        code: generatePrescriptionCode(),
+    const prescription = await prisma.prescription.upsert({
+      where: { code },
+      // Preserve existing rows untouched — operators or the app may have
+      // mutated them after the first seed (e.g. flipping status).
+      update: {},
+      create: {
+        code,
         authorId: doctorUser.doctor.id,
         patientId: patientUser.patient.id,
         status,
         consumedAt,
         expiryDate,
-        notes: randomNotes(),
+        notes,
         items: { create: items },
       },
     });
 
-    if (status === PrescriptionStatus.CONSUMED) {
-      await prisma.prescriptionAuditLog.create({
-        data: {
-          prescriptionId: created.id,
-          changedById: patientUser.id,
-          fromStatus: PrescriptionStatus.PENDING,
-          toStatus: PrescriptionStatus.CONSUMED,
-          reason: 'Patient confirmed pickup at pharmacy',
-        },
+    // Gate audit log on the LIVE row status — `update: {}` may have preserved
+    // a hand-edited status that diverges from the seed-decided one.
+    if (prescription.status === PrescriptionStatus.CONSUMED) {
+      const existingLog = await prisma.prescriptionAuditLog.findFirst({
+        where: { prescriptionId: prescription.id },
       });
+      if (!existingLog) {
+        await prisma.prescriptionAuditLog.create({
+          data: {
+            prescriptionId: prescription.id,
+            changedById: patientUser.id,
+            fromStatus: PrescriptionStatus.PENDING,
+            toStatus: PrescriptionStatus.CONSUMED,
+            reason: 'Patient confirmed pickup at pharmacy',
+          },
+        });
+      }
     }
   }
 }
@@ -410,67 +453,83 @@ async function seedPrescriptions(
 // ---------------------------------------------------------
 
 async function main(): Promise<void> {
-  console.log('🌱 Starting realistic seed (faker.seed=42)...');
+  console.log('🌱 Starting idempotent seed (faker.seed=42)...');
 
   const saltRounds = 10;
-  const defaultPassword =
-    process.env.SEED_DEFAULT_PASSWORD ?? '<DEV_SEED_PASSWORD>';
+  const defaultPassword = process.env.SEED_DEFAULT_PASSWORD;
+  if (!defaultPassword || defaultPassword.length < 8) {
+    throw new Error(
+      'SEED_DEFAULT_PASSWORD env var is required (min 8 chars) and was not provided.',
+    );
+  }
+  // NOTE: never log the password value itself — only the env var name.
+  console.log('🔐 Using bcrypt hash of $SEED_DEFAULT_PASSWORD for new users.');
   const passwordHash = await bcrypt.hash(defaultPassword, saltRounds);
 
-  // 1. Fixed users (e2e contract)
-  const admin = await upsertAdmin(passwordHash);
-  const doctor1 = await upsertDoctor1(passwordHash);
-  const doctor2 = await upsertDoctor2(passwordHash);
-  const patient1 = await upsertPatient1(passwordHash);
+  // 1. Fixed users — QA contract
+  for (const spec of FIXED_USERS) {
+    await upsertFixedUser(spec, passwordHash);
+  }
+  for (const profile of FIXED_DOCTORS) {
+    await upsertFixedDoctorProfile(profile);
+  }
+  for (const profile of FIXED_PATIENTS) {
+    await upsertFixedPatientProfile(profile);
+  }
   console.log(
-    `✅ Fixed users: ${admin.email}, ${doctor1.email}, ${doctor2.email}, ${patient1.email}`,
+    `✅ Fixed users upserted: ${FIXED_USERS.map(u => u.email).join(', ')}`,
   );
 
-  // 2. Generated cohorts (only if first-time; idempotent guard)
-  const existingDoctors = await prisma.doctor.count();
-  const existingPatients = await prisma.patient.count();
+  // 2. Generated cohorts — strictly idempotent via upsert on email
+  const generatedDoctors = await seedGeneratedDoctors(
+    passwordHash,
+    GENERATED_DOCTORS_COUNT,
+  );
+  console.log(`✅ Generated doctors upserted: ${generatedDoctors.length}`);
 
-  let generatedDoctors: UserWithDoctor[] = [];
-  if (existingDoctors <= 2) {
-    generatedDoctors = await seedGeneratedDoctors(passwordHash, 6);
-    console.log(`✅ Generated ${generatedDoctors.length} additional doctors.`);
-  } else {
-    console.log(
-      `⏭️  Skipped doctor generation (already ${existingDoctors} present).`,
-    );
-  }
+  const generatedPatients = await seedGeneratedPatients(
+    passwordHash,
+    GENERATED_PATIENTS_COUNT,
+  );
+  console.log(`✅ Generated patients upserted: ${generatedPatients.length}`);
 
-  let generatedPatients: UserWithPatient[] = [];
-  if (existingPatients <= 1) {
-    generatedPatients = await seedGeneratedPatients(passwordHash, 24);
-    console.log(
-      `✅ Generated ${generatedPatients.length} additional patients.`,
-    );
-  } else {
-    console.log(
-      `⏭️  Skipped patient generation (already ${existingPatients} present).`,
-    );
-  }
+  // 3. Prescriptions — upsert by deterministic code
+  const fixedDoctorRows = await prisma.user.findMany({
+    where: { email: { in: FIXED_DOCTORS.map(d => d.email) } },
+    select: { id: true, email: true, doctor: true },
+  });
+  const fixedPatientRows = await prisma.user.findMany({
+    where: { email: { in: FIXED_PATIENTS.map(p => p.email) } },
+    select: { id: true, email: true, patient: true },
+  });
+  const allDoctors: UserWithDoctor[] = [
+    ...fixedDoctorRows
+      .filter((r): r is typeof r & { doctor: Doctor } => r.doctor !== null)
+      .map(r => ({ id: r.id, email: r.email, doctor: r.doctor })),
+    ...generatedDoctors,
+  ];
+  const allPatients: UserWithPatient[] = [
+    ...fixedPatientRows
+      .filter((r): r is typeof r & { patient: Patient } => r.patient !== null)
+      .map(r => ({ id: r.id, email: r.email, patient: r.patient })),
+    ...generatedPatients,
+  ];
+  await seedPrescriptions(allDoctors, allPatients, PRESCRIPTIONS_COUNT);
+  console.log(`✅ Prescriptions upserted: ${PRESCRIPTIONS_COUNT}`);
 
-  // 3. Prescriptions
-  const existingPrescriptions = await prisma.prescription.count();
-  if (existingPrescriptions === 0) {
-    const allDoctors = [doctor1, doctor2, ...generatedDoctors];
-    const allPatients = [patient1, ...generatedPatients];
-    await seedPrescriptions(allDoctors, allPatients, 70);
-    console.log(`✅ Seeded 70 prescriptions across doctor/patient pairs.`);
-  } else {
-    console.log(
-      `⏭️  Skipped prescription generation (already ${existingPrescriptions} present).`,
-    );
-  }
-
-  console.log('🎉 Seeding finished.');
+  const totalUsers = await prisma.user.count();
+  const totalPrescriptions = await prisma.prescription.count();
+  console.log(
+    `📊 Totals after seed — users: ${totalUsers}, prescriptions: ${totalPrescriptions}`,
+  );
+  console.log('🎉 Seeding finished successfully.');
 }
 
 main()
-  .catch(err => {
+  .catch((err: unknown) => {
     console.error('❌ Seed failed:', err);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => {
+    void prisma.$disconnect();
+  });

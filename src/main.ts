@@ -99,7 +99,9 @@ void (async () => {
       },
     });
 
-    await app.listen(port);
+    // Bind to 0.0.0.0 so Render's load balancer can reach the container;
+    // Node's default (::) does not work on every host network mode.
+    await app.listen(port, '0.0.0.0');
     bootstrapLogger.log(`Application is running on: ${await app.getUrl()}`);
   } catch (err: unknown) {
     bootstrapLogger.error('Bootstrap failed', err);
