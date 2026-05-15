@@ -49,8 +49,12 @@ export const parseConfiguredOrigins = (
 
 export const isAllowedVercelPreviewOrigin = (
   origin: string,
-  rule: PreviewOriginRule,
+  rule: PreviewOriginRule | undefined,
 ): boolean => {
+  if (!rule) {
+    return false;
+  }
+
   return (
     origin.startsWith(rule.prefix) &&
     origin.includes(rule.requiredSegment) &&
@@ -93,7 +97,7 @@ export const buildAllowedOrigins = (config: {
 export const isAllowedOrigin = (
   origin: string,
   allowedOrigins: ReadonlySet<string>,
-  previewRule: PreviewOriginRule,
+  previewRule: PreviewOriginRule | undefined,
 ): boolean => {
   return (
     allowedOrigins.has(origin) ||
@@ -105,7 +109,7 @@ export const buildCorsOptions = (config: {
   appOrigin?: string;
   frontendUrl?: string;
   additionalOrigins?: string;
-  previewRule: PreviewOriginRule;
+  previewRule?: PreviewOriginRule;
 }): CorsOptions => {
   const allowedOrigins = buildAllowedOrigins(config);
 

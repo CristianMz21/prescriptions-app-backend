@@ -52,13 +52,16 @@ class EnvironmentVariables {
   CORS_ADDITIONAL_ORIGINS?: string;
 
   @IsString()
-  CORS_PREVIEW_PREFIX!: string;
+  @IsOptional()
+  CORS_PREVIEW_PREFIX?: string;
 
   @IsString()
-  CORS_PREVIEW_REQUIRED_SEGMENT!: string;
+  @IsOptional()
+  CORS_PREVIEW_REQUIRED_SEGMENT?: string;
 
   @IsString()
-  CORS_PREVIEW_SUFFIX!: string;
+  @IsOptional()
+  CORS_PREVIEW_SUFFIX?: string;
 
   @IsString()
   @IsOptional()
@@ -108,6 +111,24 @@ export function validate(config: Record<string, unknown>) {
     );
   }
   const previewPrefix = stringToNumberConfig['CORS_PREVIEW_PREFIX'];
+  const previewRequiredSegment =
+    stringToNumberConfig['CORS_PREVIEW_REQUIRED_SEGMENT'];
+  const previewSuffix = stringToNumberConfig['CORS_PREVIEW_SUFFIX'];
+  const hasPreviewRulePart =
+    typeof previewPrefix === 'string' ||
+    typeof previewRequiredSegment === 'string' ||
+    typeof previewSuffix === 'string';
+  const hasCompletePreviewRule =
+    typeof previewPrefix === 'string' &&
+    typeof previewRequiredSegment === 'string' &&
+    typeof previewSuffix === 'string';
+
+  if (hasPreviewRulePart && !hasCompletePreviewRule) {
+    throw new Error(
+      'Environment validation failed: CORS_PREVIEW_PREFIX, CORS_PREVIEW_REQUIRED_SEGMENT and CORS_PREVIEW_SUFFIX must be provided together',
+    );
+  }
+
   if (
     typeof previewPrefix === 'string' &&
     !previewPrefix.startsWith('https://')

@@ -42,15 +42,19 @@ void (async () => {
     const additionalOrigins = configService.get<string>(
       'CORS_ADDITIONAL_ORIGINS',
     );
-    const previewPrefix = configService.getOrThrow<string>(
-      'CORS_PREVIEW_PREFIX',
-    );
-    const previewRequiredSegment = configService.getOrThrow<string>(
+    const previewPrefix = configService.get<string>('CORS_PREVIEW_PREFIX');
+    const previewRequiredSegment = configService.get<string>(
       'CORS_PREVIEW_REQUIRED_SEGMENT',
     );
-    const previewSuffix = configService.getOrThrow<string>(
-      'CORS_PREVIEW_SUFFIX',
-    );
+    const previewSuffix = configService.get<string>('CORS_PREVIEW_SUFFIX');
+    const previewRule =
+      previewPrefix && previewRequiredSegment && previewSuffix
+        ? {
+            prefix: previewPrefix,
+            requiredSegment: previewRequiredSegment,
+            suffix: previewSuffix,
+          }
+        : undefined;
 
     app.use(
       helmet({
@@ -79,11 +83,7 @@ void (async () => {
         appOrigin,
         frontendUrl,
         additionalOrigins,
-        previewRule: {
-          prefix: previewPrefix,
-          requiredSegment: previewRequiredSegment,
-          suffix: previewSuffix,
-        },
+        previewRule,
       }),
     );
 
