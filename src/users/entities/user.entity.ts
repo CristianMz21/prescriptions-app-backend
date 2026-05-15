@@ -57,6 +57,10 @@ export class UserEntity {
   })
   email!: string;
 
+  /**
+   * Display name. Required at the schema level (NOT NULL) — guaranteed
+   * non-empty for every persisted User. Do NOT mark optional in subclasses.
+   */
   @ApiProperty({
     description: 'Display name shown in the UI.',
     example: 'Jane Doe',

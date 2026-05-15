@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateUserDto } from './dto/create-user.dto';
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -56,6 +59,36 @@ describe('UsersService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('CreateUserDto contract', () => {
+    // Smoke guard: a regression where someone marks `name` as @IsOptional()
+    // would silently allow nameless users — and that's banned by the product
+    // contract. Keep this test as a sentinel.
+    it('rejects payload without name (class-validator)', async () => {
+      const dto = plainToInstance(CreateUserDto, {
+        email: 'noname@clinic.com',
+        password: 'Password123!',
+        role: Role.PATIENT,
+      });
+      const errors = await validate(dto);
+      const nameError = errors.find(e => e.property === 'name');
+      expect(nameError).toBeDefined();
+      expect(nameError?.constraints).toMatchObject({
+        isNotEmpty: expect.any(String),
+      });
+    });
+
+    it('accepts payload with non-empty name', async () => {
+      const dto = plainToInstance(CreateUserDto, {
+        email: 'withname@clinic.com',
+        password: 'Password123!',
+        name: 'Has A Name',
+        role: Role.PATIENT,
+      });
+      const errors = await validate(dto);
+      expect(errors.find(e => e.property === 'name')).toBeUndefined();
+    });
   });
 
   describe('create', () => {
