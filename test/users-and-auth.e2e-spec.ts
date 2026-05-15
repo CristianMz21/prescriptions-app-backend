@@ -5,8 +5,17 @@ import { ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
-import { Role } from '@prisma/client';
+import { Role, ThemePreference } from '@prisma/client';
 import { TEST_PASSWORD, INVALID_TEST_PASSWORD } from './test-credentials';
+
+interface UserListRow {
+  id: string;
+  email: string;
+  role: Role;
+  name?: string;
+  phone?: string | null;
+  themePreference?: ThemePreference;
+}
 
 const extractAccessCookie = (
   setCookieHeader: string | string[] | undefined,
@@ -343,7 +352,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      const users = responseData<any>(res.body);
+      const users = responseData<UserListRow>(res.body);
       expect(Array.isArray(users)).toBe(true);
       if (users.length > 0) {
         expect(users[0]).toHaveProperty('id');
@@ -395,7 +404,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      const users = responseData<any>(res.body);
+      const users = responseData<UserListRow>(res.body);
       expect(Array.isArray(users)).toBe(true);
     });
 
@@ -446,7 +455,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      const users = responseData<any>(res.body);
+      const users = responseData<UserListRow>(res.body);
       expect(Array.isArray(users)).toBe(true);
       if (users.length > 0) {
         expect(users[0]).toHaveProperty('id');
@@ -483,7 +492,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      const users = responseData<any>(res.body);
+      const users = responseData<UserListRow>(res.body);
       if (users.length > 0) {
         const userId = users[0].id;
         const userRes = await request(app.getHttpServer())
@@ -505,7 +514,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .expect(200);
       expect(res.status).toBe(200);
 
-      const users = responseData<any>(res.body);
+      const users = responseData<UserListRow>(res.body);
       if (users.length > 0) {
         const userId = users[0].id;
         await request(app.getHttpServer())
@@ -522,7 +531,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .expect(200);
       expect(res.status).toBe(200);
 
-      const users = responseData<any>(res.body);
+      const users = responseData<UserListRow>(res.body);
       if (users.length > 0) {
         const userId = users[0].id;
         await request(app.getHttpServer())
@@ -538,7 +547,7 @@ describe('Auth & Users Endpoints (e2e)', () => {
         .set('Cookie', adminCookie)
         .expect(200);
 
-      const users = responseData<any>(res.body);
+      const users = responseData<UserListRow>(res.body);
       if (users.length > 0) {
         const userId = users[0].id;
         await request(app.getHttpServer()).get(`/users/${userId}`).expect(401);

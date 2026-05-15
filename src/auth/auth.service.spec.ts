@@ -5,7 +5,8 @@ import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { UnauthorizedException, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { Role } from '@prisma/client';
+import { Role, ThemePreference, User } from '@prisma/client';
+import { UserEntity } from '../users/entities/user.entity';
 
 // Mock bcrypt
 jest.mock('bcrypt', () => ({
@@ -18,12 +19,19 @@ describe('AuthService', () => {
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
 
-  const mockUser = {
+  const mockUser: User = {
     id: 'user-1',
     email: 'test@clinic.com',
     passwordHash: 'hashed-password',
+    name: 'Test Patient',
+    phone: null,
     role: Role.PATIENT,
+    themePreference: ThemePreference.SYSTEM,
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    updatedAt: new Date('2026-01-01T00:00:00Z'),
   };
+
+  const mockUserEntity = new UserEntity(mockUser);
 
   beforeEach(async () => {
     // Create isolated mocks
@@ -64,7 +72,7 @@ describe('AuthService', () => {
 
   describe('validateUser', () => {
     it('should return user details without passwordHash on successful validation', async () => {
-      usersService.findByEmail.mockResolvedValue(mockUser as any);
+      usersService.findByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       const result = await authService.validateUser(
@@ -85,7 +93,7 @@ describe('AuthService', () => {
     });
 
     it('should return null if password does not match', async () => {
-      usersService.findByEmail.mockResolvedValue(mockUser as any);
+      usersService.findByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       const result = await authService.validateUser(
@@ -139,7 +147,7 @@ describe('AuthService', () => {
   describe('refresh', () => {
     it('should generate a new access token for a valid refresh token', async () => {
       jwtService.verifyAsync.mockResolvedValue({ sub: 'user-1' });
-      usersService.findById.mockResolvedValue(mockUser as any);
+      usersService.findById.mockResolvedValue(mockUserEntity);
       jwtService.signAsync.mockResolvedValue('new-access-token');
 
       const result = await authService.refresh('valid-refresh-token');

@@ -7,6 +7,11 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from '../src/app.module';
 import { TEST_PASSWORD } from './test-credentials';
 
+interface PrescriptionRow {
+  authorId: string;
+  patientId: string;
+}
+
 const extractAccessCookie = (
   setCookieHeader: string | string[] | undefined,
 ): string => {
@@ -106,9 +111,8 @@ describe('Admin Endpoints (e2e)', () => {
           .set('Cookie', adminCookie)
           .expect(200);
 
-        expect(
-          filteredRes.body.data.every((p: any) => p.authorId === authorId),
-        ).toBe(true);
+        const rows = filteredRes.body.data as PrescriptionRow[];
+        expect(rows.every(p => p.authorId === authorId)).toBe(true);
       }
     });
 
@@ -125,9 +129,8 @@ describe('Admin Endpoints (e2e)', () => {
           .set('Cookie', adminCookie)
           .expect(200);
 
-        expect(
-          filteredRes.body.data.every((p: any) => p.patientId === patientId),
-        ).toBe(true);
+        const rows = filteredRes.body.data as PrescriptionRow[];
+        expect(rows.every(p => p.patientId === patientId)).toBe(true);
       }
     });
 
