@@ -86,5 +86,7 @@ USER node
 # Expose the standard NestJS port
 EXPOSE 3000
 
-# Run the startup script which handles DB migrations before booting the app
-CMD ["./start.sh"]
+# Strict deploy order: migrate -> seed -> start NestJS. Any failure aborts.
+# Defined in package.json as `deploy:render` so it can also be set via the
+# Render dashboard's Docker Command override (sh -c "pnpm deploy:render").
+CMD ["sh", "-c", "pnpm deploy:render"]

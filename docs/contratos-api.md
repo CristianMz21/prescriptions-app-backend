@@ -7,24 +7,6 @@ Todos los endpoints requieren JWT cookie a menos que esté marcado **Publico**.
 
 ---
 
-## 0. Endpoint Raíz
-
-### GET /ping
-
-**Publico** — Health check sin autenticación.
-
-```yaml
-GET /ping
-```
-
-**Response 200:**
-
-```json
-{ "status": "ok" }
-```
-
----
-
 ## 1. API de Auth
 
 ### POST /auth/login
@@ -333,12 +315,14 @@ Content-Type: application/json
       "name": "Aspirina 100mg",
       "dosage": "1 tableta",
       "quantity": 30,
+      "unit": "tabletas",
       "instructions": "Una vez al dia por la manana"
     },
     {
       "name": "Omeprazol 20mg",
       "dosage": "1 capsula",
       "quantity": 20,
+      "unit": "capsulas",
       "instructions": "Antes del desayuno"
     }
   ]
@@ -355,6 +339,7 @@ Content-Type: application/json
   "code": "RX-A1B2C3D4E5",
   "status": "PENDING",
   "notes": "Tomar con comida. Evitar alcohol.",
+  "expiryDate": null,
   "createdAt": "2026-05-13T12:00:00.000Z",
   "updatedAt": "2026-05-13T12:00:00.000Z",
   "consumedAt": null,
@@ -366,6 +351,7 @@ Content-Type: application/json
       "name": "Aspirina 100mg",
       "dosage": "1 tableta",
       "quantity": 30,
+      "unit": "tabletas",
       "instructions": "Una vez al dia por la manana"
     }
   ],
@@ -377,6 +363,7 @@ Content-Type: application/json
     "signatureImageUrl": null,
     "user": {
       "id": "uuid-doctor...",
+      "name": "Dr. Juan Perez",
       "email": "doctor@clinic.com",
       "role": "DOCTOR"
     }
@@ -386,6 +373,7 @@ Content-Type: application/json
     "birthDate": "1990-05-15T00:00:00.000Z",
     "user": {
       "id": "uuid-paciente...",
+      "name": "Paciente Ejemplo",
       "email": "patient@clinic.com",
       "role": "PATIENT"
     }

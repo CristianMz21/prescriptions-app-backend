@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "deploy:render": "prisma migrate deploy && prisma db seed && node dist/src/main.js",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check \"{src,test}/**/*.ts\"",
@@ -33,9 +34,10 @@
     "postman:test:ci": "mkdir -p reports/postman && newman run postman/prescription-api.postman_collection.json -e postman/prescription-api.ci.postman_environment.json --env-var seedPassword=$SEED_DEFAULT_PASSWORD --reporters cli,junit --reporter-junit-export reports/postman/newman-ci.xml --timeout-request 15000 --timeout-script 10000"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node dist/prisma/seed.js"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
@@ -65,7 +67,6 @@
     "@commitlint/config-conventional": "^21.0.1",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
-    "@faker-js/faker": "^10.4.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",

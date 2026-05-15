@@ -124,12 +124,14 @@ users/
 
 ### User Response (UserEntity)
 
-El `User` expuesta en API **no tiene campo `name`**. Campos:
+El `User` expuesta en API tiene campos `name` (requerido) y `phone` (opcional). Campos:
 
 | Campo | Tipo | Descripcion |
 |-------|------|-------------|
 | `id` | UUID | Identificador único |
 | `email` | string | Email |
+| `name` | string | Nombre para display en UI |
+| `phone` | string? | Teléfono de contacto |
 | `role` | Role | ADMIN \| DOCTOR \| PATIENT |
 | `themePreference` | ThemePreference | SYSTEM \| LIGHT \| DARK |
 | `createdAt` | DateTime | Fecha de creación |
@@ -144,11 +146,13 @@ El `User` expuesta en API **no tiene campo `name`**. Campos:
   email: string;
   password: string;
   role: 'ADMIN' | 'DOCTOR' | 'PATIENT';
-  specialty?: string;        // solo para DOCTOR
-  medicalId?: string;        // solo para DOCTOR
-  signatureText?: string;    // solo para DOCTOR
-  signatureImageUrl?: string; // solo para DOCTOR
-  birthDate?: string;       // solo para PATIENT (ISO-8601)
+  name: string;                  // Requerido — nombre para UI
+  phone?: string;                 // Opcional — teléfono de contacto
+  specialty?: string;             // solo para DOCTOR
+  medicalId?: string;            // solo para DOCTOR
+  signatureText?: string;        // solo para DOCTOR
+  signatureImageUrl?: string;    // solo para DOCTOR
+  birthDate?: string;            // solo para PATIENT (ISO-8601)
 }
 ```
 

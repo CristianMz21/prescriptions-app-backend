@@ -34,10 +34,10 @@ Sistema de gestión de prescripciones médicas. Backend API construida con **Nes
 
 | Email | Role | Password |
 |-------|------|----------|
-| `admin@clinic.com` | ADMIN | `Password123!` (example; real password via `SEED_DEFAULT_PASSWORD` env var) |
-| `doctor@clinic.com` | DOCTOR | `Password123!` |
-| `doctor2@clinic.com` | DOCTOR | `Password123!` |
-| `patient@clinic.com` | PATIENT | `Password123!` |
+| `admin@clinic.com` | ADMIN | controlled by `SEED_DEFAULT_PASSWORD` env var |
+| `doctor@clinic.com` | DOCTOR | controlled by `SEED_DEFAULT_PASSWORD` env var |
+| `doctor2@clinic.com` | DOCTOR | controlled by `SEED_DEFAULT_PASSWORD` env var |
+| `patient@clinic.com` | PATIENT | controlled by `SEED_DEFAULT_PASSWORD` env var |
 
 ## Estado del Proyecto
 
