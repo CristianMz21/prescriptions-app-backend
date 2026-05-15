@@ -4,7 +4,15 @@ import {
   isAllowedOrigin,
   isAllowedVercelPreviewOrigin,
   normalizeConfiguredOrigin,
+  parseConfiguredOrigins,
+  type PreviewOriginRule,
 } from './cors.config';
+
+const previewRule: PreviewOriginRule = {
+  prefix: 'https://prescriptions-',
+  requiredSegment: 'cristians-projects-04637ff3',
+  suffix: '.vercel.app',
+};
 
 describe('cors.config', () => {
   describe('normalizeConfiguredOrigin', () => {
@@ -35,11 +43,23 @@ describe('cors.config', () => {
     });
   });
 
+  describe('parseConfiguredOrigins', () => {
+    it('parses and normalizes comma-separated origins', () => {
+      expect(
+        parseConfiguredOrigins(
+          'CORS_ADDITIONAL_ORIGINS',
+          'https://a.example.com, http://127.0.0.1:3001/path',
+        ),
+      ).toEqual(['https://a.example.com', 'http://127.0.0.1:3001']);
+    });
+  });
+
   describe('preview origin validation', () => {
     it('accepts matching vercel preview origin', () => {
       expect(
         isAllowedVercelPreviewOrigin(
           'https://prescriptions-abc-cristians-projects-04637ff3.vercel.app',
+          previewRule,
         ),
       ).toBe(true);
     });
@@ -48,6 +68,7 @@ describe('cors.config', () => {
       expect(
         isAllowedVercelPreviewOrigin(
           'https://prescriptions-abc-cristians-projects-04637ff3.vercel.app.evil.com',
+          previewRule,
         ),
       ).toBe(false);
     });
@@ -57,6 +78,7 @@ describe('cors.config', () => {
     const allowedOrigins = buildAllowedOrigins({
       appOrigin: 'https://prescriptions-app-eight.vercel.app',
       frontendUrl: 'https://prescriptions-app-eight.vercel.app',
+      additionalOrigins: 'https://extra.example.com',
     });
 
     it('includes required local origins', () => {
@@ -69,12 +91,14 @@ describe('cors.config', () => {
         isAllowedOrigin(
           'https://prescriptions-pr-123-cristians-projects-04637ff3.vercel.app',
           allowedOrigins,
+          previewRule,
         ),
       ).toBe(true);
       expect(
         isAllowedOrigin(
           'https://prescriptions-pr-123.vercel.app',
           allowedOrigins,
+          previewRule,
         ),
       ).toBe(false);
     });
@@ -85,6 +109,7 @@ describe('cors.config', () => {
       const options = buildCorsOptions({
         appOrigin: 'https://prescriptions-app-eight.vercel.app',
         frontendUrl: 'https://prescriptions-app-eight.vercel.app',
+        previewRule,
       });
       const originHandler = options.origin;
 
@@ -103,6 +128,7 @@ describe('cors.config', () => {
       const options = buildCorsOptions({
         appOrigin: 'https://prescriptions-app-eight.vercel.app',
         frontendUrl: 'https://prescriptions-app-eight.vercel.app',
+        previewRule,
       });
       const originHandler = options.origin;
 
@@ -121,6 +147,7 @@ describe('cors.config', () => {
       const options = buildCorsOptions({
         appOrigin: 'https://prescriptions-app-eight.vercel.app',
         frontendUrl: 'https://prescriptions-app-eight.vercel.app',
+        previewRule,
       });
       const originHandler = options.origin;
 

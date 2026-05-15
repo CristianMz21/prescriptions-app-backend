@@ -9,6 +9,9 @@ const baseConfig = {
   JWT_REFRESH_SECRET: 'refresh-secret',
   JWT_ACCESS_TTL: '15m',
   JWT_REFRESH_TTL: '7d',
+  CORS_PREVIEW_PREFIX: 'https://prescriptions-',
+  CORS_PREVIEW_REQUIRED_SEGMENT: 'cristians-projects-04637ff3',
+  CORS_PREVIEW_SUFFIX: '.vercel.app',
 };
 
 describe('env.validation', () => {
@@ -40,5 +43,17 @@ describe('env.validation', () => {
       'https://prescriptions-app-eight.vercel.app',
     );
     expect(result.FRONTEND_URL).toBe('http://localhost:3001');
+  });
+
+  it('throws when CORS_PREVIEW_PREFIX is not https', () => {
+    expect(() =>
+      validate({
+        ...baseConfig,
+        APP_ORIGIN: 'https://prescriptions-app-eight.vercel.app',
+        CORS_PREVIEW_PREFIX: 'http://prescriptions-',
+      }),
+    ).toThrow(
+      'Environment validation failed: CORS_PREVIEW_PREFIX must start with https://',
+    );
   });
 });

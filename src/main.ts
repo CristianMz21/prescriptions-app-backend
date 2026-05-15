@@ -39,6 +39,18 @@ void (async () => {
     const configService = app.get(ConfigService);
     const appOrigin = configService.get<string>('APP_ORIGIN');
     const frontendUrl = configService.get<string>('FRONTEND_URL');
+    const additionalOrigins = configService.get<string>(
+      'CORS_ADDITIONAL_ORIGINS',
+    );
+    const previewPrefix = configService.getOrThrow<string>(
+      'CORS_PREVIEW_PREFIX',
+    );
+    const previewRequiredSegment = configService.getOrThrow<string>(
+      'CORS_PREVIEW_REQUIRED_SEGMENT',
+    );
+    const previewSuffix = configService.getOrThrow<string>(
+      'CORS_PREVIEW_SUFFIX',
+    );
 
     app.use(
       helmet({
@@ -62,7 +74,18 @@ void (async () => {
     app.use(securityHeadersMiddleware);
     app.use(cookieParser());
 
-    app.enableCors(buildCorsOptions({ appOrigin, frontendUrl }));
+    app.enableCors(
+      buildCorsOptions({
+        appOrigin,
+        frontendUrl,
+        additionalOrigins,
+        previewRule: {
+          prefix: previewPrefix,
+          requiredSegment: previewRequiredSegment,
+          suffix: previewSuffix,
+        },
+      }),
+    );
 
     app.useGlobalPipes(
       new ValidationPipe({

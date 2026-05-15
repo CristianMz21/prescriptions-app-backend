@@ -6,13 +6,13 @@ const LOCAL_ALLOWED_ORIGINS = [
   'http://127.0.0.1:3001',
 ] as const;
 
-const PRODUCTION_ALLOWED_ORIGIN = 'https://prescriptions-app-eight.vercel.app';
-
-const PREVIEW_PREFIX = 'https://prescriptions-';
-const PREVIEW_REQUIRED_SEGMENT = 'cristians-projects-04637ff3';
-const PREVIEW_SUFFIX = '.vercel.app';
-
 const HTTP_PROTOCOL_PATTERN = /^https?:\/\//i;
+
+export interface PreviewOriginRule {
+  prefix: string;
+  requiredSegment: string;
+  suffix: string;
+}
 
 export const normalizeConfiguredOrigin = (
   envVarName: string,
@@ -28,32 +28,52 @@ export const normalizeConfiguredOrigin = (
     );
   }
 
-  const normalized = new URL(origin).origin;
-  return normalized;
+  return new URL(origin).origin;
 };
 
-export const isAllowedVercelPreviewOrigin = (origin: string): boolean => {
+export const parseConfiguredOrigins = (
+  envVarName: string,
+  originList: string | undefined,
+): string[] => {
+  if (!originList) {
+    return [];
+  }
+
+  return originList
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(origin => origin.length > 0)
+    .map(origin => normalizeConfiguredOrigin(envVarName, origin))
+    .filter((origin): origin is string => typeof origin === 'string');
+};
+
+export const isAllowedVercelPreviewOrigin = (
+  origin: string,
+  rule: PreviewOriginRule,
+): boolean => {
   return (
-    origin.startsWith(PREVIEW_PREFIX) &&
-    origin.includes(PREVIEW_REQUIRED_SEGMENT) &&
-    origin.endsWith(PREVIEW_SUFFIX)
+    origin.startsWith(rule.prefix) &&
+    origin.includes(rule.requiredSegment) &&
+    origin.endsWith(rule.suffix)
   );
 };
 
 export const buildAllowedOrigins = (config: {
   appOrigin?: string;
   frontendUrl?: string;
+  additionalOrigins?: string;
 }): ReadonlySet<string> => {
   const appOrigin = normalizeConfiguredOrigin('APP_ORIGIN', config.appOrigin);
   const frontendUrl = normalizeConfiguredOrigin(
     'FRONTEND_URL',
     config.frontendUrl,
   );
+  const additionalOrigins = parseConfiguredOrigins(
+    'CORS_ADDITIONAL_ORIGINS',
+    config.additionalOrigins,
+  );
 
-  const allowedOrigins = new Set<string>([
-    ...LOCAL_ALLOWED_ORIGINS,
-    PRODUCTION_ALLOWED_ORIGIN,
-  ]);
+  const allowedOrigins = new Set<string>([...LOCAL_ALLOWED_ORIGINS]);
 
   if (appOrigin) {
     allowedOrigins.add(appOrigin);
@@ -63,19 +83,29 @@ export const buildAllowedOrigins = (config: {
     allowedOrigins.add(frontendUrl);
   }
 
+  for (const origin of additionalOrigins) {
+    allowedOrigins.add(origin);
+  }
+
   return allowedOrigins;
 };
 
 export const isAllowedOrigin = (
   origin: string,
   allowedOrigins: ReadonlySet<string>,
+  previewRule: PreviewOriginRule,
 ): boolean => {
-  return allowedOrigins.has(origin) || isAllowedVercelPreviewOrigin(origin);
+  return (
+    allowedOrigins.has(origin) ||
+    isAllowedVercelPreviewOrigin(origin, previewRule)
+  );
 };
 
 export const buildCorsOptions = (config: {
   appOrigin?: string;
   frontendUrl?: string;
+  additionalOrigins?: string;
+  previewRule: PreviewOriginRule;
 }): CorsOptions => {
   const allowedOrigins = buildAllowedOrigins(config);
 
@@ -86,7 +116,7 @@ export const buildCorsOptions = (config: {
         return;
       }
 
-      if (isAllowedOrigin(origin, allowedOrigins)) {
+      if (isAllowedOrigin(origin, allowedOrigins, config.previewRule)) {
         callback(null, origin);
         return;
       }

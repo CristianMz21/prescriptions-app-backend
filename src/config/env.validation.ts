@@ -49,6 +49,19 @@ class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
+  CORS_ADDITIONAL_ORIGINS?: string;
+
+  @IsString()
+  CORS_PREVIEW_PREFIX!: string;
+
+  @IsString()
+  CORS_PREVIEW_REQUIRED_SEGMENT!: string;
+
+  @IsString()
+  CORS_PREVIEW_SUFFIX!: string;
+
+  @IsString()
+  @IsOptional()
   SMTP_HOST?: string;
 
   @IsString()
@@ -92,6 +105,15 @@ export function validate(config: Record<string, unknown>) {
     stringToNumberConfig['FRONTEND_URL'] = normalizeConfiguredOrigin(
       'FRONTEND_URL',
       frontendUrlValue,
+    );
+  }
+  const previewPrefix = stringToNumberConfig['CORS_PREVIEW_PREFIX'];
+  if (
+    typeof previewPrefix === 'string' &&
+    !previewPrefix.startsWith('https://')
+  ) {
+    throw new Error(
+      'Environment validation failed: CORS_PREVIEW_PREFIX must start with https://',
     );
   }
 
