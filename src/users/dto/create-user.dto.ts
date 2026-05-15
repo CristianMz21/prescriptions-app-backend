@@ -38,6 +38,11 @@ export class CreateUserDto {
   @MinLength(PASSWORD_MIN_LENGTH)
   password!: string;
 
+  /**
+   * Full display name. Required by product contract — every user MUST have a
+   * name. Do NOT make this optional or add a default; downstream UI/PDF
+   * rendering depends on a non-empty value.
+   */
   @ApiProperty({
     example: 'Jane Doe',
     description: 'Full display name (UI). Required.',
