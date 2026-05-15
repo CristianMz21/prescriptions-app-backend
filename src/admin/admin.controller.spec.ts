@@ -1,7 +1,33 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { Prescription, PrescriptionStatus } from '@prisma/client';
 import { AdminController } from './admin.controller';
-import { AdminService } from './admin.service';
+import { AdminService, AggregateMetrics } from './admin.service';
+import { AdminListPrescriptionsDto } from './dto/admin-list-prescriptions.dto';
+
+type FilteredMetrics = AggregateMetrics & {
+  topDoctors: Array<{ authorId: string; count: number }>;
+};
+
+const emptyFilteredMetrics = (): FilteredMetrics => ({
+  totals: { doctors: 0, patients: 0, prescriptions: 0 },
+  byStatus: { pending: 0, consumed: 0 },
+  byDay: [],
+  topDoctors: [],
+});
+
+const makePrescription = (id: string): Prescription => ({
+  id,
+  code: `RX-${id.toUpperCase()}`,
+  status: PrescriptionStatus.PENDING,
+  notes: null,
+  createdAt: new Date('2026-01-15T00:00:00Z'),
+  updatedAt: new Date('2026-01-15T00:00:00Z'),
+  consumedAt: null,
+  expiryDate: null,
+  authorId: 'doctor-1',
+  patientId: 'patient-1',
+});
 
 describe('AdminController', () => {
   let controller: AdminController;
@@ -29,12 +55,7 @@ describe('AdminController', () => {
 
   describe('getMetrics', () => {
     it('should call adminService.getDashboardMetricsFiltered with from/to params', async () => {
-      const mockMetrics = {
-        totals: { doctors: 0, patients: 0, prescriptions: 0 },
-        byStatus: {},
-        byDay: [],
-        topDoctors: [],
-      } as any;
+      const mockMetrics = emptyFilteredMetrics();
       adminService.getDashboardMetricsFiltered.mockResolvedValue(mockMetrics);
 
       const result = await controller.getMetrics({
@@ -50,15 +71,10 @@ describe('AdminController', () => {
     });
 
     it('should call adminService.getDashboardMetricsFiltered without params', async () => {
-      const mockMetrics = {
-        totals: { doctors: 0, patients: 0, prescriptions: 0 },
-        byStatus: {},
-        byDay: [],
-        topDoctors: [],
-      } as any;
+      const mockMetrics = emptyFilteredMetrics();
       adminService.getDashboardMetricsFiltered.mockResolvedValue(mockMetrics);
 
-      const result = await controller.getMetrics({});
+      await controller.getMetrics({});
 
       expect(adminService.getDashboardMetricsFiltered).toHaveBeenCalledWith(
         undefined,
@@ -75,7 +91,11 @@ describe('AdminController', () => {
       };
       adminService.findAllPrescriptions.mockResolvedValue(mockResult);
 
-      const filter = { page: 2, limit: 5, status: 'PENDING' as any };
+      const filter: AdminListPrescriptionsDto = {
+        page: 2,
+        limit: 5,
+        status: PrescriptionStatus.PENDING,
+      };
       const result = await controller.listPrescriptions(filter);
 
       expect(adminService.findAllPrescriptions).toHaveBeenCalledWith(filter);
@@ -84,7 +104,7 @@ describe('AdminController', () => {
 
     it('should return paginated prescriptions', async () => {
       const mockResult = {
-        data: [{ id: 'p1' }, { id: 'p2' }] as any,
+        data: [makePrescription('p1'), makePrescription('p2')],
         meta: { page: 1, limit: 10, total: 2, totalPages: 1 },
       };
       adminService.findAllPrescriptions.mockResolvedValue(mockResult);

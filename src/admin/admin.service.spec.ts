@@ -2,7 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, PrescriptionStatus } from '@prisma/client';
+import { Prescription, Role, PrescriptionStatus } from '@prisma/client';
+
+const makePrescription = (overrides: Partial<Prescription>): Prescription => ({
+  id: 'rx-default',
+  code: 'RX-DEFAULT',
+  status: PrescriptionStatus.PENDING,
+  notes: null,
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+  updatedAt: new Date('2026-01-01T00:00:00Z'),
+  consumedAt: null,
+  expiryDate: null,
+  authorId: 'doctor-1',
+  patientId: 'patient-1',
+  ...overrides,
+});
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -53,9 +67,18 @@ describe('AdminService', () => {
       });
 
       prismaService.prescription.findMany.mockResolvedValue([
-        { id: '1', createdAt: new Date('2023-01-01T10:00:00Z') } as any,
-        { id: '2', createdAt: new Date('2023-01-01T12:00:00Z') } as any,
-        { id: '3', createdAt: new Date('2023-01-02T10:00:00Z') } as any,
+        makePrescription({
+          id: '1',
+          createdAt: new Date('2023-01-01T10:00:00Z'),
+        }),
+        makePrescription({
+          id: '2',
+          createdAt: new Date('2023-01-01T12:00:00Z'),
+        }),
+        makePrescription({
+          id: '3',
+          createdAt: new Date('2023-01-02T10:00:00Z'),
+        }),
       ]);
 
       prismaService.$queryRaw.mockResolvedValue([
@@ -130,21 +153,18 @@ describe('AdminService', () => {
   });
 
   describe('findAllPrescriptions', () => {
-    const mockPrescription = {
+    const mockPrescription = makePrescription({
       id: 'rx-1',
-      doctorId: 'doctor-1',
       patientId: 'patient-1',
+      authorId: 'doctor-1',
       status: PrescriptionStatus.PENDING,
-      items: [],
       notes: null,
       createdAt: new Date('2026-01-15'),
       updatedAt: new Date('2026-01-15'),
-    };
+    });
 
     it('should return paginated data with defaults when no filter given', async () => {
-      prismaService.prescription.findMany.mockResolvedValue([
-        mockPrescription as any,
-      ]);
+      prismaService.prescription.findMany.mockResolvedValue([mockPrescription]);
       prismaService.prescription.count.mockResolvedValue(1);
 
       const result = await service.findAllPrescriptions({});

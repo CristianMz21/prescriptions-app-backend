@@ -11,6 +11,18 @@ import { PrismaService } from './../src/prisma/prisma.service';
 import { EmailService } from './../src/email/email.service';
 import { TEST_PASSWORD } from './test-credentials';
 
+interface PrescriptionItemRow {
+  name: string;
+}
+
+interface PrescriptionRow {
+  id: string;
+  doctorId?: string;
+  patientId?: string;
+  authorId?: string;
+  items?: PrescriptionItemRow[];
+}
+
 const extractAccessCookie = (
   setCookieHeader: string | string[] | undefined,
 ): string => {
@@ -454,9 +466,8 @@ describe('Prescriptions Flow (e2e)', () => {
 
       expect(res.body).toHaveProperty('data');
       expect(res.body).toHaveProperty('meta');
-      expect(res.body.data.every((p: any) => p.patientId !== undefined)).toBe(
-        true,
-      );
+      const rows = res.body.data as PrescriptionRow[];
+      expect(rows.every(p => p.patientId !== undefined)).toBe(true);
     });
 
     it('should filter by status for patient prescriptions', async () => {
@@ -713,10 +724,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .expect(200);
 
       if (res.body.data.length > 0) {
-        const wrongOwner = res.body.data.filter(
-          (p: any) =>
-            p.doctorId !== undefined &&
-            p.doctorId !== res.body.data[0]?.doctorId,
+        const rows = res.body.data as PrescriptionRow[];
+        const wrongOwner = rows.filter(
+          p => p.doctorId !== undefined && p.doctorId !== rows[0]?.doctorId,
         );
         expect(wrongOwner.length).toBe(0);
       }
@@ -729,10 +739,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .expect(200);
 
       if (res.body.data.length > 0) {
-        const wrongOwner = res.body.data.filter(
-          (p: any) =>
-            p.patientId !== undefined &&
-            p.patientId !== res.body.data[0]?.patientId,
+        const rows = res.body.data as PrescriptionRow[];
+        const wrongOwner = rows.filter(
+          p => p.patientId !== undefined && p.patientId !== rows[0]?.patientId,
         );
         expect(wrongOwner.length).toBe(0);
       }
@@ -811,8 +820,9 @@ describe('Prescriptions Flow (e2e)', () => {
         .expect(200);
       expect(Array.isArray(res.body.data)).toBe(true);
       // Seeded set contains "Amoxicillin"
-      const names = res.body.data.flatMap((p: any) =>
-        (p.items ?? []).map((i: any) => i.name.toLowerCase()),
+      const rows = res.body.data as PrescriptionRow[];
+      const names = rows.flatMap(p =>
+        (p.items ?? []).map(i => i.name.toLowerCase()),
       );
       const hasMatch = names.some((n: string) => n.includes('amoxi'));
       expect(hasMatch).toBe(true);
