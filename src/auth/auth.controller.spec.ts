@@ -34,6 +34,7 @@ describe('AuthController', () => {
   let controller: AuthController;
   let authService: jest.Mocked<AuthService>;
   let usersService: jest.Mocked<UsersService>;
+  let currentNodeEnv = 'development';
 
   const mockUser = {
     id: 'user-1',
@@ -42,6 +43,7 @@ describe('AuthController', () => {
   };
 
   beforeEach(async () => {
+    currentNodeEnv = 'development';
     const mockAuthService = {
       validateUser: jest.fn(),
       login: jest.fn(),
@@ -64,7 +66,7 @@ describe('AuthController', () => {
             getOrThrow: jest.fn<string, [string]>((key: string) => {
               if (key === 'JWT_ACCESS_TTL') return '15m';
               if (key === 'JWT_REFRESH_TTL') return '7d';
-              if (key === 'NODE_ENV') return 'development';
+              if (key === 'NODE_ENV') return currentNodeEnv;
               return 'mock-secret';
             }),
           },
@@ -122,6 +124,43 @@ describe('AuthController', () => {
 
       await expect(controller.login(loginDto, res)).rejects.toThrow(
         UnauthorizedException,
+      );
+    });
+
+    it('should set secure sameSite none cookies in production', async () => {
+      currentNodeEnv = 'production';
+      const loginDto = { email: 'test@clinic.com', password: 'password123' };
+      const { res, cookieMock } = buildResponseMocks();
+
+      authService.validateUser.mockResolvedValue(mockUser);
+      authService.login.mockResolvedValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        user: mockUser,
+      });
+
+      await controller.login(loginDto, res);
+
+      expect(cookieMock).toHaveBeenNthCalledWith(
+        1,
+        'accessToken',
+        'access-token',
+        expect.objectContaining({
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none',
+        }),
+      );
+      expect(cookieMock).toHaveBeenNthCalledWith(
+        2,
+        'refreshToken',
+        'refresh-token',
+        expect.objectContaining({
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none',
+          path: '/auth/refresh',
+        }),
       );
     });
   });

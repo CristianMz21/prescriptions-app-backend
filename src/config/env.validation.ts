@@ -8,6 +8,7 @@ import {
   validateSync,
   IsOptional,
 } from 'class-validator';
+import { normalizeConfiguredOrigin } from './cors.config';
 
 enum Environment {
   Development = 'development',
@@ -77,6 +78,21 @@ export function validate(config: Record<string, unknown>) {
   const stringToNumberConfig: Record<string, unknown> = { ...config };
   if (stringToNumberConfig['PORT'] !== undefined) {
     stringToNumberConfig['PORT'] = Number(stringToNumberConfig['PORT']);
+  }
+
+  const appOriginValue = stringToNumberConfig['APP_ORIGIN'];
+  const frontendUrlValue = stringToNumberConfig['FRONTEND_URL'];
+  if (typeof appOriginValue === 'string') {
+    stringToNumberConfig['APP_ORIGIN'] = normalizeConfiguredOrigin(
+      'APP_ORIGIN',
+      appOriginValue,
+    );
+  }
+  if (typeof frontendUrlValue === 'string') {
+    stringToNumberConfig['FRONTEND_URL'] = normalizeConfiguredOrigin(
+      'FRONTEND_URL',
+      frontendUrlValue,
+    );
   }
 
   const validatedConfig = plainToInstance(

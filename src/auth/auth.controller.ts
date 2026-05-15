@@ -33,6 +33,10 @@ import { RefreshResponseDto } from './dto/refresh-response.dto';
 import { UserProfileResponseDto } from './dto/user-profile-response.dto';
 import { ApiStandardErrors } from '../common/swagger/api-standard-errors.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import {
+  buildAuthCookieOptions,
+  buildRefreshCookieOptions,
+} from './auth-cookie.config';
 
 @ApiTags('Auth')
 @ApiCookieAuth('accessToken')
@@ -77,22 +81,14 @@ export class AuthController {
     }
 
     const authResult = await this.authService.login(user);
-    const isProduction =
-      this.configService.getOrThrow<string>('NODE_ENV') === 'production';
+    const nodeEnv = this.configService.getOrThrow<string>('NODE_ENV');
 
     response.cookie('accessToken', authResult.accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      maxAge: this.accessCookieMaxAge,
+      ...buildAuthCookieOptions(nodeEnv, this.accessCookieMaxAge),
     });
 
     response.cookie('refreshToken', authResult.refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      path: '/auth/refresh',
-      maxAge: this.refreshCookieMaxAge,
+      ...buildRefreshCookieOptions(nodeEnv, this.refreshCookieMaxAge),
     });
 
     return {
@@ -123,14 +119,10 @@ export class AuthController {
 
     try {
       const authResult = await this.authService.refresh(refreshToken);
-      const isProduction =
-        this.configService.getOrThrow<string>('NODE_ENV') === 'production';
+      const nodeEnv = this.configService.getOrThrow<string>('NODE_ENV');
 
       response.cookie('accessToken', authResult.accessToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'lax',
-        maxAge: this.accessCookieMaxAge,
+        ...buildAuthCookieOptions(nodeEnv, this.accessCookieMaxAge),
       });
 
       return { message: 'Token refreshed' };

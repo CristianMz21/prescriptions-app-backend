@@ -1,0 +1,114 @@
+import {
+  buildAllowedOrigins,
+  buildCorsOptions,
+  isAllowedOrigin,
+  isAllowedVercelPreviewOrigin,
+  normalizeConfiguredOrigin,
+} from './cors.config';
+
+describe('cors.config', () => {
+  describe('normalizeConfiguredOrigin', () => {
+    it('normalizes valid origin values', () => {
+      expect(
+        normalizeConfiguredOrigin(
+          'APP_ORIGIN',
+          'https://prescriptions-app-eight.vercel.app/path?a=1',
+        ),
+      ).toBe('https://prescriptions-app-eight.vercel.app');
+    });
+
+    it('throws when origin does not include protocol', () => {
+      expect(() =>
+        normalizeConfiguredOrigin(
+          'FRONTEND_URL',
+          'prescriptions-app.vercel.app',
+        ),
+      ).toThrow(
+        'Environment validation failed: FRONTEND_URL must start with http:// or https://',
+      );
+    });
+  });
+
+  describe('preview origin validation', () => {
+    it('accepts matching vercel preview origin', () => {
+      expect(
+        isAllowedVercelPreviewOrigin(
+          'https://prescriptions-abc-cristians-projects-04637ff3.vercel.app',
+        ),
+      ).toBe(true);
+    });
+
+    it('rejects malicious lookalike preview domain', () => {
+      expect(
+        isAllowedVercelPreviewOrigin(
+          'https://prescriptions-abc-cristians-projects-04637ff3.vercel.app.evil.com',
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe('allowed origins', () => {
+    const allowedOrigins = buildAllowedOrigins({
+      appOrigin: 'https://prescriptions-app-eight.vercel.app',
+      frontendUrl: 'https://prescriptions-app-eight.vercel.app',
+    });
+
+    it('includes required local origins', () => {
+      expect(allowedOrigins.has('http://localhost:3001')).toBe(true);
+      expect(allowedOrigins.has('http://127.0.0.1:3001')).toBe(true);
+    });
+
+    it('allows strict preview origin and rejects invalid vercel origin', () => {
+      expect(
+        isAllowedOrigin(
+          'https://prescriptions-pr-123-cristians-projects-04637ff3.vercel.app',
+          allowedOrigins,
+        ),
+      ).toBe(true);
+      expect(
+        isAllowedOrigin(
+          'https://prescriptions-pr-123.vercel.app',
+          allowedOrigins,
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe('cors callback', () => {
+    it('echoes allowed request origin', done => {
+      const options = buildCorsOptions({
+        appOrigin: 'https://prescriptions-app-eight.vercel.app',
+        frontendUrl: 'https://prescriptions-app-eight.vercel.app',
+      });
+      const originHandler = options.origin;
+
+      if (typeof originHandler !== 'function') {
+        throw new Error('Expected function origin handler');
+      }
+
+      originHandler('http://localhost:3001', (error, value) => {
+        expect(error).toBeNull();
+        expect(value).toBe('http://localhost:3001');
+        done();
+      });
+    });
+
+    it('rejects non-allowed origin', done => {
+      const options = buildCorsOptions({
+        appOrigin: 'https://prescriptions-app-eight.vercel.app',
+        frontendUrl: 'https://prescriptions-app-eight.vercel.app',
+      });
+      const originHandler = options.origin;
+
+      if (typeof originHandler !== 'function') {
+        throw new Error('Expected function origin handler');
+      }
+
+      originHandler('https://attacker.example', (error, value) => {
+        expect(error).toBeInstanceOf(Error);
+        expect(value).toBe(false);
+        done();
+      });
+    });
+  });
+});
