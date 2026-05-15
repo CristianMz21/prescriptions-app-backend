@@ -48,13 +48,18 @@
 - `prisma/schema.prisma` — **authoritative** data model
 - `test/prescriptions.e2e-spec.ts` — example E2E test (auth + RBAC + validation)
 - `.opencode/rules/` — mandatory rules auto-loaded via `opencode.json`
+- `openapi.json` — generated OpenAPI spec (source of truth for API contract)
+- `cats-headers.yml` — CATS fuzzer auth headers
 
 ## Gotchas
+- **User model has `name` and `phone` fields** — `name` is required, `phone` is optional
+- **PrescriptionItem has `unit` field** — unit of measure (mg, ml, capsules, etc.)
+- **Prescription has `expiryDate` field** — optional date past which prescription is invalid
 - **Puppeteer** is a heavy dev dependency (used for PDF generation via `src/pdf/`)
 - **Email** is optional — `EmailService` is no-op if `SMTP_HOST` is not configured
+- **Redis** is required for CI (`REDIS_URL`) but not for local dev
 - No `@nestjs/throttler` in this project — rate limiting is not implemented
 - `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` are **strings** ("15m", "7d"), not numbers
 - Role enums are UPPERCASE in Prisma: `ADMIN`, `DOCTOR`, `PATIENT`
 - `tsconfig.json` uses `"module": "nodenext"` + `"moduleResolution": "nodenext"` — affects import resolution
-- `User` model has no `name` field — responses use `email` for identification
 - Prescription code format: `RX-XXXXXXXXXX` (unique, generated via nanoid)

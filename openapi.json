@@ -41,7 +41,7 @@
         },
         "responses": {
           "201": {
-            "description": "Login successful — access tokens set in cookies",
+            "description": "Login successful \u2014 access tokens set in cookies",
             "content": {
               "application/json": {
                 "schema": {
@@ -51,7 +51,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — validation failed or invalid credentials",
+            "description": "Bad Request \u2014 validation failed or invalid credentials",
             "content": {
               "application/json": {
                 "schema": {
@@ -61,7 +61,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — invalid email or password",
+            "description": "Unauthorized \u2014 invalid email or password",
             "content": {
               "application/json": {
                 "schema": {
@@ -88,7 +88,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Token refreshed — new access token set in cookie",
+            "description": "Token refreshed \u2014 new access token set in cookie",
             "content": {
               "application/json": {
                 "schema": {
@@ -98,7 +98,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — refresh token missing or invalid",
+            "description": "Unauthorized \u2014 refresh token missing or invalid",
             "content": {
               "application/json": {
                 "schema": {
@@ -125,7 +125,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Logout successful — cookies cleared",
+            "description": "Logout successful \u2014 cookies cleared",
             "content": {
               "application/json": {
                 "schema": {
@@ -135,7 +135,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -172,7 +172,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -219,7 +219,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — validation failed",
+            "description": "Bad Request \u2014 validation failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -229,7 +229,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -239,7 +239,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Admin role required",
+            "description": "Forbidden \u2014 Admin role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -249,7 +249,7 @@
             }
           },
           "409": {
-            "description": "Conflict — user with this email already exists",
+            "description": "Conflict \u2014 user with this email already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -391,7 +391,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -401,7 +401,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Admin role required",
+            "description": "Forbidden \u2014 Admin role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -589,7 +589,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -599,7 +599,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Admin or Doctor role required",
+            "description": "Forbidden \u2014 Admin or Doctor role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -765,7 +765,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -775,7 +775,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Admin role required",
+            "description": "Forbidden \u2014 Admin role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -822,7 +822,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — invalid themePreference value",
+            "description": "Bad Request \u2014 invalid themePreference value",
             "content": {
               "application/json": {
                 "schema": {
@@ -832,7 +832,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -879,7 +879,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — invalid name/phone payload",
+            "description": "Bad Request \u2014 invalid name/phone payload",
             "content": {
               "application/json": {
                 "schema": {
@@ -889,7 +889,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -937,7 +937,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -947,7 +947,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Admin or Doctor role required",
+            "description": "Forbidden \u2014 Admin or Doctor role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -957,7 +957,7 @@
             }
           },
           "404": {
-            "description": "Not Found — user not found",
+            "description": "Not Found \u2014 user not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1004,7 +1004,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — invalid payload (DTO validation failed)",
+            "description": "Bad Request \u2014 invalid payload (DTO validation failed)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1014,7 +1014,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1024,7 +1024,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Doctor role required",
+            "description": "Forbidden \u2014 Doctor role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1034,7 +1034,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity — payload is well-formed but the referenced patientId does not exist",
+            "description": "Unprocessable Entity \u2014 payload is well-formed but the referenced patientId does not exist",
             "content": {
               "application/json": {
                 "schema": {
@@ -1093,7 +1093,7 @@
             "name": "status",
             "required": false,
             "in": "query",
-            "description": "Filtrar por estado de prescripción.",
+            "description": "Filtrar por estado de prescripci\u00f3n.",
             "schema": {
               "type": "string",
               "enum": [
@@ -1177,7 +1177,7 @@
             "name": "hasNotes",
             "required": false,
             "in": "query",
-            "description": "Filter by presence of notes. true → notes IS NOT NULL; false → notes IS NULL.",
+            "description": "Filter by presence of notes. true \u2192 notes IS NOT NULL; false \u2192 notes IS NULL.",
             "schema": {
               "example": true,
               "type": "boolean"
@@ -1233,7 +1233,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — invalid query parameters",
+            "description": "Bad Request \u2014 invalid query parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -1243,7 +1243,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1291,7 +1291,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1301,7 +1301,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — you do not have access to this prescription",
+            "description": "Forbidden \u2014 you do not have access to this prescription",
             "content": {
               "application/json": {
                 "schema": {
@@ -1311,7 +1311,7 @@
             }
           },
           "404": {
-            "description": "Not Found — prescription does not exist or access forbidden",
+            "description": "Not Found \u2014 prescription does not exist or access forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -1369,7 +1369,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1379,7 +1379,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Patient role required or prescription does not belong to patient",
+            "description": "Forbidden \u2014 Patient role required or prescription does not belong to patient",
             "content": {
               "application/json": {
                 "schema": {
@@ -1389,7 +1389,7 @@
             }
           },
           "404": {
-            "description": "Not Found — prescription not found or does not belong to patient",
+            "description": "Not Found \u2014 prescription not found or does not belong to patient",
             "content": {
               "application/json": {
                 "schema": {
@@ -1399,7 +1399,7 @@
             }
           },
           "409": {
-            "description": "Conflict — prescription has already been consumed",
+            "description": "Conflict \u2014 prescription has already been consumed",
             "content": {
               "application/json": {
                 "schema": {
@@ -1448,7 +1448,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1458,7 +1458,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — you do not have access to this prescription",
+            "description": "Forbidden \u2014 you do not have access to this prescription",
             "content": {
               "application/json": {
                 "schema": {
@@ -1468,7 +1468,7 @@
             }
           },
           "404": {
-            "description": "Not Found — prescription not found or not authorized to download",
+            "description": "Not Found \u2014 prescription not found or not authorized to download",
             "content": {
               "application/json": {
                 "schema": {
@@ -1538,7 +1538,7 @@
             "name": "authorId",
             "required": false,
             "in": "query",
-            "description": "Filter by author identifier — Doctor.id or related User.id.",
+            "description": "Filter by author identifier \u2014 Doctor.id or related User.id.",
             "schema": {
               "format": "uuid",
               "example": "123e4567-e89b-12d3-a456-426614174000",
@@ -1549,7 +1549,7 @@
             "name": "patientId",
             "required": false,
             "in": "query",
-            "description": "Filter by patient identifier — Patient.id or related User.id.",
+            "description": "Filter by patient identifier \u2014 Patient.id or related User.id.",
             "schema": {
               "format": "uuid",
               "example": "456e7890-e89b-12d3-a456-426614174001",
@@ -1615,7 +1615,7 @@
             "name": "hasNotes",
             "required": false,
             "in": "query",
-            "description": "Filter by presence of notes. true → notes IS NOT NULL; false → notes IS NULL.",
+            "description": "Filter by presence of notes. true \u2192 notes IS NOT NULL; false \u2192 notes IS NULL.",
             "schema": {
               "example": true,
               "type": "boolean"
@@ -1693,7 +1693,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — invalid query parameters",
+            "description": "Bad Request \u2014 invalid query parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -1703,7 +1703,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1713,7 +1713,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Admin role required",
+            "description": "Forbidden \u2014 Admin role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1773,7 +1773,7 @@
             }
           },
           "400": {
-            "description": "Bad Request — invalid date parameters",
+            "description": "Bad Request \u2014 invalid date parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -1783,7 +1783,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1793,7 +1793,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Admin role required",
+            "description": "Forbidden \u2014 Admin role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1840,7 +1840,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized — valid access token required",
+            "description": "Unauthorized \u2014 valid access token required",
             "content": {
               "text/event-stream": {
                 "schema": {
@@ -1850,7 +1850,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — Admin role required",
+            "description": "Forbidden \u2014 Admin role required",
             "content": {
               "text/event-stream": {
                 "schema": {
@@ -2560,11 +2560,17 @@
             "example": "Take 1 pill every 8 hours",
             "description": "Instructions for the patient",
             "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Unit of measure."
           }
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "unit"
         ]
       },
       "PrescriptionUserSummaryDto": {
@@ -2587,12 +2593,22 @@
                 "$ref": "#/components/schemas/Role"
               }
             ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Full display name."
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional contact phone."
           }
         },
         "required": [
           "id",
           "email",
-          "role"
+          "role",
+          "name"
         ]
       },
       "PrescriptionAuthorSummaryDto": {
@@ -2755,6 +2771,12 @@
                 "$ref": "#/components/schemas/PrescriptionPatientSummaryDto"
               }
             ]
+          },
+          "expiryDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Optional date past which the prescription is considered invalid."
           }
         },
         "required": [
@@ -2790,8 +2812,8 @@
           },
           "unit": {
             "type": "string",
-            "example": "cápsulas",
-            "description": "Unit of measure that gives `quantity` meaning (mg, ml, cápsulas, comprimidos, gotas, ...). Required.",
+            "example": "c\u00e1psulas",
+            "description": "Unit of measure that gives `quantity` meaning (mg, ml, c\u00e1psulas, comprimidos, gotas, ...). Required.",
             "maxLength": 32
           },
           "instructions": {
@@ -2811,7 +2833,7 @@
           "patientId": {
             "type": "string",
             "example": "123e4567-e89b-12d3-a456-426614174000",
-            "description": "Patient identifier. Accepts either the Patient profile id (Patient.id) or the related User.id — the server resolves either form. See GET /users/patients which exposes both.",
+            "description": "Patient identifier. Accepts either the Patient profile id (Patient.id) or the related User.id \u2014 the server resolves either form. See GET /users/patients which exposes both.",
             "format": "uuid"
           },
           "items": {

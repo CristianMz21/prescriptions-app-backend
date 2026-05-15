@@ -12,8 +12,10 @@ JWT_ACCESS_TTL="15m"
 JWT_REFRESH_TTL="7d"
 PORT=3000
 FRONTEND_URL="https://tu-frontend.com"
+APP_ORIGIN="https://tu-frontend.com"
 NODE_ENV="production"
 SEED_DEFAULT_PASSWORD="Password123!"
+REDIS_URL="redis://localhost:6379"        # Requerido para CI; opcional en local
 # Opcional: email via SMTP (descomentar si se necesita)
 # SMTP_HOST="smtp.example.com"
 # SMTP_PORT="587"
@@ -21,6 +23,8 @@ SEED_DEFAULT_PASSWORD="Password123!"
 # SMTP_PASS="pass"
 # SMTP_FROM="no-reply@tu-clinica.com"
 ```
+
+> **Note**: At least one of `APP_ORIGIN` or `FRONTEND_URL` must be set for CORS to work.
 
 ### Generar Secrets
 
@@ -38,21 +42,21 @@ openssl rand -base64 32
 
 ```bash
 # 1. Instalar dependencias
-npm install
+pnpm install
 
 # 2. Generar Prisma client
-npx prisma generate
+pnpm exec prisma generate
 
 # 3. Aplicar migraciones
-npx prisma migrate deploy
+pnpm exec prisma migrate deploy
 
 # 4. Seed database (opcional)
-npm run prisma:seed
+SEED_DEFAULT_PASSWORD="Password123!" pnpm exec prisma db seed
 
 # 5. Iniciar
-npm run start:prod
+pnpm run start:prod
 # o en desarrollo
-npm run start:dev
+pnpm run start:dev
 ```
 
 ---
@@ -114,7 +118,10 @@ Agregar en Railway dashboard:
 | `JWT_REFRESH_TTL` | `7d` |
 | `PORT` | `3000` |
 | `FRONTEND_URL` | URL de tu frontend desplegado |
+| `APP_ORIGIN` | URL de tu frontend desplegado |
 | `NODE_ENV` | `production` |
+| `SEED_DEFAULT_PASSWORD` | Password para usuarios seed |
+| `REDIS_URL` | `redis://localhost:6379` (requerido para CI) |
 
 ### 3. Configurar Build
 
@@ -125,13 +132,19 @@ Agregar en Railway dashboard:
 
 Railway puede crear un PostgreSQL automaticamente. Obtener `DATABASE_URL` del dashboard.
 
-### 5. Migraciones
-
-Agregar un paso de post-deploy:
+### 5. Migraciones + Seed
 
 ```bash
 npx prisma migrate deploy
 ```
+
+Para seeding inicial o re-seeding, ejecutar desde la Shell:
+
+```bash
+SEED_DEFAULT_PASSWORD="$SEED_DEFAULT_PASSWORD" npx prisma db seed
+```
+
+Seed es idempotente — es seguro re-ejecutar.
 
 ---
 
@@ -145,13 +158,13 @@ Ve a [render.com](https://render.com) → New → Web Service → Connect GitHub
 
 | Campo | Valor |
 |-------|-------|
-| Build Command | `npm run build` |
+| Build Command | `pnpm run build` |
 | Start Command | `node dist/main.js` |
 | Environment | `Node` |
 
 ### 3. Variables de Entorno
 
-Same que Railway (ver seccion 4.1).
+Same as Railway (ver seccion 4.2), incluyendo `APP_ORIGIN`, `SEED_DEFAULT_PASSWORD`, `FRONTEND_URL`/`APP_ORIGIN`.
 
 ### 4. PostgreSQL
 

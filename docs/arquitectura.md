@@ -71,6 +71,8 @@ model User {
   id              String          @id @default(uuid())
   email           String          @unique
   passwordHash    String
+  name            String
+  phone           String?
   role            Role
   themePreference ThemePreference @default(SYSTEM)
   createdAt       DateTime        @default(now())
@@ -81,6 +83,7 @@ model User {
   auditLogs PrescriptionAuditLog[] @relation("ChangedBy")
 
   @@index([email])
+  @@index([name])
 }
 
 model Doctor {
@@ -112,6 +115,7 @@ model Prescription {
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
   consumedAt DateTime?
+  expiryDate DateTime?
 
   authorId String
   author   Doctor @relation("AuthoredBy", fields: [authorId], references: [id])
@@ -133,6 +137,7 @@ model PrescriptionItem {
   name         String
   dosage       String?
   quantity     Int?
+  unit         String
   instructions String?
   createdAt    DateTime @default(now())
 
@@ -287,11 +292,16 @@ backend/
 | Login | OK | OK | OK |
 | Ver propio perfil | OK | OK | OK |
 | Crear usuario | OK | NO | NO |
+| Listar usuarios | OK | NO | NO |
 | Listar pacientes | OK | OK | NO |
 | Listar doctores | OK | NO | NO |
+| Ver detalle usuario | OK | OK | NO |
 | Crear prescripcion | NO | OK | NO |
 | Ver propias | OK | las que autoro | las que recibio |
-| Consumir prescripcion | NO | NO | OK owner |
+| Detalle prescripcion | OK | si es autor | si es dueno |
+| Marcar consumida | NO | NO | OK owner |
+| Descargar PDF | OK | si autor | si dueno |
+| Listar todas prescripciones | OK | NO | NO |
 | Ver metricas | OK | NO | NO |
 
 ### IDOR Prevention
@@ -373,7 +383,8 @@ Todo request pasa por:
 | `JWT_ACCESS_TTL` | TTL access token (string) | `"15m"` |
 | `JWT_REFRESH_TTL` | TTL refresh token (string) | `"7d"` |
 | `PORT` | Puerto HTTP | `3000` |
-| `FRONTEND_URL` | Origen CORS | `http://localhost:3001` |
+| `FRONTEND_URL` | Origen CORS (alternative) | `http://localhost:3001` |
+| `APP_ORIGIN` | Origen CORS (alternative) | `http://localhost:3001` |
 | `NODE_ENV` | Entorno | `development` |
 | `SEED_DEFAULT_PASSWORD` | Password para usuarios seed | `Password123!` |
 | `SMTP_HOST` | Servidor SMTP (opcional) | `smtp.example.com` |
@@ -381,5 +392,8 @@ Todo request pasa por:
 | `SMTP_USER` | Usuario SMTP (opcional) | `user` |
 | `SMTP_PASS` | Password SMTP (opcional) | `pass` |
 | `SMTP_FROM` | Dirección From (opcional) | `no-reply@clinic.local` |
+| `REDIS_URL` | Redis connection string (requerido para CI) | `redis://localhost:6379` |
+
+> **Note**: At least one of `APP_ORIGIN` or `FRONTEND_URL` must be set for CORS to work.
 
 La app hace **fast-fail** al iniciar si falta alguna variable o está malformada (`src/config/env.validation.ts`).

@@ -4,9 +4,10 @@
 
 ### Requisitos
 
-- Node.js 22.x
+- Node.js 22.x or 24.x
 - PostgreSQL 15+ (puerto 5433)
-- npm o pnpm
+- Redis 7 (puerto 6379) — requerido para CI; opcional para desarrollo local
+- pnpm
 
 ### Pasos
 
@@ -16,23 +17,23 @@ git clone https://github.com/CristianMz21/prescriptions-app-backend.git
 cd prescriptions-app-backend
 
 # 2. Instalar dependencias
-npm install
+pnpm install
 
 # 3. Crear .env
 cp .env.example .env
 # Editar .env con valores reales
 
 # 4. Generar Prisma client
-npx prisma generate
+pnpm exec prisma generate
 
 # 5. Crear DB y aplicar migraciones
-npx prisma migrate dev
+pnpm exec prisma migrate dev
 
 # 6. Seed database
-npx prisma db seed
+SEED_DEFAULT_PASSWORD="Password123!" pnpm exec prisma db seed
 
 # 7. Iniciar en modo desarrollo
-npm run start:dev
+pnpm run start:dev
 ```
 
 ### Puerto
@@ -45,29 +46,29 @@ El backend corre en `http://localhost:3000`. Swagger en `http://localhost:3000/d
 
 ```bash
 # Desarrollo
-npm run start:dev        # Iniciar con hot-reload
-npm run build            # Build de produccion
+pnpm run start:dev        # Iniciar con hot-reload
+pnpm run build            # Build de produccion
 
 # Calidad
-npm run lint            # ESLint
-npm run typecheck        # TypeScript type check
-npm run format           # Prettier format
+pnpm run lint             # ESLint
+pnpm run typecheck        # TypeScript type check
+pnpm run format           # Prettier format
 
 # Testing
-npm test                # Unit tests
-npm run test:cov        # Unit tests + coverage
-npm run test:e2e         # E2E tests
+pnpm test                 # Unit tests
+pnpm run test:cov         # Unit tests + coverage
+pnpm run test:e2e          # E2E tests
 
 # Prisma
-npx prisma generate     # Generar client
-npx prisma migrate dev  # Aplicar migraciones (dev)
-npx prisma migrate deploy # Aplicar migraciones (prod)
-npx prisma db seed      # Seed database
-npx prisma db push      # Push schema sin migracion (dev only)
-npx prisma studio       # UI para explorar DB
+pnpm exec prisma generate # Generar client
+pnpm exec prisma migrate dev  # Aplicar migraciones (dev)
+pnpm exec prisma migrate deploy # Aplicar migraciones (prod)
+pnpm exec prisma db seed   # Seed database
+pnpm exec prisma db push   # Push schema sin migracion (dev only)
+pnpm exec prisma studio    # UI para explorar DB
 
 # Reset completo
-npx prisma migrate reset --force
+pnpm exec prisma migrate reset --force
 ```
 
 ---
@@ -76,10 +77,10 @@ npx prisma migrate reset --force
 
 | Email | Role | Password |
 |-------|------|----------|
-| `admin@clinic.com` | ADMIN | `Password123!` (example; real password via `SEED_DEFAULT_PASSWORD` env var) |
-| `doctor@clinic.com` | DOCTOR | `Password123!` |
-| `doctor2@clinic.com` | DOCTOR | `Password123!` |
-| `patient@clinic.com` | PATIENT | `Password123!` |
+| `admin@clinic.com` | ADMIN | controlled by `SEED_DEFAULT_PASSWORD` env var |
+| `doctor@clinic.com` | DOCTOR | controlled by `SEED_DEFAULT_PASSWORD` env var |
+| `doctor2@clinic.com` | DOCTOR | controlled by `SEED_DEFAULT_PASSWORD` env var |
+| `patient@clinic.com` | PATIENT | controlled by `SEED_DEFAULT_PASSWORD` env var |
 
 ---
 
@@ -127,23 +128,23 @@ Extiende `PrismaClient`. Singleton inyectado globalmente. Solo una instancia —
 
 ```bash
 # Correr todos
-npm test
+pnpm test
 
 # Un archivo especifico
-npx jest src/prescriptions/prescriptions.service.spec.ts
+pnpm exec jest src/prescriptions/prescriptions.service.spec.ts
 
 # Coverage
-npm run test:cov
+pnpm run test:cov
 ```
 
 ### E2E Tests
 
 ```bash
 # Correr todos
-npm run test:e2e
+pnpm run test:e2e
 
 # Un archivo especifico
-npm run test:e2e -- prescriptions.e2e-spec.ts
+pnpm run test:e2e -- prescriptions.e2e-spec.ts
 ```
 
 ### Patron de Auth en E2E
@@ -201,7 +202,7 @@ No usar `# noqa`, `# type: ignore`, `@ts-ignore`. Arreglar errores en su lugar.
 git checkout -b feat/nueva-feature
 
 # 2. Desarrollar + tests
-npm run lint && npm run typecheck && npm test
+pnpm run lint && pnpm run typecheck && pnpm test
 
 # 3. Commit
 git add .
@@ -231,7 +232,7 @@ DATABASE_URL="..." npx prisma migrate dev --debug
 ### Prisma Studio
 
 ```bash
-npx prisma studio
+pnpm exec prisma studio
 ```
 
 Abre UI en `http://localhost:5555` para explorar datos.

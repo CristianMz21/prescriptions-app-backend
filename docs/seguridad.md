@@ -28,7 +28,7 @@
 }
 ```
 
-El JWT contiene **3 claims**: `sub` (user ID), `email`, `role`. No incluye `name` porque User no tiene ese campo.
+El JWT contiene **3 claims**: `sub` (user ID), `email`, `role`. El campo `name` está disponible en el modelo `User` para display en UI.
 
 ### 1.4 Variables de Entorno Relacionadas
 
@@ -36,6 +36,8 @@ El JWT contiene **3 claims**: `sub` (user ID), `email`, `role`. No incluye `name
 - `JWT_REFRESH_SECRET` — Secreto para refresh tokens
 - `JWT_ACCESS_TTL` — `"15m"`
 - `JWT_REFRESH_TTL` — `"7d"`
+- `FRONTEND_URL` / `APP_ORIGIN` — Orígenes CORS permitidos (al menos uno debe estar configurado)
+- `REDIS_URL` — Redis connection string (requerido para CI, opcional en local)
 - `SMTP_HOST` — Servidor SMTP (opcional; si no está, email disabled)
 - `SMTP_PORT` — Puerto SMTP (default 587)
 - `SMTP_USER` / `SMTP_PASS` — Credenciales SMTP (opcional)
