@@ -8,6 +8,7 @@ import {
   validateSync,
   IsOptional,
 } from 'class-validator';
+import { normalizeConfiguredOrigin } from './cors.config';
 
 enum Environment {
   Development = 'development',
@@ -48,6 +49,22 @@ class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
+  CORS_ADDITIONAL_ORIGINS?: string;
+
+  @IsString()
+  @IsOptional()
+  CORS_PREVIEW_PREFIX?: string;
+
+  @IsString()
+  @IsOptional()
+  CORS_PREVIEW_REQUIRED_SEGMENT?: string;
+
+  @IsString()
+  @IsOptional()
+  CORS_PREVIEW_SUFFIX?: string;
+
+  @IsString()
+  @IsOptional()
   SMTP_HOST?: string;
 
   @IsString()
@@ -77,6 +94,48 @@ export function validate(config: Record<string, unknown>) {
   const stringToNumberConfig: Record<string, unknown> = { ...config };
   if (stringToNumberConfig['PORT'] !== undefined) {
     stringToNumberConfig['PORT'] = Number(stringToNumberConfig['PORT']);
+  }
+
+  const appOriginValue = stringToNumberConfig['APP_ORIGIN'];
+  const frontendUrlValue = stringToNumberConfig['FRONTEND_URL'];
+  if (typeof appOriginValue === 'string') {
+    stringToNumberConfig['APP_ORIGIN'] = normalizeConfiguredOrigin(
+      'APP_ORIGIN',
+      appOriginValue,
+    );
+  }
+  if (typeof frontendUrlValue === 'string') {
+    stringToNumberConfig['FRONTEND_URL'] = normalizeConfiguredOrigin(
+      'FRONTEND_URL',
+      frontendUrlValue,
+    );
+  }
+  const previewPrefix = stringToNumberConfig['CORS_PREVIEW_PREFIX'];
+  const previewRequiredSegment =
+    stringToNumberConfig['CORS_PREVIEW_REQUIRED_SEGMENT'];
+  const previewSuffix = stringToNumberConfig['CORS_PREVIEW_SUFFIX'];
+  const hasPreviewRulePart =
+    typeof previewPrefix === 'string' ||
+    typeof previewRequiredSegment === 'string' ||
+    typeof previewSuffix === 'string';
+  const hasCompletePreviewRule =
+    typeof previewPrefix === 'string' &&
+    typeof previewRequiredSegment === 'string' &&
+    typeof previewSuffix === 'string';
+
+  if (hasPreviewRulePart && !hasCompletePreviewRule) {
+    throw new Error(
+      'Environment validation failed: CORS_PREVIEW_PREFIX, CORS_PREVIEW_REQUIRED_SEGMENT and CORS_PREVIEW_SUFFIX must be provided together',
+    );
+  }
+
+  if (
+    typeof previewPrefix === 'string' &&
+    !previewPrefix.startsWith('https://')
+  ) {
+    throw new Error(
+      'Environment validation failed: CORS_PREVIEW_PREFIX must start with https://',
+    );
   }
 
   const validatedConfig = plainToInstance(

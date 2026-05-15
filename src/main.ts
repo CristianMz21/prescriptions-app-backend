@@ -12,6 +12,8 @@ import {
 } from './common/swagger/swagger.config';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response, NextFunction } from 'express';
+import { buildCorsOptions } from './config/cors.config';
+import { getCorsRuntimeConfig } from './config/cors-runtime.config';
 
 const DEFAULT_PORT = 3000;
 const bootstrapLogger = new Logger('Bootstrap');
@@ -36,15 +38,7 @@ void (async () => {
     const app = await NestFactory.create(AppModule);
 
     const configService = app.get(ConfigService);
-    const appOrigin = configService.get<string>('APP_ORIGIN');
-    const frontendUrl = configService.get<string>('FRONTEND_URL');
-    const corsOrigin = appOrigin ?? frontendUrl;
-
-    if (!corsOrigin) {
-      throw new Error(
-        'Environment validation failed: At least one of APP_ORIGIN or FRONTEND_URL must be provided',
-      );
-    }
+    const corsRuntimeConfig = getCorsRuntimeConfig(configService);
 
     app.use(
       helmet({
@@ -68,12 +62,7 @@ void (async () => {
     app.use(securityHeadersMiddleware);
     app.use(cookieParser());
 
-    app.enableCors({
-      origin: corsOrigin,
-      credentials: true,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      allowedHeaders: 'Content-Type, Accept, Authorization',
-    });
+    app.enableCors(buildCorsOptions(corsRuntimeConfig));
 
     app.useGlobalPipes(
       new ValidationPipe({
