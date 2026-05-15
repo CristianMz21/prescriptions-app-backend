@@ -70,10 +70,12 @@ export class PdfService {
         },
       });
 
-      const templatePath = join(
-        process.cwd(),
-        'src/pdf/templates/prescription.hbs',
-      );
+      // Resolve relative to the compiled service file so we don't depend on
+      // process.cwd() and so the template is found whether the app runs from
+      // the repo root in dev (ts-node) or from `dist/` in prod (Docker). The
+      // template ships next to the compiled .js via `compilerOptions.assets`
+      // in `nest-cli.json` (`**/*.hbs`).
+      const templatePath = join(__dirname, 'templates', 'prescription.hbs');
       const templateContent = await readFile(templatePath, 'utf8');
       const template = compile(templateContent);
 
@@ -95,7 +97,16 @@ export class PdfService {
 
       browser = await launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        // `--disable-dev-shm-usage` is required in containers (Render, ECS,
+        // Docker): the default /dev/shm is 64 MB and Chromium crashes when
+        // it tries to allocate shared memory above that. The two sandbox
+        // flags are needed because Render's container runs as a non-root
+        // user without the kernel features Chromium's sandbox wants.
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+        ],
       });
 
       const page = await browser.newPage();
