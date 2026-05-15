@@ -455,7 +455,14 @@ async function seedPrescriptions(
 async function main(): Promise<void> {
   console.log('🌱 Starting idempotent seed (faker.seed=42)...');
 
-  const saltRounds = 10;
+  // Default 10 (OWASP floor); override via BCRYPT_SALT_ROUNDS env var,
+  // bounded [4, 15]. Test fixtures set rounds=4 to keep seed wall-time
+  // out of CI's critical path (100 hashed users × 100ms = 10s saved).
+  const rawRounds = Number(process.env.BCRYPT_SALT_ROUNDS);
+  const saltRounds =
+    Number.isFinite(rawRounds) && rawRounds >= 4 && rawRounds <= 15
+      ? rawRounds
+      : 10;
   const defaultPassword = process.env.SEED_DEFAULT_PASSWORD;
   if (!defaultPassword || defaultPassword.length < 8) {
     throw new Error(
