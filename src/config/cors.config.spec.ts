@@ -8,6 +8,12 @@ import {
 
 describe('cors.config', () => {
   describe('normalizeConfiguredOrigin', () => {
+    it('returns undefined when configured origin is missing', () => {
+      expect(
+        normalizeConfiguredOrigin('APP_ORIGIN', undefined),
+      ).toBeUndefined();
+    });
+
     it('normalizes valid origin values', () => {
       expect(
         normalizeConfiguredOrigin(
@@ -75,6 +81,24 @@ describe('cors.config', () => {
   });
 
   describe('cors callback', () => {
+    it('allows requests without origin header', done => {
+      const options = buildCorsOptions({
+        appOrigin: 'https://prescriptions-app-eight.vercel.app',
+        frontendUrl: 'https://prescriptions-app-eight.vercel.app',
+      });
+      const originHandler = options.origin;
+
+      if (typeof originHandler !== 'function') {
+        throw new Error('Expected function origin handler');
+      }
+
+      originHandler(undefined, (error, value) => {
+        expect(error).toBeNull();
+        expect(value).toBe(true);
+        done();
+      });
+    });
+
     it('echoes allowed request origin', done => {
       const options = buildCorsOptions({
         appOrigin: 'https://prescriptions-app-eight.vercel.app',
