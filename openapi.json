@@ -2728,6 +2728,13 @@
             "example": "2026-01-16T08:45:00.000Z",
             "nullable": true
           },
+          "expiryDate": {
+            "type": "string",
+            "description": "Optional date past which the prescription is considered invalid.",
+            "example": "2026-09-15T00:00:00.000Z",
+            "format": "date-time",
+            "nullable": true
+          },
           "authorId": {
             "type": "string",
             "description": "Author (Doctor) unique identifier",
