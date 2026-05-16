@@ -37,7 +37,7 @@
     "qa:setup-stopwatch": "bash scripts/qa-setup-stopwatch.sh"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node dist/prisma/seed.js"
   },
   "dependencies": {
     "@faker-js/faker": "^10.4.0",

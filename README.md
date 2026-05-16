@@ -24,9 +24,13 @@ cp .env.example .env
 # frontend NO se levantan con docker compose, sólo la DB.
 docker compose up -d postgres   # desde la raíz del monorepo
 
-# 5. Migraciones + seed + arrancar
+# 5. Migraciones + build + seed + arrancar
+# `pnpm run build` es obligatorio antes del seed porque el seed se
+# ejecuta como `node dist/prisma/seed.js` para que la imagen de
+# producción (que no embarca ts-node) también pueda correr el seed.
 pnpm exec prisma generate
 pnpm exec prisma migrate dev
+pnpm run build
 pnpm exec prisma db seed
 pnpm run start:dev
 ```
