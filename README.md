@@ -4,38 +4,50 @@ API de gestión de prescripciones médicas. Encargate de la autenticación, rece
 
 ## Quick Start
 
+**Prereqs:** Docker, pnpm 11.1.1, Node ≥ 20.
+
 ```bash
-# 1. Clonar y entrar
 git clone https://github.com/CristianMz21/prescriptions-app-backend.git
 cd prescriptions-app-backend
-
-# 2. Instalar
-pnpm install
-
-# 3. Configurar .env
-cp .env.example .env
-# Los valores por defecto del .env.example apuntan a Postgres en
-# localhost:5433 (el binding del docker-compose.yml de la raíz del
-# monorepo). Si vas a usar otro Postgres, edita DATABASE_URL.
-# Cambia siempre JWT_ACCESS_SECRET y JWT_REFRESH_SECRET.
-
-# 4. Levantar Postgres local (opcional si ya tienes uno corriendo)
-# El monorepo expone solo Postgres vía docker-compose; backend y
-# frontend NO se levantan con docker compose, sólo la DB.
-docker compose up -d postgres   # desde la raíz del monorepo
-
-# 5. Migraciones + build + seed + arrancar
-# `pnpm run build` es obligatorio antes del seed porque el seed se
-# ejecuta como `node dist/prisma/seed.js` para que la imagen de
-# producción (que no embarca ts-node) también pueda correr el seed.
-pnpm exec prisma generate
-pnpm exec prisma migrate dev
-pnpm run build
-pnpm exec prisma db seed
-pnpm run start:dev
+pnpm dev:up      # equivalente a: node scripts/dev-up.mjs
 ```
 
 Listo en `http://localhost:3000`. Documentación interactiva en `http://localhost:3000/docs`.
+
+El script funciona en **Windows, macOS y Linux** sin shell-específico.
+
+<details>
+<summary><strong>¿Qué hace <code>dev:up</code>?</strong></summary>
+
+1. Verifica `docker`, `pnpm` y Node ≥ 20 en el PATH.
+2. Crea `.env` desde `.env.example` si no existe.
+3. Arranca Postgres (`docker compose up -d postgres`) y espera a `pg_isready`.
+4. `pnpm install --frozen-lockfile` (sólo si `pnpm-lock.yaml` cambió).
+5. `pnpm exec prisma generate` + `pnpm exec prisma migrate deploy`.
+6. `pnpm run build` + `pnpm exec prisma db seed` (el seed se ejecuta contra `dist/prisma/seed.js`).
+7. `pnpm run start:dev` (Ctrl-C lo detiene limpiamente).
+
+Flags útiles: `--skip-seed`, `--skip-build`, `--dev` (usa `migrate dev`), `--no-server` (sale tras el seed).
+
+</details>
+
+<details>
+<summary><strong>Pasos manuales (sin <code>dev:up</code>)</strong></summary>
+
+Si necesitas debuggear un paso individual:
+
+```bash
+cp .env.example .env                     # editar JWT_*_SECRET
+docker compose up -d postgres            # desde la raíz del monorepo
+pnpm install
+pnpm exec prisma generate
+pnpm exec prisma migrate dev
+pnpm run build                           # obligatorio antes del seed
+pnpm exec prisma db seed                 # corre node dist/prisma/seed.js
+pnpm run start:dev
+```
+
+</details>
 
 ---
 
