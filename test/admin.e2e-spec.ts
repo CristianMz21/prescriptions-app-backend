@@ -213,9 +213,9 @@ describe('Admin Endpoints (e2e)', () => {
       expect(res.body.byStatus).toHaveProperty('consumed');
     });
 
-    it('should apply from/to date filters', async () => {
+    it('should apply fromDate/toDate filters', async () => {
       const res = await request(app.getHttpServer())
-        .get('/admin/metrics?from=2026-01-01&to=2026-12-31')
+        .get('/admin/metrics?fromDate=2026-01-01&toDate=2026-12-31')
         .set('Cookie', adminCookie)
         .expect(200);
 
@@ -246,7 +246,7 @@ describe('Admin Endpoints (e2e)', () => {
 
     it('should return 400 for invalid date format', async () => {
       const _res = await request(app.getHttpServer())
-        .get('/admin/metrics?from=not-a-date')
+        .get('/admin/metrics?fromDate=not-a-date')
         .set('Cookie', adminCookie)
         .expect(400);
       expect(_res.status).toBe(400);
@@ -254,7 +254,7 @@ describe('Admin Endpoints (e2e)', () => {
 
     it('should return 400 for invalid to date format', async () => {
       const _res = await request(app.getHttpServer())
-        .get('/admin/metrics?to=invalid')
+        .get('/admin/metrics?toDate=invalid')
         .set('Cookie', adminCookie)
         .expect(400);
       expect(_res.status).toBe(400);
