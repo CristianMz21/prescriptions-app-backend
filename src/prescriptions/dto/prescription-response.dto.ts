@@ -179,6 +179,16 @@ export class PrescriptionResponseDto {
   })
   consumedAt?: Date;
 
+  @ApiPropertyOptional({
+    description:
+      'Optional date past which the prescription is considered invalid.',
+    example: '2026-09-15T00:00:00.000Z',
+    type: String,
+    format: 'date-time',
+    nullable: true,
+  })
+  expiryDate?: Date;
+
   @ApiProperty({
     description: 'Author (Doctor) unique identifier',
     example: EXAMPLE_UUID,
