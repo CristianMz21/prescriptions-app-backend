@@ -14,9 +14,17 @@ pnpm install
 
 # 3. Configurar .env
 cp .env.example .env
-# Editar DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, SEED_DEFAULT_PASSWORD
+# Los valores por defecto del .env.example apuntan a Postgres en
+# localhost:5433 (el binding del docker-compose.yml de la raíz del
+# monorepo). Si vas a usar otro Postgres, edita DATABASE_URL.
+# Cambia siempre JWT_ACCESS_SECRET y JWT_REFRESH_SECRET.
 
-# 4. Levantar
+# 4. Levantar Postgres local (opcional si ya tienes uno corriendo)
+# El monorepo expone solo Postgres vía docker-compose; backend y
+# frontend NO se levantan con docker compose, sólo la DB.
+docker compose up -d postgres   # desde la raíz del monorepo
+
+# 5. Migraciones + seed + arrancar
 pnpm exec prisma generate
 pnpm exec prisma migrate dev
 pnpm exec prisma db seed

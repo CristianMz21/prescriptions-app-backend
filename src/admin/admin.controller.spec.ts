@@ -54,13 +54,13 @@ describe('AdminController', () => {
   });
 
   describe('getMetrics', () => {
-    it('should call adminService.getDashboardMetricsFiltered with from/to params', async () => {
+    it('should call adminService.getDashboardMetricsFiltered with fromDate/toDate params', async () => {
       const mockMetrics = emptyFilteredMetrics();
       adminService.getDashboardMetricsFiltered.mockResolvedValue(mockMetrics);
 
       const result = await controller.getMetrics({
-        from: '2026-01-01',
-        to: '2026-01-31',
+        fromDate: '2026-01-01',
+        toDate: '2026-01-31',
       });
 
       expect(adminService.getDashboardMetricsFiltered).toHaveBeenCalledWith(

@@ -85,8 +85,8 @@ export class AdminController {
     @Query() metricsDto: AdminMetricsDto,
   ): ReturnType<AdminService['getDashboardMetricsFiltered']> {
     return this.adminService.getDashboardMetricsFiltered(
-      metricsDto.from,
-      metricsDto.to,
+      metricsDto.fromDate,
+      metricsDto.toDate,
     );
   }
 

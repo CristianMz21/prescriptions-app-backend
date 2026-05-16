@@ -10,7 +10,7 @@ export class AdminMetricsDto {
   })
   @IsOptional()
   @IsDateString()
-  from?: string;
+  fromDate?: string;
 
   @ApiPropertyOptional({
     description: 'End date for filtering metrics (ISO 8601 date string)',
@@ -19,5 +19,5 @@ export class AdminMetricsDto {
   })
   @IsOptional()
   @IsDateString()
-  to?: string;
+  toDate?: string;
 }

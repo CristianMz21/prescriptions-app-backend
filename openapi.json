@@ -1739,7 +1739,7 @@
         "operationId": "Admin_getMetrics",
         "parameters": [
           {
-            "name": "from",
+            "name": "fromDate",
             "required": false,
             "in": "query",
             "description": "Start date for filtering metrics (ISO 8601 date string)",
@@ -1750,7 +1750,7 @@
             }
           },
           {
-            "name": "to",
+            "name": "toDate",
             "required": false,
             "in": "query",
             "description": "End date for filtering metrics (ISO 8601 date string)",
