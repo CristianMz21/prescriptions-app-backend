@@ -132,6 +132,11 @@ jobs:
         run: pnpm exec puppeteer browsers install chrome
       - run: pnpm exec prisma migrate deploy
       - run: pnpm run prisma:seed
+      - name: QA seed smoke (acceptance checklist item #9)
+        # Guards the seed contract: 4 fixed users with correct roles,
+        # ≥70 prescriptions, ≥6 generated doctors, ≥24 generated
+        # patients. Exits non-zero on drift.
+        run: pnpm run qa:seed-smoke
       - name: Prepare report directories
         run: mkdir -p reports
       - name: Run E2E tests
